@@ -1,0 +1,1284 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Portal v3.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        if (window.location.protocol.startsWith('http')) {
+            const mLink = document.createElement('link');
+            mLink.rel = 'manifest';
+            mLink.href = 'manifest.json';
+            document.head.appendChild(mLink);
+        }
+    </script>
+    <meta name="theme-color" content="#0e254f">
+    <link rel="apple-touch-icon" href="logo.png">
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- ADMIN LOGIN OVERLAY -->
+<div id="admin-auth-overlay" class="admin-auth-overlay">
+    <div class="admin-auth-box">
+        <div style="text-align:center; margin-bottom:1rem;"><img src="bms-logo.png" style="max-height:160px; width:auto;" alt="Rabbit Bathware"></div>
+        <h2 style="display:none;">Admin Security</h2>
+        <p>Enter the master password to access the panel.</p>
+        <div class="form-group" style="text-align:left; margin-bottom:1rem;">
+            <input type="password" id="admin-login-pwd" placeholder="Enter password..." class="pin-input-group" onkeypress="if(event.key === 'Enter') checkAdminLogin()">
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="checkAdminLogin()">Unlock Panel</button>
+    </div>
+</div>
+
+<div class="app-container" id="main-app-container" style="display:none;">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="document.querySelector('.sidebar').classList.remove('open'); this.classList.remove('active');"></div>
+
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <div style="display:flex; align-items:center;">
+                <div style="margin-right:0.5rem; background: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; display: flex; align-items: center;"><img src="bms-logo.png" style="height:30px;" alt="Rabbit Bathware"></div>
+                <h2 style="display:none;">BMS <span>Portal</span></h2>
+            </div>
+            <button class="mobile-only-btn" onclick="document.querySelector('.sidebar').classList.remove('open')" style="background:none; border:none; font-size:1.5rem; color:#fff; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <nav class="nav-menu">
+            <button class="nav-item active" data-tab="dashboard-tab"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+            <button class="nav-item" data-tab="stock-tab"><i class="fa-solid fa-warehouse"></i> Stock & Inventory</button>
+            <button class="nav-item" data-tab="merchants-tab"><i class="fa-solid fa-users"></i> Party Details</button>
+            <button class="nav-item" data-tab="new-order-tab"><i class="fa-solid fa-file-invoice-dollar"></i> New Order</button>
+            <button class="nav-item" data-tab="orders-tab"><i class="fa-solid fa-truck-ramp-box"></i> Orders &amp; Dispatch</button>
+            <button class="nav-item" data-tab="offers-tab"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> Special Offers</button>
+            <button class="nav-item" data-tab="ledger-tab" style="display:none;"><i class="fa-solid fa-book-bookmark"></i> Accounts Ledger</button>
+            <button class="nav-item" data-tab="settings-tab"><i class="fa-solid fa-gear"></i> Settings</button>
+        </nav>
+        <div class="sidebar-footer">
+            <p>System Version 3.0.0 (Staff View)</p>
+            <p class="status-indicator"><span class="dot green"></span> Offline Ready</p>
+            <button class="btn" style="width:100%; margin-top:0.75rem; color:#fca5a5; border:1px solid rgba(252,165,165,0.4); font-size:0.8rem; background:transparent; cursor:pointer;" onclick="adminLogout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Lock / Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="top-nav">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <button class="mobile-only-btn" onclick="document.querySelector('.sidebar').classList.add('open'); document.getElementById('sidebar-backdrop').classList.add('active');" style="background:none; border:none; font-size:1.4rem; color:#0e254f; cursor:pointer; padding:0.2rem;"><i class="fa-solid fa-bars"></i></button>
+                <h1 id="active-tab-title">Staff Dashboard</h1>
+            </div>
+            <div class="top-actions">
+                <select id="fin-year-filter" style="width: auto; padding:0.4rem; border-radius:4px; font-weight:600; border:1px solid #cbd5e1; outline:none;" onchange="onYearChange()">
+                    <option value="all">All Years (બધા વર્ષો)</option>
+                    <option value="2024-25">2024-25</option>
+                    <option value="2025-26">2025-26</option>
+                    <option value="2026-27" selected>2026-27</option>
+                    <option value="2027-28">2027-28</option>
+                </select>
+                <div style="display:flex; gap:0.75rem; align-items:center;">
+                    <div style="background:#f1f5f9; padding:0.4rem 0.75rem; border-radius:6px; border:1px solid #cbd5e1; font-size:0.85rem; color:#475569; display:flex; align-items:center; gap:0.4rem; white-space:nowrap;"><i class="fa-regular fa-calendar"></i> <span id="current-date-only"></span></div>
+                    <div style="background:#f1f5f9; padding:0.4rem 0.75rem; border-radius:6px; border:1px solid #cbd5e1; font-size:0.85rem; color:#475569; display:flex; align-items:center; gap:0.4rem; white-space:nowrap; font-variant-numeric:tabular-nums; min-width:105px; justify-content:center;"><i class="fa-solid fa-clock"></i> <span id="current-time-only"></span></div>
+                </div>
+                <button class="btn" style="font-size:0.8rem; padding:0.4rem 0.75rem; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; font-weight:700; cursor:pointer;" onclick="adminLogout()" title="Logout and Lock Panel">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <div class="content-panels">
+
+            <!-- 1. DASHBOARD -->
+            <section id="dashboard-tab" class="tab-panel active">
+                <div class="metrics-grid">
+                    <div class="metric-card glow-blue">
+                        <div class="card-icon"><i class="fa-solid fa-cash-register"></i></div>
+                        <div class="card-info"><h3>Total Orders</h3><p id="metric-total-orders">0</p></div>
+                    </div>
+                    <div class="metric-card glow-green" style="display:none;">
+                        <div class="card-icon"><i class="fa-solid fa-building-columns"></i></div>
+                        <div class="card-info"><h3>Official (White Book)</h3><p id="metric-total-white">₹0</p></div>
+                    </div>
+                    <div class="metric-card glow-gold" style="display:none;">
+                        <div class="card-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                        <div class="card-info"><h3>Cash (Black Book)</h3><p id="metric-total-black">₹0</p></div>
+                    </div>
+                    <div class="metric-card glow-teal">
+                        <div class="card-icon"><i class="fa-solid fa-cubes"></i></div>
+                        <div class="card-info"><h3>Products in Stock</h3><p id="metric-total-stock">0</p></div>
+                    </div>
+                </div>
+                <div class="dashboard-layouts">
+                    <div class="card" style="display:none;">
+                        <h2 style="font-size:1rem; margin-bottom:1rem;">White vs Cash Book Split</h2>
+                        <div class="split-bar-container">
+                            <div class="split-bar">
+                                <div id="split-bar-white" class="bar-segment white-seg" style="width:50%;">Official 50%</div>
+                                <div id="split-bar-black" class="bar-segment black-seg" style="width:50%;">Cash 50%</div>
+                            </div>
+                        </div>
+                        <div class="chart-legend">
+                            <span><span class="legend-dot white-dot"></span> Official (White)</span>
+                            <span><span class="legend-dot black-dot"></span> Cash (Black)</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h2 style="font-size:1rem; margin-bottom:1rem;">Recent Activity</h2>
+                        <div id="recent-activities"><p class="placeholder-text">No recent orders.</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. STOCK -->
+            <section id="stock-tab" class="tab-panel">
+                <div class="panel-header-actions">
+                    <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="stock-search" placeholder="Search products..."></div>
+                </div>
+                <div class="category-tabs" id="stock-category-filters">
+                    <button class="cat-btn active" data-category="all">All Items</button>
+                    <button class="cat-btn" data-category="Ceramic Sanitary Ware">Ceramic</button>
+                    <button class="cat-btn" data-category="Steel Sink">Steel Sink</button>
+                    <button class="cat-btn" data-category="Handmade Sink">Handmade Sink</button>
+                    <button class="cat-btn" data-category="Designer Table Top">Table Top</button>
+                    <button class="cat-btn" data-category="Vanity Set">Vanity Set</button>
+                    <button class="cat-btn" data-category="Manhole Cover">Manhole Cover</button>
+                    <button class="cat-btn" data-category="Quartz Sink">Quartz Sink</button>
+                </div>
+                <div class="table-container card" style="padding:0;">
+                    <table class="data-table">
+                        <thead><tr>
+                            <th>Image</th><th>Model Name</th><th>Category</th><th>Grade</th><th>Colour</th>
+                            <th class="num-col">Stock</th><th class="num-col" style="display:none;">Base Price</th><th class="num-col" style="display:none;">Bill Rate</th><th class="num-col">Weight</th><th>Actions</th>
+                        </tr></thead>
+                        <tbody id="stock-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 3. MERCHANTS -->
+            <section id="merchants-tab" class="tab-panel">
+                <div class="panel-header-actions">
+                    <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="merchant-search" placeholder="Search merchants..." oninput="renderMerchantsGrid()"></div>
+                    <button class="btn btn-primary" onclick="openModal('add-merchant-modal')"><i class="fa-solid fa-user-plus"></i> Add Merchant</button>
+                </div>
+                <div class="merchants-grid-container" id="merchants-container"></div>
+            </section>
+
+            <!-- 4. NEW ORDER â€” Split Screen Catalog + Bill Sheet -->
+            <section id="new-order-tab" class="tab-panel">
+                <div class="card" style="margin-bottom:1rem;">
+                    <div class="form-row-three">
+                        <div class="form-group" style="z-index: 2500;">
+                            <label style="font-weight:700;">Select Merchant (ટાઈપ કરીને શોધો)</label>
+                            <div style="position:relative; width:100%;">
+                                <input type="text" id="order-merchant-search" placeholder="Search Party..." autocomplete="off" oninput="filterSearchableDropdown('order')" onfocus="openSearchableDropdown('order')" style="padding:0.45rem 0.75rem; border-radius:4px; border:1px solid #cbd5e1; font-size:0.85rem; width:100%; font-weight:600;">
+                                <input type="hidden" id="order-merchant-select" value="">
+                                <div id="order-merchant-dropdown-list" class="searchable-dropdown-list" style="display:none; position:absolute; top:calc(100% + 2px); left:0; width:100%; max-height:240px; overflow-y:auto; background:#ffffff; border:2px solid #0e254f; border-radius:0 0 6px 6px; box-shadow:0 10px 25px rgba(0,0,0,0.18); z-index:3500;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Order Date</label>
+                            <input type="date" id="order-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Performer No / Reference</label>
+                            <input type="text" id="order-performer-no" placeholder="e.g. PERF-101">
+                        </div>
+                    </div>
+                    <div style="margin-top:0.75rem; font-size:0.8rem; color:var(--text-muted);" id="order-merchant-rates-status">
+                        Select a merchant to load their custom pricing.
+                    </div>
+                </div>
+
+                <!-- Split Screen -->
+                <div class="order-split-layout">
+                    <!-- LEFT: Visual Catalog -->
+                    <div class="catalog-panel card">
+                        <div class="category-tabs" id="order-category-filters">
+                            <button class="cat-btn active" data-category="all">All Items</button>
+                        </div>
+                        <div class="catalog-items-grid" id="order-catalog-grid">
+                            <p class="placeholder-text">Select a merchant above to load product catalog.</p>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Bill Sheet -->
+                    <div class="card" style="padding:1rem; position: sticky; top: 1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                            <h3 style="font-size:0.9rem; font-weight:700;"><i class="fa-solid fa-file-invoice"></i> Bill Sheet</h3>
+                            <button class="btn btn-secondary" style="font-size:0.75rem; padding:0.3rem 0.6rem;" onclick="clearCurrentOrder()">Clear</button>
+                        </div>
+                        <div id="sheet-buyer-details" style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem; padding:0.5rem; border:1px dashed var(--border-color); border-radius:4px;">
+                            No merchant selected
+                        </div>
+
+                                                <div style="overflow-x:auto;">
+                            <table class="excel-table" style="font-size:0.72rem;">
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Model</th><th>Qty</th>
+                                        <th style="display:none;">Price</th><th style="display:none;">Bill Rate</th>
+                                        <th style="display:none;">Bill Amt</th><th style="display:none;">Cash Amt</th><th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="order-items-body">
+                                    <tr><td colspan="4" class="placeholder-text" style="padding:1rem;">Cart is empty</td></tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td colspan="2">TOTAL QTY</td>
+                                        <td id="total-qty" class="num-col">0</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr class="total-row" style="background:#f8fafc; font-size:0.8rem; color:#475569;">
+                                        <td colspan="2">TOTAL WEIGHT</td>
+                                        <td class="num-col"><span id="total-weight">0.00</span> kg</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div style="margin-top:0.75rem;">
+                            <label style="font-size:0.75rem; font-weight:600;">Remark:</label>
+                            <textarea id="order-remark" style="width:100%; height:50px; font-size:0.75rem; margin-top:0.25rem; padding:0.4rem; border:1px solid var(--border-color); border-radius:4px; resize:none;"></textarea>
+                        </div>
+
+                        <div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+                            <button class="btn btn-primary" style="flex:1;" onclick="submitOrder()">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Draft Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. ORDERS & DISPATCH -->
+            <section id="orders-tab" class="tab-panel">
+                <div class="panel-header-actions">
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="order-list-search" placeholder="Search by merchant or date..."></div>
+                        <select id="order-month-filter" style="padding:0.4rem; border-radius:4px; font-size:0.85rem; border:1px solid #cbd5e1; outline:none;" onchange="renderOrdersList()">
+                            <option value="all">All Months</option>
+                            <option value="0">January</option>
+                            <option value="1">February</option>
+                            <option value="2">March</option>
+                            <option value="3">April</option>
+                            <option value="4">May</option>
+                            <option value="5">June</option>
+                            <option value="6">July</option>
+                            <option value="7">August</option>
+                            <option value="8">September</option>
+                            <option value="9">October</option>
+                            <option value="10">November</option>
+                            <option value="11">December</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="filter-btn cat-btn active" data-status="all">All</button>
+                        <button class="filter-btn cat-btn" data-status="Pending">Pending</button>
+                        <button class="filter-btn cat-btn" data-status="Confirmed">Confirmed</button>
+                        <button class="filter-btn cat-btn" data-status="Dispatched">Dispatched</button>
+                        <button class="filter-btn cat-btn" data-status="Cancelled">Cancelled</button>
+                    </div>
+                </div>
+                <div class="orders-list-wrapper" id="orders-list-container"></div>
+            </section>
+
+            <!-- 6. LEDGER -->
+            <section id="ledger-tab" class="tab-panel">
+                <div class="card ledger-header">
+                    <div class="ledger-stats">
+                        <div class="ledger-stat-box"><span>Official White Book</span><h2 id="ledger-total-white">₹0</h2></div>
+                        <div class="vertical-divider"></div>
+                        <div class="ledger-stat-box"><span>Cash Black Book</span><h2 id="ledger-total-black">₹0</h2></div>
+                    </div>
+                    <div class="form-row-two" style="margin-top:1.5rem; border-top:1px solid var(--border-color); padding-top:1rem;">
+                        <div class="form-group">
+                            <label>Filter by Merchant</label>
+                            <select id="ledger-merchant-filter"><option value="all">All Merchants</option></select>
+                        </div>
+                        <div class="form-group" style="justify-content:flex-end; align-items:flex-end;">
+                            <button class="btn btn-success" onclick="openPaymentModal()" style="margin-right:1rem;"><i class="fa-solid fa-plus"></i> Add Payment</button>
+                            <button class="btn btn-secondary" onclick="exportLedgerCSV()"><i class="fa-solid fa-file-export"></i> Export CSV</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container card" style="padding:0;">
+                    <table class="data-table">
+                        <thead><tr>
+                            <th>Date</th><th>Merchant</th><th>Ref / Mode</th><th>Description</th>
+                            <th class="num-col" style="color:#ef4444;">Udhar (Debit)</th><th class="num-col" style="color:#10b981;">Jama (Credit)</th><th class="num-col">Balance</th><th>Status</th>
+                            <th>Action</th>
+                        </tr></thead>
+                        <tbody id="ledger-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 7. SETTINGS & BACKUP -->
+            <section id="settings-tab" class="tab-panel">
+                <div class="settings-grid">
+                    <div class="card">
+                        <h3><i class="fa-solid fa-building"></i> General Preferences</h3>
+                        <form onsubmit="saveSettings(event)" style="margin-top:1rem;">
+                            <div class="form-group" style="margin-bottom:0.75rem;"><label>Company Name</label><input type="text" id="setting-company-name"></div>
+                            <div class="form-group" style="margin-bottom:0.75rem;"><label>Admin WhatsApp Number</label><input type="text" id="setting-admin-wa"></div>
+                            <div class="form-row-two" style="margin-bottom:0.75rem;">
+                                <div class="form-group"><label>GST Rate (%)</label><input type="number" id="setting-gst-rate" step="0.1"></div>
+                                <div class="form-group"><label>Currency Symbol</label><input type="text" id="setting-currency-symbol"></div>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0.75rem;">
+                                <label>Admin Portal Password (Default: admin123)</label>
+                                <input type="password" id="setting-admin-pwd" placeholder="Enter new password">
+                            </div>
+                            <button class="btn btn-primary" type="submit" style="width:100%;">Save General Settings</button>
+                        </form>
+                    </div>
+                    
+                    <div class="card">
+                        <h3><i class="fa-solid fa-cloud"></i> Firebase Cloud Sync Config</h3>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Enter Firebase credentials to enable Realtime Cloud Sync.</p>
+                        <form onsubmit="saveFirebaseSettings(event)">
+                            <div class="form-group" style="margin-bottom:0.75rem;"><label>Firebase Config JSON</label>
+                                <textarea id="setting-firebase-json" placeholder='{ "apiKey": "...", "databaseURL": "...", "projectId": "..." }' style="width:100%; height:120px; font-family:monospace; font-size:0.75rem; padding:0.5rem; border:1px solid #cbd5e1; border-radius:4px;"></textarea>
+                            </div>
+                            <button class="btn btn-success" type="submit" style="width:100%;">Save Firebase Config & Connect</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-database"></i> Backup & Restore</h3>
+                        <div style="margin-top:1rem; display:flex; flex-direction:column; gap:1rem;">
+                            <button class="btn btn-primary" onclick="exportDataJSON()" style="width:100%;"><i class="fa-solid fa-download"></i> Download JSON Backup</button>
+                            <div style="border-top:1px dashed var(--border-color); padding-top:1rem;">
+                                <label style="font-size:0.75rem; font-weight:600; margin-bottom:0.25rem; display:block;">Restore from Backup (.json)</label>
+                                <input type="file" id="import-json-file" accept=".json" style="margin-bottom:0.5rem; font-size:0.8rem;">
+                                <button class="btn btn-danger" onclick="importDataJSON()" style="width:100%;"><i class="fa-solid fa-upload"></i> Restore Backup</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SPECIAL OFFERS CMS (Staff View) -->
+            <section id="offers-tab" class="tab-panel">
+                <div class="card" style="max-width: 1100px; margin: 0 auto;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0e254f; padding-bottom:0.75rem; margin-bottom:1.5rem; flex-wrap:wrap; gap:0.75rem;">
+                        <div>
+                            <h2 style="font-size:1.2rem; color:#0e254f; margin:0;"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> Special Offers &amp; Clearance (Staff View)</h2>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin:0.25rem 0 0 0;">View active discounted offer products, lot prices, and minimum quantity conditions.</p>
+                        </div>
+                    </div>
+
+                    <!-- Search and Stats Bar -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.75rem; background:#f8fafc; padding:0.6rem 0.8rem; border-radius:6px; border:1px solid #cbd5e1;">
+                        <div style="display:flex; align-items:center; gap:0.5rem; flex:1; min-width:250px;">
+                            <i class="fa-solid fa-magnifying-glass" style="color:#94a3b8;"></i>
+                            <input type="text" id="offers-search-input" placeholder="Search offers by model or category..." oninput="renderAdminOffersList()" style="width:100%; border:none; background:transparent; font-size:0.85rem; outline:none;">
+                        </div>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <span id="offers-stats-count" style="font-size:0.8rem; font-weight:700; color:#475569; background:#e2e8f0; padding:3px 10px; border-radius:12px;">0 Offers</span>
+                        </div>
+                    </div>
+
+                    <!-- Offers Table -->
+                    <div class="table-container" style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse;" id="admin-offers-table">
+                            <thead>
+                                <tr style="background:#0e254f; color:#fff; font-size:0.82rem; text-align:left;">
+                                    <th style="padding:0.6rem;">#</th>
+                                    <th style="padding:0.6rem;">Product / Model</th>
+                                    <th style="padding:0.6rem;">Category</th>
+                                    <th style="padding:0.6rem; text-align:center;">Min Qty (MOQ)</th>
+                                    <th style="padding:0.6rem; text-align:center;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-offers-tbody">
+                                <!-- Injected via renderAdminOffersList() -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<!-- PRINTABLE INVOICE AREA -->
+<div id="print-invoice-area" style="display:none;"></div>
+
+<!-- MODAL: ADD / EDIT SPECIAL OFFER -->
+<div id="offer-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header" style="background:#7f1d1d; color:#fff; border-bottom:none;">
+            <h2 id="offer-modal-title" style="color:#fff; font-size:1.1rem;"><i class="fa-solid fa-fire"></i> Add Special Offer Product</h2>
+            <button class="close-btn" style="color:#fff;" onclick="closeModal('offer-modal')">&times;</button>
+        </div>
+        <form id="offer-form" onsubmit="handleSaveOffer(event)" style="padding:1.25rem;">
+            <input type="hidden" id="offer-id">
+            
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label style="font-weight:700; font-size:0.82rem;">Select Product from Catalog</label>
+                <select id="offer-product-select" class="form-control" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px;" onchange="onOfferProductSelectChange()">
+                    <option value="">-- Choose Existing Product (Optional) --</option>
+                </select>
+            </div>
+
+            <div class="form-row-two" style="margin-bottom:0.75rem;">
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.82rem;">Model Name *</label>
+                    <input type="text" id="offer-model" required placeholder="Model Name" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.82rem;">Category *</label>
+                    <input type="text" id="offer-category" required placeholder="Category" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px;">
+                </div>
+            </div>
+
+            <div class="form-row-two" style="margin-bottom:0.75rem;">
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.82rem; color:#64748b;">Regular Price (₹)</label>
+                    <input type="number" id="offer-reg-price" step="0.01" placeholder="4200" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.82rem; color:#dc2626;">🔥 Offer Price (₹) *</label>
+                    <input type="number" id="offer-price" required step="0.01" placeholder="3200" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #fca5a5; background:#fef2f2; border-radius:4px; font-weight:700; color:#dc2626;">
+                </div>
+            </div>
+
+            <div class="form-row-two" style="margin-bottom:0.75rem;">
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.82rem;">Offer Bill Rate (₹)</label>
+                    <input type="number" id="offer-bill-rate" step="0.01" placeholder="1500" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.82rem; color:#b45309;">📦 Min Order Qty (MOQ) *</label>
+                    <input type="number" id="offer-min-qty" required min="1" value="10" placeholder="e.g. 10 pcs" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #fde68a; background:#fffbeb; border-radius:4px; font-weight:700; color:#b45309;">
+                    <small style="font-size:0.7rem; color:#64748b;">કમીમાં કમી આટલા નંગ ઉપાડવા જરૂરી છે</small>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label style="font-weight:700; font-size:0.82rem;">Offer Badge / Label</label>
+                <input type="text" id="offer-badge" placeholder="e.g. Clearance Sale, Flat 30% Off, Bulk Special" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label style="font-weight:700; font-size:0.82rem;">Offer Description / Terms</label>
+                <textarea id="offer-desc" rows="2" placeholder="e.g. Direct factory clearance. Available strictly for full lot dispatch." style="width:100%; padding:0.4rem; font-size:0.82rem; border:1px solid #cbd5e1; border-radius:4px; font-family:'Outfit',sans-serif;"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label style="display:inline-flex; align-items:center; gap:0.5rem; font-weight:600; font-size:0.85rem; cursor:pointer;">
+                    <input type="checkbox" id="offer-active" checked style="width:16px; height:16px; accent-color:#16a34a; cursor:pointer;">
+                    Active Offer (Show on Dealer Portal)
+                </label>
+            </div>
+
+            <div class="modal-footer" style="padding:0.75rem 0 0 0; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:0.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('offer-modal')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="background:#dc2626; border-color:#dc2626; font-weight:700;">Save Offer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: ADD PAYMENT -->
+<div id="add-payment-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header"><h2>Record Payment (Jama)</h2><button class="close-btn" onclick="closeModal('add-payment-modal')">&times;</button></div>
+        <form id="add-payment-form" onsubmit="savePaymentEntry(event)">
+            <div class="form-group">
+                <label>Merchant / Party</label>
+                <select id="payment-merchant-id" required></select>
+            </div>
+            <div class="form-group">
+                <label>Book / Account</label>
+                <select id="payment-book" required>
+                    <option value="white">White Book (Official)</option>
+                    <option value="black">Black Book (Cash)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Payment Mode</label>
+                <select id="payment-mode" required>
+                    <option value="Cash">Cash</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="RTGS/NEFT">RTGS / NEFT</option>
+                    <option value="UPI">UPI / Online</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="payment-amount" min="1" step="any" placeholder="Enter amount received" required>
+            </div>
+            <div class="form-group">
+                <label>Reference / Note</label>
+                <input type="text" id="payment-ref" placeholder="Cheque no, transaction ID, etc.">
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="payment-date" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('add-payment-modal')">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> Save Payment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: ADD PRODUCT -->
+<div id="add-stock-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header"><h2 id="add-stock-modal-title">Add New Product</h2><button class="close-btn" onclick="closeModal('add-stock-modal')">&times;</button></div>
+        <form id="add-stock-form" onsubmit="handleNewProduct(event)">
+            <input type="hidden" id="edit-stock-id">
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label>Model Name</label>
+                <input type="text" id="stock-model" required placeholder="e.g. ONE PIECE">
+            </div>
+            <div class="form-row-two" style="margin-bottom:0.75rem;">
+                <div class="form-group">
+                    <label>Main Category</label>
+                    <select id="stock-category" required onchange="onStockCategoryChange()">
+                        <!-- Dynamically filled -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sub-Category</label>
+                    <select id="stock-subcategory">
+                        <!-- Dynamically filled -->
+                    </select>
+                </div>
+            </div>
+            <div class="form-row-two" style="margin-bottom:0.75rem;">
+                <div class="form-group"><label>Grade</label><input type="text" id="stock-grade" required placeholder="e.g. ROK, 304"></div>
+                <div class="form-group"><label>Colour</label><input type="text" id="stock-colour" required placeholder="e.g. White"></div>
+            </div>
+            <div class="form-row-three" style="margin-bottom:0.75rem;">
+                <div class="form-group"><label>Stock Qty</label><input type="number" id="stock-qty" required value="0"></div>
+                <div class="form-group"><label>Base Price (₹)</label><input type="number" id="stock-price" required step="0.01"></div>
+                <div class="form-group"><label>Base Bill Rate (₹)</label><input type="number" id="stock-bill-rate" required step="0.01"></div>
+                <div class="form-group"><label>Weight (kg)</label><input type="number" id="stock-weight" step="0.01" placeholder="e.g. 15.5"></div>
+            </div>
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Availability Mode (સ્ટોક પ્રકાર)</label>
+                <select id="stock-availability-mode" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-weight:600; font-size:0.85rem;">
+                    <option value="stock">✅ Ready Stock (હાલમાં સ્ટોકમાં ઉપલબ્ધ)</option>
+                    <option value="order">📦 As Per Order (ઓર્ડર મુજબ તૈયાર થશે)</option>
+                </select>
+                <small style="font-size:0.7rem; color:#64748b;">'As Per Order' સેટ કરવાથી ડીલર 0 સ્ટોક હોય તો પણ ઓર્ડર આપી શકશે.</small>
+            </div>
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label>Product Images (Up to 3 Photos)</label>
+                <input type="file" id="stock-images-input" accept="image/*" multiple>
+                <small style="color:var(--text-muted); font-size:0.72rem;">You can select 2-3 photos at once (Front view, Side view, etc.)</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('add-stock-modal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Product</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: VIEW & EDIT PARTY DETAILS (UNIFIED: PROFILE, RATES & PIN) -->
+<div id="party-details-modal" class="modal-overlay" style="align-items:center; justify-content:center; overflow-y:auto; padding:0.5rem;" onclick="if(event.target===this) closeModal('party-details-modal')">
+    <div class="modal-content" style="max-width: 1100px; width: 96vw; height: 92vh; max-height: 94vh; display: flex; flex-direction: column; padding: 0.75rem 1.25rem; box-sizing: border-box; overflow: hidden; margin: auto;">
+        
+        <!-- Header -->
+        <div class="modal-header" style="flex-shrink:0; margin-bottom:0.5rem; border-bottom:2px solid #0e254f; padding-bottom:0.4rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h2 style="font-size:1.15rem; color:#0e254f; margin:0; display:flex; align-items:center; gap:0.5rem;">
+                    <i class="fa-solid fa-users-gear" style="color:#2563eb;"></i> 
+                    Party Manager — <span id="party-modal-name-header">Party Details</span>
+                </h2>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin:0.15rem 0 0 0;" id="party-modal-subtitle">Manage Profile, Custom Rates & Security PIN in one unified view</p>
+            </div>
+            <button type="button" class="close-btn" onclick="closeModal('party-details-modal')" title="Close (Esc)" style="font-size:1.75rem; line-height:1; cursor:pointer; background:none; border:none; color:#64748b;">&times;</button>
+        </div>
+
+        <!-- Unified Top Navigation Tabs -->
+        <div style="display:flex; gap:0.35rem; margin-bottom:0.6rem; border-bottom:1px solid #cbd5e1; padding-bottom:0.4rem; flex-shrink:0; overflow-x:auto;">
+            <button type="button" id="ptab-btn-profile" class="btn" style="padding:0.45rem 0.9rem; font-size:0.83rem; font-weight:700; border-radius:6px; background:#0e254f; color:#fff;" onclick="switchPartyModalTab('profile')">
+                <i class="fa-solid fa-id-card"></i> 1. Party Profile
+            </button>
+            <button type="button" id="ptab-btn-rates" class="btn btn-outline" style="padding:0.45rem 0.9rem; font-size:0.83rem; font-weight:700; border-radius:6px; background:#f8fafc; color:#1e40af; border:1px solid #bfdbfe;" onclick="switchPartyModalTab('rates')">
+                <i class="fa-solid fa-sliders"></i> 2. Configure Rates <span id="pmodal-rate-badge" style="font-size:0.7rem; background:#2563eb; color:#fff; padding:1px 6px; border-radius:10px; margin-left:3px;"></span>
+            </button>
+            <button type="button" id="ptab-btn-pin" class="btn btn-outline" style="padding:0.45rem 0.9rem; font-size:0.83rem; font-weight:700; border-radius:6px; background:#f8fafc; color:#b45309; border:1px solid #fde68a;" onclick="switchPartyModalTab('pin')">
+                <i class="fa-solid fa-key"></i> 3. Security PIN
+            </button>
+            <button type="button" id="party-modal-ledger-btn" class="btn btn-secondary" style="padding:0.45rem 0.85rem; font-size:0.83rem; font-weight:600; border-radius:6px; margin-left:auto; background:#f1f5f9; color:#0f766e; border:1px solid #99f6e4;" onclick="jumpToPartyLedger()">
+                <i class="fa-solid fa-book-bookmark"></i> View Ledger
+            </button>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB PANE 1: PARTY PROFILE & BUSINESS DETAILS   -->
+        <!-- ============================================== -->
+        <div id="ptab-pane-profile" style="flex:1; overflow-y:auto; padding-right:0.35rem;">
+            <!-- Mini Stats Summary -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:0.5rem; margin-bottom:1rem; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:0.75rem;">
+                <div>
+                    <span style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:700;">Dealer UID</span>
+                    <div style="font-size:1.05rem; font-weight:800; color:#0e254f;" id="pdetail-uid">---</div>
+                </div>
+                <div>
+                    <span style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:700;">Total Orders</span>
+                    <div style="font-size:1.05rem; font-weight:800; color:#0e254f;" id="pdetail-orders-count">0</div>
+                </div>
+                <div>
+                    <span style="font-size:0.7rem; color:#16a34a; text-transform:uppercase; font-weight:700;">Official Ledger</span>
+                    <div style="font-size:1.05rem; font-weight:800; color:#16a34a;" id="pdetail-white-balance">₹0</div>
+                </div>
+                <div>
+                    <span style="font-size:0.7rem; color:#d97706; text-transform:uppercase; font-weight:700;">Cash Ledger</span>
+                    <div style="font-size:1.05rem; font-weight:800; color:#d97706;" id="pdetail-black-balance">₹0</div>
+                </div>
+            </div>
+
+            <form id="party-details-form" onsubmit="savePartyDetails(event)">
+                <input type="hidden" id="pdetail-id">
+
+                <div class="form-row-two" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">Firm / Business Name *</label>
+                        <input type="text" id="pdetail-name" required placeholder="e.g. Mehta Sanitary">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">Owner / Contact Person</label>
+                        <input type="text" id="pdetail-owner" placeholder="e.g. Rajeshbhai Mehta">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.8rem;">Address / Location *</label>
+                    <input type="text" id="pdetail-address" required placeholder="e.g. Morbi Road, Rajkot, Gujarat">
+                </div>
+
+                <div class="form-row-two" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">City / Town</label>
+                        <input type="text" id="pdetail-city" placeholder="e.g. Rajkot">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">Area PIN Code</label>
+                        <input type="text" id="pdetail-pincode" maxlength="6" placeholder="e.g. 360003">
+                    </div>
+                </div>
+
+                <div class="form-row-two" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">WhatsApp Number (with Country Code) *</label>
+                        <input type="text" id="pdetail-phone" required placeholder="e.g. 919876543210">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">Calling Number</label>
+                        <input type="text" id="pdetail-calling-phone" placeholder="e.g. 919876543210">
+                    </div>
+                </div>
+
+                <div class="form-row-two" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">GST Number</label>
+                        <input type="text" id="pdetail-gst" placeholder="e.g. 24AAAAA0000A1Z5" style="text-transform:uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">Default Discount / Markup (%)</label>
+                        <input type="number" id="pdetail-discount" step="0.1" placeholder="e.g. -10 for discount, +5 for markup">
+                    </div>
+                </div>
+
+                <div class="form-row-two" style="margin-bottom:0.75rem;">
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">Credit Terms / Days (બાકી પેમેન્ટ મુદત)</label>
+                        <input type="number" id="pdetail-credit-days" min="0" max="365" placeholder="e.g. 30 days">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:700; font-size:0.8rem;">Order Cycle / Follow-up (ઓર્ડર સમયગાળો)</label>
+                        <select id="pdetail-order-cycle" style="padding:0.4rem; border-radius:4px; font-size:0.82rem; font-weight:600;">
+                            <option value="10">10 Days (Frequent Orders)</option>
+                            <option value="15" selected>15 Days (Regular Dealer)</option>
+                            <option value="30">30 Days (Monthly Order)</option>
+                            <option value="45">45 Days (Bi-Monthly)</option>
+                            <option value="60">60 Days (Quarterly Order)</option>
+                            <option value="90">90 Days (Seasonal / Project)</option>
+                            <option value="0">0 - Project Only (No Auto Follow-up Alert)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:0.75rem; margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.82rem; color:#0e254f; display:block; margin-bottom:0.4rem;">
+                        <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i> Allowed Quality Grades (આ પાર્ટીને કયા ગ્રેડ દેખાડવા?)
+                    </label>
+                    <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.85rem; font-weight:600; cursor:pointer;">
+                            <input type="checkbox" id="pdetail-grade-premium" checked disabled style="accent-color:#2563eb;"> ⭐ Premium (ડિફૉલ્ટ)
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.85rem; font-weight:600; cursor:pointer;">
+                            <input type="checkbox" id="pdetail-grade-rok" style="accent-color:#16a34a;"> 🔹 ROK (સ્ટાન્ડર્ડ)
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.85rem; font-weight:600; cursor:pointer;">
+                            <input type="checkbox" id="pdetail-grade-std" style="accent-color:#d97706;"> 🔸 STD (પ્રોજેક્ટ લૉટ)
+                        </label>
+                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.85rem; font-weight:600; cursor:pointer;">
+                            <input type="checkbox" id="pdetail-grade-commercial" style="accent-color:#dc2626;"> 🔻 Commercial (કોમર્શિયલ)
+                        </label>
+                    </div>
+                </div>
+
+                <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:0.75rem; margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.82rem; color:#0e254f; display:block; margin-bottom:0.4rem;">
+                        <i class="fa-solid fa-lock" style="color:#d97706;"></i> Private Category Access (આ પાર્ટીને કઈ ખાનગી કેટેગરીઝ બતાવવી?)
+                    </label>
+                    <div id="pdetail-private-cats-container" style="display:flex; gap:0.55rem; flex-wrap:wrap;">
+                        <!-- Dynamically populated in openPartyDetailsModal -->
+                    </div>
+                </div>
+
+                <div style="background:#f1f5f9; border-radius:6px; padding:0.75rem; margin-bottom:1rem;">
+                    <div class="form-group" style="margin-bottom:0.6rem;">
+                        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:700; font-size:0.85rem; color:#dc2626;">
+                            <input type="checkbox" id="pdetail-allow-offers" style="width:16px; height:16px; accent-color:#dc2626; cursor:pointer;">
+                            <span><i class="fa-solid fa-fire"></i> Allow Special Offers Access (Party Offer Access)</span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.5rem;">
+                        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.85rem; color:#16a34a;">
+                            <input type="checkbox" id="pdetail-hide-amount" style="width:16px; height:16px; accent-color:#16a34a; cursor:pointer;">
+                            Bill Amount = Base Price (No Cash Split)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.85rem; color:#2563eb;">
+                            <input type="checkbox" id="pdetail-hide-totals" style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer;">
+                            Hide Order Totals on Dealer Portal (Show Only Items &amp; Rates)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #cbd5e1; padding-top:0.75rem; margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('party-details-modal')">Close</button>
+                    <button type="submit" class="btn btn-success" style="font-weight:700; padding:0.5rem 1.25rem;"><i class="fa-solid fa-floppy-disk"></i> Save Profile Details</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB PANE 2: CONFIGURE PARTY CUSTOM RATES       -->
+        <!-- ============================================== -->
+        <div id="ptab-pane-rates" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+            <div id="rate-modal-perf-banner" style="margin:0 0 0.35rem 0; padding:0.35rem 0.75rem; border-radius:6px; font-size:0.78rem; background:#f8fafc; border:1px solid #cbd5e1; display:none; flex-shrink:0;"></div>
+            
+            <div class="rate-config-actions" style="margin-bottom:0.45rem; flex-shrink:0; padding:0.35rem 0.75rem; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.6rem; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px;">
+                <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:0.35rem;">
+                        <label for="rate-global-adj" style="font-size:0.78rem; font-weight:700; white-space:nowrap; color:#1e293b;" title="Applies to all products where no specific override is set">Global Adj (%):</label>
+                        <div style="display:flex; gap:0.25rem;">
+                            <input type="number" id="rate-global-adj" step="0.1" placeholder="e.g. -10" style="width:80px; padding:0.25rem 0.45rem; font-size:0.8rem; border:1px solid #cbd5e1; border-radius:4px; height:28px;">
+                            <button type="button" class="btn btn-primary" onclick="applyGlobalAdjustment()" style="padding:0.2rem 0.65rem; font-size:0.78rem; height:28px;">Apply</button>
+                        </div>
+                    </div>
+                    <label style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.78rem; font-weight:600; cursor:pointer; color:#16a34a;">
+                        <input type="checkbox" id="rate-hide-amount" style="width:15px; height:15px; accent-color:#16a34a; cursor:pointer;" onchange="applyHideAmount()"> Full Bill (No Cash Split)
+                    </label>
+                    <label style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.78rem; font-weight:600; cursor:pointer; color:#2563eb;">
+                        <input type="checkbox" id="rate-hide-totals" style="width:15px; height:15px; accent-color:#2563eb; cursor:pointer;" onchange="applyHideTotals()"> Hide Totals
+                    </label>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <div style="position:relative; width:220px;">
+                        <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.75rem;"></i>
+                        <input type="text" id="rate-modal-search" placeholder="Search model or category..." oninput="filterRateModalProducts()" style="width:100%; padding:0.25rem 0.45rem 0.25rem 1.7rem; font-size:0.8rem; border:1px solid #cbd5e1; border-radius:4px; height:28px; box-sizing:border-box;">
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="clearRateModalSearch()" title="Clear filter" style="padding:0.2rem 0.5rem; font-size:0.78rem; height:28px;"><i class="fa-solid fa-xmark"></i></button>
+                    <span id="rate-modal-item-count" style="font-size:0.75rem; font-weight:700; color:#475569; background:#e2e8f0; padding:2px 8px; border-radius:12px;"></span>
+                </div>
+            </div>
+
+            <!-- Product Rates Table -->
+            <div style="flex:1; overflow-y:auto; border:1px solid #cbd5e1; border-radius:6px; min-height:180px;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.82rem;">
+                    <thead style="position:sticky; top:0; background:#f1f5f9; z-index:2; box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+                        <tr>
+                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; text-align:left;">Model / Category</th>
+                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:85px;">Price</th>
+                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:85px;">Bill Rate</th>
+                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:135px;">Custom Price (₹)</th>
+                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:135px;">Custom Bill Rate (₹)</th>
+                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:70px; text-align:center;">Reset</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rate-config-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer" style="margin-top:0.4rem; padding-top:0.4rem; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+                <span style="font-size:0.75rem; color:#64748b;"><i class="fa-solid fa-circle-info"></i> Specific rate overrides will take priority over Global %</span>
+                <button type="button" class="btn btn-primary" onclick="saveMerchantRates()" style="font-weight:700; padding:0.45rem 1.25rem; font-size:0.85rem;"><i class="fa-solid fa-check"></i> Save Item Rates</button>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB PANE 3: SECURITY PIN MANAGEMENT            -->
+        <!-- ============================================== -->
+        <div id="ptab-pane-pin" style="display:none; flex:1; overflow-y:auto; padding:1.5rem 0.5rem; max-width:500px; margin:auto; width:100%;">
+            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1.5rem; text-align:center;">
+                <div style="width:50px; height:50px; background:#fef3c7; color:#d97706; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin:0 auto 1rem auto;">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <h3 style="margin:0 0 0.4rem 0; color:#0e254f;">Dealer Security PIN</h3>
+                <p style="font-size:0.8rem; color:#64748b; margin:0 0 1.25rem 0;">This 4-digit PIN is required for this dealer to login to their portal.</p>
+
+                <div style="margin-bottom:1.25rem;">
+                    <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; color:#334155;">New 4-Digit Security PIN</label>
+                    <input type="text" id="pmodal-edit-pin" maxlength="4" placeholder="1234" style="width:160px; height:45px; font-size:1.5rem; text-align:center; font-weight:800; letter-spacing:6px; border:2px solid #2563eb; border-radius:6px; margin:auto;">
+                </div>
+
+                <div style="display:flex; gap:0.5rem; justify-content:center; margin-bottom:1rem;">
+                    <button type="button" class="btn btn-primary" onclick="savePartyModalPin()" style="padding:0.6rem 1.5rem; font-weight:700; font-size:0.9rem;">
+                        <i class="fa-solid fa-check"></i> Update Security PIN
+                    </button>
+                </div>
+
+                <hr style="border:0; border-top:1px dashed #cbd5e1; margin:1.25rem 0;">
+
+                <button type="button" class="btn btn-secondary" onclick="copyDealerLinkFromModal()" style="width:100%; padding:0.5rem; font-size:0.85rem;">
+                    <i class="fa-solid fa-link"></i> Copy Dealer Portal Link with PIN
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- MODAL: ADD MERCHANT -->
+<div id="add-merchant-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header"><h2>Add New Merchant</h2><button class="close-btn" onclick="closeModal('add-merchant-modal')">&times;</button></div>
+        <form id="add-merchant-form" onsubmit="handleNewMerchant(event)">
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label>Merchant / Business Name</label>
+                <input type="text" id="merchant-name" required placeholder="e.g. Mehta Sanitary">
+            </div>
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label>Address</label>
+                <input type="text" id="merchant-address" required placeholder="e.g. Morbi Road, Rajkot">
+            </div>
+            <div class="form-row-two" style="margin-bottom:0.75rem;">
+                <div class="form-group">
+                    <label>WhatsApp No (with Country Code)</label>
+                    <input type="text" id="merchant-phone" required placeholder="e.g. 919876543210">
+                </div>
+                <div class="form-group">
+                    <label>Default Discount/Markup (%)</label>
+                    <input type="number" id="merchant-discount" value="0" step="0.1" placeholder="e.g. -10">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label>Dealer Security PIN (4 Digits)</label>
+                <input type="password" id="merchant-pin" maxlength="4" placeholder="e.g. 1234">
+            </div>
+            <div class="form-group" style="margin-bottom:0.5rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:#16a34a;">
+                    <input type="checkbox" id="merchant-hide-amount" style="width:18px; height:18px; accent-color:#16a34a; cursor:pointer;" onchange="onFullBillChange(true)">
+                    Bill Amount = Base Price (No Cash)
+                </label>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:#2563eb;">
+                    <input type="checkbox" id="merchant-hide-totals" style="width:18px; height:18px; accent-color:#2563eb; cursor:pointer;">
+                    Hide Order Totals (Show Only Items & Rates)
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('add-merchant-modal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Merchant</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: SET PIN FOR MERCHANT -->
+<div id="set-pin-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header"><h2>Set Dealer PIN â€” <span id="pin-merchant-name"></span></h2><button class="close-btn" onclick="closeModal('set-pin-modal')">&times;</button></div>
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>New 4-Digit Security PIN</label>
+            <input type="password" id="edit-merchant-pin" maxlength="4" placeholder="Enter 4 digits" class="pin-input-group">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('set-pin-modal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveMerchantPin()">Update PIN</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CUSTOM RATES CONFIG -->
+<div id="rate-config-modal" class="modal-overlay">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2>Custom Rates â€” <span id="rate-merchant-name"></span></h2>
+            <button class="close-btn" onclick="closeModal('rate-config-modal')">&times;</button>
+        </div>
+        <div class="rate-config-actions">
+            <div class="form-group" style="flex:1;">
+                <label>Global Discount / Markup (%)</label>
+                <div class="input-with-button">
+                    <input type="number" id="rate-global-adj" step="0.1" placeholder="e.g. -10">
+                    <button class="btn btn-primary" onclick="applyGlobalAdjustment()">Apply</button>
+                </div>
+                <small style="color:var(--text-muted);">Applies to all products where no specific override is set.</small>
+            </div>
+            <div class="form-group" style="display:flex; flex-direction:column; gap:0.4rem; justify-content:center;">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:#16a34a;">
+                    <input type="checkbox" id="rate-hide-amount" style="width:18px; height:18px; accent-color:#16a34a; cursor:pointer;" onchange="onFullBillChange(false)">
+                    Bill Amount = Base Price (No Cash)
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:#2563eb;">
+                    <input type="checkbox" id="rate-hide-totals" style="width:18px; height:18px; accent-color:#2563eb; cursor:pointer;" onchange="applyHideTotals()">
+                    Hide Order Totals (Show Only Items & Rates)
+                </label>
+            </div>
+        </div>
+        <div class="modal-table-scroll">
+            <table class="data-table">
+                <thead><tr>
+                    <th>Product</th><th>Base Price</th><th>Base Bill Rate</th>
+                    <th>Custom Price</th><th>Custom Bill Rate</th><th>Reset</th>
+                </tr></thead>
+                <tbody id="rate-config-tbody"></tbody>
+            </table>
+        </div>
+        <div class="modal-footer" style="margin-top:1rem;">
+            <button class="btn btn-secondary" onclick="closeModal('rate-config-modal')">Close</button>
+            <button class="btn btn-primary" onclick="saveMerchantRates()">Save Item Rates</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: MANAGE CATEGORIES & SUB-CATEGORIES -->
+<div id="cat-mgmt-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header">
+            <h2>Manage Categories & Sub-Categories</h2>
+            <button class="close-btn" onclick="closeModal('cat-mgmt-modal')">&times;</button>
+        </div>
+        
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:0.75rem; margin-bottom:1rem;">
+            <label style="font-weight:600; font-size:0.82rem; margin-bottom:0.4rem; display:block;">1. Add New Main Category</label>
+            <div class="input-with-button">
+                <input type="text" id="new-cat-name-input" placeholder="e.g. CP Fittings, Mirrors">
+                <button class="btn btn-primary" onclick="handleAddNewCategory()">Add Main</button>
+            </div>
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:0.75rem; margin-bottom:1rem;">
+            <label style="font-weight:600; font-size:0.82rem; margin-bottom:0.4rem; display:block;">2. Add Sub-Category under Main Category</label>
+            <div class="form-row-two" style="margin-bottom:0.4rem;">
+                <select id="subcat-parent-select" style="padding:0.4rem; border-radius:4px; font-size:0.8rem;"></select>
+                <input type="text" id="new-subcat-name-input" placeholder="Sub-category (e.g. One Piece)" style="padding:0.4rem; border-radius:4px; font-size:0.8rem;">
+            </div>
+            <button class="btn btn-success" style="width:100%; font-size:0.8rem;" onclick="handleAddNewSubCategory()">+ Add Sub-Category</button>
+        </div>
+
+        <label style="font-size:0.82rem; font-weight:700; display:block; margin-top:1rem;">Category Hierarchy:</label>
+        <div class="cat-mgmt-list" id="cat-mgmt-list" style="max-height:220px; overflow-y:auto; padding-right:0.3rem;"></div>
+        <div class="modal-footer" style="margin-top:1rem;">
+            <button class="btn btn-secondary" onclick="closeModal('cat-mgmt-modal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- LIGHTBOX MULTI-IMAGE GALLERY MODAL -->
+<div id="lightbox-modal" class="lightbox-overlay" onclick="closeLightbox(event)">
+    <div class="lightbox-box lightbox-gallery-box" onclick="event.stopPropagation()">
+        <span class="lightbox-close" onclick="closeLightbox(event)"><i class="fa-solid fa-xmark"></i></span>
+        <div id="lightbox-caption" class="lightbox-caption" style="padding:0.6rem 1rem; font-weight:600;"></div>
+        <div id="lightbox-gallery" class="lightbox-gallery-scroll">
+            <!-- Images will be injected here vertically -->
+        </div>
+    </div>
+</div>
+
+    <div class="modal-overlay" id="edit-rates-modal">
+        <div class="modal-content" style="max-width:400px; padding:1.5rem;">
+            <div class="modal-header">
+                <h2>Set Rates for <span id="edit-rates-model-name" style="color:#0e254f;"></span></h2>
+                <button class="close-btn" onclick="closeModal('edit-rates-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="margin-top:1rem;">
+                <input type="hidden" id="edit-rates-product-id">
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:0.3rem;">Base Price (₹)</label>
+                    <input type="number" id="edit-rates-base-price" step="0.01" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;">
+                </div>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:0.3rem;">Base Bill Rate (₹)</label>
+                    <input type="number" id="edit-rates-bill-rate" step="0.01" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;">
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top:1rem; display:flex; justify-content:flex-end; gap:0.5rem;">
+                <button class="btn btn-secondary" onclick="closeModal('edit-rates-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProductRates()">Save Rates</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="timeline-modal">
+        <div class="modal-content" style="max-width:400px; padding:1.5rem;">
+            <div class="modal-header">
+                <h2>Order Timeline</h2>
+                <button class="close-btn" onclick="closeModal('timeline-modal')">&times;</button>
+            </div>
+            <div id="timeline-modal-content" style="margin-top:1rem; max-height: 400px; overflow-y: auto;">
+                <!-- Timeline will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: QUICK STOCK INWARD -->
+    <div id="quick-inward-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-boxes-stacked" style="color:#0d9488;"></i> Quick Stock Inward</h2>
+                <button class="close-btn" onclick="closeModal('quick-inward-modal')">&times;</button>
+            </div>
+            <form id="quick-inward-form" onsubmit="saveQuickInward(event)">
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Select Product (ટાઈપ કરીને શોધો) *</label>
+                    <div style="position:relative; width:100%;">
+                        <input type="text" id="inward-product-search" placeholder="Type model name, category or colour..." autocomplete="off" oninput="filterSearchableProductDropdown('inward')" onfocus="openSearchableProductDropdown('inward')" onkeydown="handleSearchableProductDropdownKeydown(event, 'inward')" style="width:100%; padding:0.55rem 0.75rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.88rem; font-weight:600;">
+                        <input type="hidden" id="inward-product-select" required value="">
+                        <div id="inward-product-dropdown-list" class="searchable-dropdown-list" style="display:none; position:absolute; top:calc(100% + 2px); left:0; width:100%; max-height:220px; overflow-y:auto; background:#ffffff; border:2px solid #0d9488; border-radius:0 0 6px 6px; box-shadow:0 10px 25px rgba(0,0,0,0.18); z-index:3500;">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#f0fdfa; border:1px solid #99f6e4; border-radius:6px; padding:0.5rem 0.75rem; margin-bottom:0.75rem; font-size:0.85rem;">
+                    <span style="color:#0f766e; font-weight:600;">Current Stock:</span>
+                    <strong id="inward-current-stock" style="font-size:1rem; color:#0d9488;">0 pcs</strong>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Inward Quantity to Add (+ pcs) *</label>
+                    <input type="number" id="inward-qty" required min="1" step="1" placeholder="e.g. 50 or 100" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.95rem; font-weight:700; color:#0d9488;">
+                </div>
+
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Batch / Inward Remark (Optional)</label>
+                    <input type="text" id="inward-remark" placeholder="e.g. Factory Dispatch Batch #12" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.85rem;">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('quick-inward-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0d9488;"><i class="fa-solid fa-plus"></i> + Add to Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRM ORDER & SET READY DATE -->
+    <div id="confirm-order-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-calendar-check" style="color:#2563eb;"></i> Confirm Order & Set Ready Date</h2>
+                <button class="close-btn" onclick="closeModal('confirm-order-modal')">&times;</button>
+            </div>
+            <form id="confirm-order-form" onsubmit="handleConfirmOrderSubmit(event)">
+                <input type="hidden" id="confirm-order-id">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.6rem 0.85rem; margin-bottom:1rem; font-size:0.85rem; color:#334155;">
+                    <div style="font-weight:700; color:#0e254f;" id="confirm-order-info-title">Order Confirmation</div>
+                    <div id="confirm-order-info-sub" style="font-size:0.75rem; color:#64748b; margin-top:0.2rem;"></div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Quick Ready Days (ઝડપી દિવસ પસંદગી)</label>
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.4rem; margin-top:0.25rem;">
+                        <button type="button" class="btn btn-outline" style="font-size:0.75rem; padding:0.4rem 0.2rem; font-weight:700;" onclick="setQuickReadyDays(2)">+2 Days</button>
+                        <button type="button" class="btn btn-outline" style="font-size:0.75rem; padding:0.4rem 0.2rem; font-weight:700;" onclick="setQuickReadyDays(5)">+5 Days</button>
+                        <button type="button" class="btn btn-outline" style="font-size:0.75rem; padding:0.4rem 0.2rem; font-weight:700;" onclick="setQuickReadyDays(7)">+7 Days</button>
+                        <button type="button" class="btn btn-outline" style="font-size:0.75rem; padding:0.4rem 0.2rem; font-weight:700;" onclick="setQuickReadyDays(10)">+10 Days</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Estimated Ready / Dispatch Date * (તૈયાર થવાની તારીખ)</label>
+                    <input type="date" id="confirm-ready-date" required style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.88rem; font-weight:600;">
+                </div>
+
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Production Note / Remark (નોંધ - ડીલર પોર્ટલ પર દેખાશે)</label>
+                    <input type="text" id="confirm-delivery-note" placeholder="e.g. In Kiln firing batch / Packing in 2 days" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.85rem;">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('confirm-order-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background:#2563eb; font-weight:700;"><i class="fa-solid fa-check"></i> Save & Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT ORDER & ADD ITEMS -->
+    <div id="admin-edit-order-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 840px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 0;">
+            <div class="modal-header" style="padding: 1rem 1.25rem; border-bottom: 1px solid #cbd5e1; flex-shrink: 0; background: #f8fafc;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.15rem; color: #0e254f; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-pen-to-square" style="color: #2563eb;"></i> 
+                        <span id="edit-order-modal-title">Edit Order / Add Items</span>
+                    </h2>
+                    <div id="edit-order-modal-subtitle" style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem;"></div>
+                </div>
+                <button class="close-btn" onclick="closeModal('admin-edit-order-modal')">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 1.25rem; overflow-y: auto; flex: 1;">
+                <input type="hidden" id="edit-order-id">
+                
+                <!-- SECTION 1: ADD NEW PRODUCT -->
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1e40af; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-cart-plus"></i> + Add New Item to this Order
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; align-items: end;">
+                        <div style="grid-column: span 2;">
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #0e254f; margin-bottom: 0.25rem;">Select Product / Model (ટાઈપ કરીને શોધો) *</label>
+                            <div style="position:relative; width:100%;">
+                                <input type="text" id="editorder-product-search" placeholder="Type model, category or colour..." autocomplete="off" oninput="filterSearchableProductDropdown('editorder')" onfocus="openSearchableProductDropdown('editorder')" onkeydown="handleSearchableProductDropdownKeydown(event, 'editorder')" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; font-weight:600; background: #fff;">
+                                <input type="hidden" id="edit-order-prod-select" value="">
+                                <div id="editorder-product-dropdown-list" class="searchable-dropdown-list" style="display:none; position:absolute; top:calc(100% + 2px); left:0; width:100%; max-height:220px; overflow-y:auto; background:#ffffff; border:2px solid #2563eb; border-radius:0 0 6px 6px; box-shadow:0 10px 25px rgba(0,0,0,0.18); z-index:3500;">
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #0e254f; margin-bottom: 0.25rem;">Quantity (pcs) *</label>
+                            <input type="number" id="edit-order-add-qty" min="1" step="1" value="1" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; font-weight: 700;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #0e254f; margin-bottom: 0.25rem;">Rate (₹) *</label>
+                            <input type="number" id="edit-order-add-price" min="0" step="any" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #0e254f; margin-bottom: 0.25rem;">Bill Rate (₹)</label>
+                            <input type="number" id="edit-order-add-billrate" min="0" step="any" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #0e254f; margin-bottom: 0.25rem;">Weight / pc (kg)</label>
+                            <input type="number" id="edit-order-add-weight" min="0" step="any" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem;" readonly>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-primary" onclick="addProdToEditOrder()" style="width: 100%; height: 38px; background: #2563eb; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                                <i class="fa-solid fa-plus"></i> + Add to Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: CURRENT ORDER ITEMS -->
+                <div style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div style="font-weight: 700; font-size: 0.9rem; color: #0e254f;">Current Order Items</div>
+                        <div id="edit-order-items-count-badge" style="font-size: 0.78rem; color: #64748b;"></div>
+                    </div>
+                    <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <table class="excel-table" style="width: 100%; font-size: 0.8rem; margin: 0;">
+                            <thead>
+                                <tr style="background: #0e254f; color: #fff;">
+                                <th>Item / Model</th>
+                                <th>Grade / Colour</th>
+                                <th>Weight</th>
+                                <th style="width: 120px;">Qty (pcs)</th>
+                                <th>Rate</th>
+                                <th>Bill Rate</th>
+                                <th>Total Amt</th>
+                                <th style="width: 50px; text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="edit-order-items-tbody">
+                                <!-- Injected dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: LIVE WEIGHT & FINANCIAL SUMMARY -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                    <!-- LIVE LOADING WEIGHT CARD -->
+                    <div style="background: linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%); color: #fff; border-radius: 6px; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85;">🚚 Loading Weight (Truck Load)</div>
+                            <div style="font-size: 1.8rem; font-weight: 800; margin-top: 0.4rem; color: #38bdf8;" id="edit-order-live-weight">0.00 kg</div>
+                        </div>
+                        <div style="font-size: 0.82rem; opacity: 0.9; margin-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 0.5rem; display: flex; justify-content: space-between;">
+                            <span>Total Quantity:</span>
+                            <strong id="edit-order-live-qty">0 pcs</strong>
+                        </div>
+                    </div>
+
+                    <!-- FINANCIAL BREAKDOWN -->
+                    <div style="font-size: 0.82rem; display: flex; flex-direction: column; gap: 0.35rem; justify-content: center;">
+                        <div style="display: flex; justify-content: space-between;"><span>Bill Basic:</span><b id="edit-order-live-basic">₹0</b></div>
+                        <div style="display: flex; justify-content: space-between;"><span>GST (18%):</span><b id="edit-order-live-gst">₹0</b></div>
+                        <div style="display: flex; justify-content: space-between; font-weight: 700;"><span>Total Bill Amount:</span><b id="edit-order-live-bill">₹0</b></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Freight:</span>
+                            <input type="number" id="edit-order-live-freight" min="0" step="any" value="0" onchange="recalcEditOrderSummary()" style="width: 90px; padding: 0.2rem 0.4rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.8rem; text-align: right;">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: 700;"><span>Total Cash Amount:</span><b id="edit-order-live-cash">₹0</b></div>
+                        <div style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: 800; color: #0e254f; border-top: 2px solid #cbd5e1; padding-top: 0.4rem; margin-top: 0.2rem;">
+                            <span>Total Payment:</span><b id="edit-order-live-total">₹0</b>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 1rem 1.25rem; border-top: 1px solid #cbd5e1; flex-shrink: 0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('admin-edit-order-modal')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveAdminOrderEdits()" style="background: #16a34a; font-weight: 700;">
+                    <i class="fa-solid fa-floppy-disk"></i> Save & Update Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation (Staff) -->
+    <nav class="mobile-bottom-nav">
+        <button class="nav-item active" data-tab="dashboard-tab"><i class="fa-solid fa-chart-pie"></i><span>Home</span></button>
+        <button class="nav-item" data-tab="stock-tab"><i class="fa-solid fa-warehouse"></i><span>Stock</span></button>
+        <button class="nav-item" data-tab="new-order-tab"><i class="fa-solid fa-file-invoice-dollar"></i><span>New</span></button>
+        <button class="nav-item" data-tab="orders-tab"><i class="fa-solid fa-truck-ramp-box"></i><span>Orders</span></button>
+    </nav>
+
+<script src="core.js?v=4.2.2"></script>
+<script src="admin.js?v=4.2.2"></script>
+<!-- PWA Registration -->
+<script>
+    if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed: ', err));
+        });
+    }
+</script>
+</body>
+</html>
+
+
+
