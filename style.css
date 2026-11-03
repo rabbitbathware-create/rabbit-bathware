@@ -1,4 +1,4 @@
-﻿/* High Contrast Black & White Theme */
+/* High Contrast Black & White Theme */
 :root {
     --bg-main: #f8fafc;
     --bg-card: #ffffff;
@@ -25,12 +25,19 @@
     box-sizing: border-box;
 }
 
+html {
+    max-width: 100%;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+}
+
 body {
     font-family: var(--font-sans);
     background-color: var(--bg-main);
     color: var(--text-primary);
     display: flex;
     min-height: 100vh;
+    max-width: 100%;
     overflow-x: clip;
 }
 

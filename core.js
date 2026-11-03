@@ -66,9 +66,9 @@ const DEFAULT_HOME_CATEGORY_CARDS = [
     },
     {
         id: "catcard-4",
-        title: "Drain Covers & Fittings",
-        subtitle: "FRP Manhole Covers & Accessories",
-        category: "Drain Covers & Fittings",
+        title: "Drain Covers & Accessories",
+        subtitle: "FRP Manhole Covers & Fittings",
+        category: "Drain Covers & Accessories",
         icon: "fa-circle-dot",
         active: true
     }
