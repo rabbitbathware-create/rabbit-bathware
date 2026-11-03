@@ -1090,7 +1090,7 @@
 
                     imgHtml = `
                         <div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openGallery('${p.id}')">
-                            <img id="main-img-${p.id}" src="${imgList[0]}" alt="${p.model}">
+                            <img id="main-img-${p.id}" src="${imgList[0]}" alt="${p.model}" style="max-height:100%; max-width:100%; width:auto; height:auto; object-fit:contain; margin:auto; display:block;">
                             ${arrowsHtml}
                             ${dotsHtml}
                         </div>
@@ -1146,12 +1146,12 @@
                         </div>
                     ` : ''}
                     ${isDual ? `
-                        <div style="display:flex; gap:4px; margin:0.35rem 0; background:#f1f5f9; padding:2px; border-radius:6px;">
+                        <div style="display:flex; gap:4px; margin:0.35rem 0; background:#f1f5f9; padding:2px; border-radius:6px; box-sizing:border-box; width:100%;">
                             <button type="button" onclick="setDealerCardUnit('${p.id}', 'box')" style="flex:1; border:none; padding:4px 4px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:700; ${activeUnit === 'box' ? 'background:#0e254f; color:#fff;' : 'background:transparent; color:#64748b;'}">📦 Box (${p.boxQty})</button>
                             <button type="button" onclick="setDealerCardUnit('${p.id}', 'pcs')" style="flex:1; border:none; padding:4px 4px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:700; ${activeUnit === 'pcs' ? 'background:#0e254f; color:#fff;' : 'background:transparent; color:#64748b;'}">Loose Pcs</button>
                         </div>
                     ` : ''}
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; gap:0.25rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; gap:0.25rem; flex-wrap:wrap;">
                         <div>
                             <div class="dealer-prod-price">₹${pricing.price.toLocaleString('en-IN')}${activeUnit === 'box' ? '<span style="font-size:0.72rem; font-weight:normal; color:#64748b;">/pc</span>' : ''}</div>
                             ${activeUnit === 'box' ? `<div style="font-size:0.7rem; color:#64748b; font-weight:600;">₹${(pricing.price * p.boxQty).toLocaleString('en-IN')} / Box</div>` : ''}
