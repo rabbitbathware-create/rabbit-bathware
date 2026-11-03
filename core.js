@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BMS Portal - Core Application State & Shared Utilities v3.0
 // Shared state across admin.html, staff.html, and dealer.html
 // ============================================================
@@ -238,6 +238,11 @@ function isCategoryVisibleToMerchant(catName, merchant) {
 
     const allowed = merchant.allowedPrivateCategories || [];
     return allowed.includes(catName);
+}
+
+function canMerchantViewOffers(merchant) {
+    if (!merchant) return false;
+    return merchant.allowOffers === true;
 }
 
 // State Loading and Initialization

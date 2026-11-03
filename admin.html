@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -759,7 +759,7 @@
                             <input type="text" id="offers-search-input" placeholder="Search offers by model or category..." oninput="renderAdminOffersList()" style="width:100%; border:none; background:transparent; font-size:0.85rem; outline:none;">
                         </div>
                         <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <span id="offers-stats-count" style="font-size:0.8rem; font-weight:700; color:#475569; background:#e2e8f0; padding:3px 10px; border-radius:12px;">0 Offers</span>
+                            <span id="offers-stats-count" style="font-size:0.8rem; font-weight:700; color:#475569; background:#e2e8f0; padding:3px 10px; border-radius:12px;">0 Offers</span><span id="offers-parties-count" style="font-size:0.8rem; font-weight:700; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; padding:3px 10px; border-radius:12px;"><i class="fa-solid fa-user-check"></i> 0 Parties Allowed</span>
                             <span style="font-size:0.78rem; font-weight:700; color:#64748b; margin-left:0.5rem;"><i class="fa-solid fa-users"></i> Bulk Party Access:</span>
                             <button type="button" class="btn" onclick="bulkSetOfferAccess(true)" style="background:#16a34a; color:#fff; font-size:0.75rem; font-weight:700; padding:0.3rem 0.65rem; border-radius:4px;" title="બધી જ પાર્ટીઓ માટે સ્પેશિયલ ઑફર્સ ચાલુ કરો">
                                 <i class="fa-solid fa-circle-check"></i> બધી પાર્ટીને દેખાડો (Enable All)
@@ -1658,6 +1658,15 @@
                 </small>
             </div>
 
+                        <div class="form-group" style="margin-bottom:0.75rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:700; font-size:0.9rem; color:#dc2626;">
+                    <input type="checkbox" id="merchant-allow-offers" style="width:18px; height:18px; accent-color:#dc2626; cursor:pointer;">
+                    <span><i class="fa-solid fa-fire"></i> Allow Special Offers (àª† àªªàª¾àª°à«àªŸà«€àª¨à«‡ àª‘àª«àª°à«àª¸ àª¦à«‡àª–àª¾àª¡àªµà«€)</span>
+                </label>
+                <small style="font-size:0.72rem; color:#64748b; margin-left:1.75rem; display:block;">
+                    àªœà«‹ àª…àª¨àªšà«‡àª• àª¹àª¶à«‡ àª¤à«‹ àª† àªªàª¾àª°à«àªŸà«€àª¨à«‡ àªªà«‹àª°à«àªŸàª² àªªàª° àª‘àª«àª°à«àª¸ àª“àªªà«àª¶àª¨ àª•à«‡ àª‘àª«àª°à«àª¸ àªªà«àª°à«‹àª¡àª•à«àªŸà«àª¸ àª¦à«‡àª–àª¾àª¶à«‡ àª¨àª¹à«€àª‚.
+                </small>
+            </div>
             <div class="form-group" style="margin-bottom:0.5rem;">
                 <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:#16a34a;">
                     <input type="checkbox" id="merchant-hide-amount" style="width:18px; height:18px; accent-color:#16a34a; cursor:pointer;" onchange="onFullBillChange(true)">
@@ -1772,8 +1781,8 @@
         <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i><span>Ledger</span></button>
     </nav>
 
-<script src="core.js?v=4.2.2"></script>
-<script src="admin.js?v=4.2.2"></script>
+<script src="core.js?v=4.3.5"></script>
+<script src="admin.js?v=4.3.5"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {

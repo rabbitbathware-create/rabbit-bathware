@@ -1497,7 +1497,7 @@ function renderMerchantsGrid() {
                 <p class="merchant-address-text" style="margin-top:0.2rem;"><i class="fa-brands fa-whatsapp"></i> +${m.phone} | PIN: <span style="font-weight:700;">${pinDisplay}</span></p>
                 <div style="margin-top:0.35rem; display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap;">
                     <small style="font-size:0.7rem; color:#64748b; font-weight:600;">Grades:</small>
-                    ${allowedGradesHtml} ${(m.allowOffers !== false) ? `<span style="font-size:0.68rem; padding:0.1rem 0.35rem; border-radius:3px; background:#fef2f2; color:#dc2626; font-weight:700;"><i class="fa-solid fa-fire"></i> Offers ON</span>` : `<span style="font-size:0.68rem; padding:0.1rem 0.35rem; border-radius:3px; background:#f1f5f9; color:#94a3b8; font-weight:600;"><i class="fa-solid fa-ban"></i> Offers OFF</span>`}
+                    ${allowedGradesHtml} ${(m.allowOffers === true) ? `<button type="button" class="btn" onclick="event.stopPropagation(); window.togglePartyOfferDirect('${m.id}')" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:4px; background:#fef2f2; color:#dc2626; font-weight:700; border:1px solid #fecaca; cursor:pointer;" title="àª•à«àª²àª¿àª• àª•àª°à«€àª¨à«‡ àª† àªªàª¾àª°à«àªŸà«€ àª®àª¾àªŸà«‡ àª‘àª«àª°à«àª¸ àª¬àª‚àª§ àª•àª°à«‹"><i class="fa-solid fa-fire"></i> Offers ON</button>` : `<button type="button" class="btn" onclick="event.stopPropagation(); window.togglePartyOfferDirect('${m.id}')" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:4px; background:#f1f5f9; color:#64748b; font-weight:600; border:1px solid #cbd5e1; cursor:pointer;" title="àª•à«àª²àª¿àª• àª•àª°à«€àª¨à«‡ àª† àªªàª¾àª°à«àªŸà«€ àª®àª¾àªŸà«‡ àª‘àª«àª°à«àª¸ àªšàª¾àª²à« àª•àª°à«‹"><i class="fa-solid fa-ban"></i> Offers OFF</button>`}
                 </div>
             </div>
             
@@ -1642,6 +1642,7 @@ function handleNewMerchant(e) {
         allowedGrades: allowedGrades,
         globalDiscount: parseFloat(document.getElementById("merchant-discount").value) || 0,
         specialRates: {},
+        allowOffers: document.getElementById("merchant-allow-offers") ? document.getElementById("merchant-allow-offers").checked : false,
         hideAmount: document.getElementById("merchant-hide-amount").checked,
         hideTotals: document.getElementById("merchant-hide-totals") ? document.getElementById("merchant-hide-totals").checked : false
     });
@@ -5115,7 +5116,7 @@ function openPartyDetailsModal(merchantId, initialTab = 'profile') {
             if (pCycleInput) {
                 pCycleInput.value = (m.orderCycleDays !== undefined && m.orderCycleDays !== null) ? String(m.orderCycleDays) : '15';
             }
-            if (document.getElementById("pdetail-allow-offers")) document.getElementById("pdetail-allow-offers").checked = (m.allowOffers !== false);
+            if (document.getElementById("pdetail-allow-offers")) document.getElementById("pdetail-allow-offers").checked = (m.allowOffers === true);
             if (document.getElementById("pdetail-hide-amount")) document.getElementById("pdetail-hide-amount").checked = !!m.hideAmount;
             if (document.getElementById("pdetail-hide-totals")) document.getElementById("pdetail-hide-totals").checked = !!m.hideTotals;
 
@@ -5230,7 +5231,7 @@ function savePartyDetails(e) {
         m.orderCycleDays = parseInt(pCycleInput.value, 10);
         if (isNaN(m.orderCycleDays)) m.orderCycleDays = 15;
     }
-    m.allowOffers = document.getElementById("pdetail-allow-offers") ? document.getElementById("pdetail-allow-offers").checked : true;
+    m.allowOffers = document.getElementById("pdetail-allow-offers") ? document.getElementById("pdetail-allow-offers").checked : false;
     m.hideAmount = document.getElementById("pdetail-hide-amount").checked;
     m.hideTotals = document.getElementById("pdetail-hide-totals").checked;
 
@@ -5901,7 +5902,13 @@ function renderAdminOffersList() {
     });
 
     const countEl = document.getElementById("offers-stats-count");
-    if (countEl) countEl.textContent = `${filtered.length} of ${offers.length} Offers`;
+    if (countEl) countEl.textContent = ${filtered.length} of  Offers;
+    const partiesCountEl = document.getElementById("offers-parties-count");
+    if (partiesCountEl) {
+        const allowedParties = (state.merchants || []).filter(m => m.allowOffers === true).length;
+        const totalParties = (state.merchants || []).length;
+        partiesCountEl.innerHTML = <i class="fa-solid fa-user-check"></i>  of  Parties Allowed;
+    }
 
     const badgeEl = document.getElementById("sidebar-offers-badge");
     if (badgeEl) {
@@ -6157,3 +6164,15 @@ function bulkSetOfferAccess(enable) {
     alert(enable ? "\u0aac\u0aa7\u0ac0 \u0aaa\u0abe\u0ab0\u0acd\u0a9f\u0ac0\u0a93 \u0aae\u0abe\u0a9f\u0ac7 \u0ab8\u0acd\u0aaa\u0ac7\u0ab6\u0abf\u0aaf\u0ab2 \u0a91\u0aab\u0ab0\u0acd\u0ab8 \u0ab8\u0aab\u0ab3\u0aa4\u0abe\u0aaa\u0ac2\u0ab0\u0acd\u0ab5\u0a95 \u0a9a\u0abe\u0ab2\u0ac1 \u0aa5\u0a88 \u0a97\u0a88 \u0a9b\u0ac7!" : "\u0aac\u0aa7\u0ac0 \u0aaa\u0abe\u0ab0\u0acd\u0a9f\u0ac0\u0a93 \u0aae\u0abe\u0a9f\u0ac7 \u0ab8\u0acd\u0aaa\u0ac7\u0ab6\u0abf\u0aaf\u0ab2 \u0a91\u0aab\u0ab0\u0acd\u0ab8 \u0ab8\u0aab\u0ab3\u0aa4\u0abe\u0aaa\u0ac2\u0ab0\u0acd\u0ab5\u0a95 \u0aac\u0a82\u0aa7 \u0a95\u0ab0\u0ac0 \u0aa6\u0ac7\u0ab5\u0abe\u0aae\u0abe\u0a82 \u0a86\u0ab5\u0ac0 \u0a9b\u0ac7!");
 }
 window.bulkSetOfferAccess = bulkSetOfferAccess;
+
+window.togglePartyOfferDirect = function(merchantId) {
+    const m = (state.merchants || []).find(x => x.id === merchantId);
+    if (!m) return;
+    m.allowOffers = !m.allowOffers;
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderMerchantsGrid();
+    renderAdminOffersList();
+    const statusText = m.allowOffers ? "àªšàª¾àª²à« (ON)" : "àª¬àª‚àª§ (OFF)";
+    alert(àªªàª¾àª°à«àªŸà«€ "" àª®àª¾àªŸà«‡ àª¸à«àªªà«‡àª¶àª¿àª¯àª² àª‘àª«àª°à«àª¸  àª•àª°à«€ àª¦à«‡àªµàª¾àª®àª¾àª‚ àª†àªµà«€ àª›à«‡.);
+};
