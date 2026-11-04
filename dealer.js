@@ -1088,15 +1088,27 @@
                         <button class="amazon-slider-arrow next" onclick="event.stopPropagation(); navAmazonSlide('${p.id}', 1)"><i class="fa-solid fa-chevron-right"></i></button>
                     ` : '';
 
+                    const videoBadgeHtml = (p.videoUrl || p.videoBase64) ? `
+                        <span style="position:absolute; bottom:6px; right:6px; background:rgba(220,38,38,0.92); color:#fff; font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:4px; z-index:2; box-shadow:0 2px 6px rgba(0,0,0,0.3); display:inline-flex; align-items:center; gap:3px;">
+                            <i class="fa-solid fa-play" style="font-size:0.55rem;"></i> Video
+                        </span>
+                    ` : '';
+
                     imgHtml = `
                         <div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openGallery('${p.id}')">
                             <img id="main-img-${p.id}" src="${imgList[0]}" alt="${p.model}" style="max-height:100%; max-width:100%; width:auto; height:auto; object-fit:contain; margin:auto; display:block;">
                             ${arrowsHtml}
                             ${dotsHtml}
+                            ${videoBadgeHtml}
                         </div>
                     `;
                 } else {
-                    imgHtml = `<div class="dealer-prod-image" style="position:relative;">${getProductSVG(p.category)}</div>`;
+                    const videoBadgeHtml = (p.videoUrl || p.videoBase64) ? `
+                        <span style="position:absolute; bottom:6px; right:6px; background:rgba(220,38,38,0.92); color:#fff; font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:4px; z-index:2; box-shadow:0 2px 6px rgba(0,0,0,0.3); display:inline-flex; align-items:center; gap:3px;">
+                            <i class="fa-solid fa-play" style="font-size:0.55rem;"></i> Video
+                        </span>
+                    ` : '';
+                    imgHtml = `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openGallery('${p.id}')">${getProductSVG(p.category)}${videoBadgeHtml}</div>`;
                 }
 
                 const hotBadgeHtml = p.isHot ? `
@@ -2132,7 +2144,8 @@
             images.push(p.imageBase64);
         }
 
-        if (images.length === 0) return;
+        const hasVideo = !!(p.videoUrl || p.videoBase64);
+        if (images.length === 0 && !hasVideo) return;
 
         const modal = document.getElementById("lightbox-modal");
         const gallery = document.getElementById("lightbox-gallery");
@@ -2142,6 +2155,33 @@
         cap.textContent = `${p.model} - ${p.grade} / ${p.colour}`;
 
         gallery.innerHTML = '';
+
+        // If product has video, prepend video player / embed
+        if (hasVideo) {
+            const vSrc = p.videoUrl || p.videoBase64;
+            const vItem = document.createElement('div');
+            vItem.className = 'lightbox-gallery-item';
+            vItem.style.marginBottom = '1.25rem';
+            const ytEmbed = typeof getYouTubeEmbedUrl === 'function' ? getYouTubeEmbedUrl(p.videoUrl) : null;
+            if (ytEmbed) {
+                vItem.innerHTML = `
+                    <div style="font-weight:700; font-size:0.85rem; color:#dc2626; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
+                        <i class="fa-solid fa-circle-play"></i> Product Video Demo
+                    </div>
+                    <div style="position:relative; width:100%; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000;">
+                        <iframe src="${ytEmbed}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                    </div>
+                `;
+            } else {
+                vItem.innerHTML = `
+                    <div style="font-weight:700; font-size:0.85rem; color:#dc2626; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
+                        <i class="fa-solid fa-circle-play"></i> Product Video Demo
+                    </div>
+                    <video controls playsinline style="width:100%; max-height:360px; border-radius:8px; background:#000; display:block;" src="${vSrc}"></video>
+                `;
+            }
+            gallery.appendChild(vItem);
+        }
         images.forEach((src, idx) => {
             const item = document.createElement('div');
             item.className = 'lightbox-gallery-item';

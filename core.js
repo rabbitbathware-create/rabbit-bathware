@@ -1376,30 +1376,44 @@ function compressImage(file, maxWidth, maxHeight, quality) {
     });
 }
 
+function getYouTubeEmbedUrl(url) {
+    if (!url || typeof url !== 'string') return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+}
+window.getYouTubeEmbedUrl = getYouTubeEmbedUrl;
+
 function uploadProductImage(id) {
+    if (typeof openProductMediaModal === 'function') {
+        openProductMediaModal(id);
+        return;
+    }
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
     input.multiple = true;
     input.onchange = async (e) => {
-        const files = Array.from(e.target.files).slice(0, 3); // max 3 photos
+        const files = Array.from(e.target.files).slice(0, 8); // increased limit to 8 photos
         if (files.length === 0) return;
         const p = state.products.find(x => x.id === id);
         if (!p) return;
 
-        const loadedImages = [];
+        const loadedImages = [...(p.imagesBase64 || (p.imageBase64 ? [p.imageBase64] : []))];
         for (let i = 0; i < files.length; i++) {
-            const compressedBase64 = await compressImage(files[i], 800, 800, 0.7);
+            if (loadedImages.length >= 8) break;
+            const compressedBase64 = await compressImage(files[i], 900, 900, 0.75);
             loadedImages.push(compressedBase64);
         }
         
-        p.imageBase64 = loadedImages[0];
+        p.imageBase64 = loadedImages[0] || null;
         p.imagesBase64 = loadedImages;
         saveState();
         if (typeof renderStockTable === 'function') renderStockTable();
     };
     input.click();
 }
+window.uploadProductImage = uploadProductImage;
 
 
 function viewTimeline(orderId) {

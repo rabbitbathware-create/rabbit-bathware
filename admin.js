@@ -1,4 +1,4 @@
-﻿
+
 // Global Delegated Click Listener for Party Action Buttons
 if (typeof document !== 'undefined') {
     document.addEventListener('click', function(e) {
@@ -6176,3 +6176,331 @@ window.togglePartyOfferDirect = function(merchantId) {
     const statusText = m.allowOffers ? "\u0a9a\u0abe\u0ab2\u0ac1 (ON)" : "\u0aac\u0a82\u0aa7 (OFF)";
     alert(`\u0aac\u0abe\u0ab0\u0acd\u0a9f\u0ac0 "${m.name}" \u0aae\u0abe\u0a9f\u0ac7 \u0ab8\u0acd\u0aaa\u0ac7\u0ab6\u0abf\u0aaf\u0ab2 \u0a91\u0aab\u0ab0\u0acd\u0ab8 ${statusText} \u0a95\u0ab0\u0ac0 \u0aa6\u0ac7\u0ab5\u0abe\u0aae\u0abe\u0a82 \u0a86\u0ab5\u0ac0 \u0a9b\u0ac7.`);
 };
+
+
+// ==========================================
+// PRODUCT MEDIA (PHOTOS & VIDEO) MANAGER
+// ==========================================
+let _activeMediaProdId = null;
+let _replacePhotoIndex = null;
+window._pendingProductImages = [];
+window._pendingProductVideoUrl = '';
+window._pendingProductVideoBase64 = '';
+
+function openProductMediaModal(prodId) {
+    const p = (state.products || []).find(x => x.id === prodId);
+    if (!p) return;
+    _activeMediaProdId = prodId;
+
+    const modalIdEl = document.getElementById("media-modal-prod-id");
+    if (modalIdEl) modalIdEl.value = prodId;
+    const titleEl = document.getElementById("media-modal-title");
+    if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-photo-film" style="color:#2563eb;"></i> Media Manager - ${p.model || ''}`;
+    const subEl = document.getElementById("media-modal-subtitle");
+    if (subEl) subEl.textContent = `${p.category || ''} - ${p.grade || 'Premium'} - Manage up to 8 photos & video demo`;
+
+    renderProductMediaModalContent();
+    openModal("product-media-modal");
+}
+window.openProductMediaModal = openProductMediaModal;
+window.uploadProductImage = openProductMediaModal; // Direct route to media modal
+
+function renderProductMediaModalContent() {
+    const p = (state.products || []).find(x => x.id === _activeMediaProdId);
+    if (!p) return;
+
+    const photos = (p.imagesBase64 && Array.isArray(p.imagesBase64) && p.imagesBase64.length > 0)
+        ? p.imagesBase64
+        : (p.imageBase64 ? [p.imageBase64] : []);
+
+    const countEl = document.getElementById("media-photos-count");
+    if (countEl) countEl.textContent = photos.length;
+
+    const grid = document.getElementById("media-photos-grid");
+    if (grid) {
+        if (photos.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align:center; padding:2rem 1rem; color:#94a3b8; background:#fff; border:1px dashed #cbd5e1; border-radius:6px;">
+                    <i class="fa-solid fa-images" style="font-size:2.2rem; color:#cbd5e1; margin-bottom:0.5rem; display:block;"></i>
+                    <p style="margin:0 0 0.5rem 0; font-size:0.85rem; font-weight:600;">No photos added for this product yet.</p>
+                    <button type="button" class="btn btn-primary" onclick="triggerMediaAddPhotos()" style="font-size:0.8rem; padding:0.4rem 1rem; font-weight:700;">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Photos
+                    </button>
+                </div>
+            `;
+        } else {
+            grid.innerHTML = photos.map((src, idx) => `
+                <div style="background:#fff; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="position:relative; width:100%; height:110px; background:#f8fafc; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="openLightbox('${src}', '${(p.model || '').replace(/'/g, "\\'")}')" title="Click to view full photo">
+                        <img src="${src}" style="max-height:100%; max-width:100%; object-fit:contain;">
+                        <span style="position:absolute; top:4px; left:4px; background:${idx === 0 ? '#16a34a' : 'rgba(15,23,42,0.75)'}; color:#fff; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:3px;">
+                            ${idx === 0 ? 'Cover' : `#${idx + 1}`}
+                        </span>
+                    </div>
+                    <div style="padding:0.4rem; display:flex; flex-direction:column; gap:0.25rem; background:#fff;">
+                        <div style="display:flex; gap:0.25rem;">
+                            ${idx > 0 ? `<button type="button" class="btn btn-outline" onclick="setProductCoverPhoto('${p.id}', ${idx})" style="flex:1; font-size:0.68rem; padding:2px 4px; font-weight:600;" title="Set as main cover photo">Set Cover</button>` : `<span style="flex:1; font-size:0.68rem; color:#16a34a; font-weight:700; text-align:center; padding:2px;">Main Photo</span>`}
+                            <button type="button" class="btn btn-outline" onclick="triggerReplacePhoto('${p.id}', ${idx})" style="font-size:0.68rem; padding:2px 6px;" title="Replace this photo with another"><i class="fa-solid fa-arrows-rotate"></i></button>
+                            <button type="button" class="btn btn-danger" onclick="removeProductMediaPhoto('${p.id}', ${idx})" style="font-size:0.68rem; padding:2px 6px;" title="Delete this photo"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Video Section
+    const videoActionsEl = document.getElementById("media-video-actions");
+    const videoDisplayEl = document.getElementById("media-video-display");
+    const hasVideo = !!(p.videoUrl || p.videoBase64);
+
+    if (hasVideo) {
+        if (videoActionsEl) {
+            videoActionsEl.innerHTML = `
+                <button type="button" class="btn btn-danger" onclick="removeProductVideo('${p.id}')" style="font-size:0.75rem; padding:0.35rem 0.6rem;">
+                    <i class="fa-solid fa-trash"></i> Remove Video
+                </button>
+            `;
+        }
+        if (videoDisplayEl) {
+            const ytEmbed = typeof getYouTubeEmbedUrl === 'function' ? getYouTubeEmbedUrl(p.videoUrl) : null;
+            if (ytEmbed) {
+                videoDisplayEl.innerHTML = `
+                    <div style="position:relative; width:100%; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:6px; background:#000;">
+                        <iframe src="${ytEmbed}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:4px;"><i class="fa-brands fa-youtube" style="color:#ef4444;"></i> YouTube Video linked</div>
+                `;
+            } else if (p.videoUrl) {
+                videoDisplayEl.innerHTML = `
+                    <video controls style="width:100%; max-height:260px; border-radius:6px; background:#000;" src="${p.videoUrl}"></video>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:4px;"><i class="fa-solid fa-link"></i> Web Video linked</div>
+                `;
+            } else if (p.videoBase64) {
+                videoDisplayEl.innerHTML = `
+                    <video controls style="width:100%; max-height:260px; border-radius:6px; background:#000;" src="${p.videoBase64}"></video>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:4px;"><i class="fa-solid fa-file-video"></i> Direct video file uploaded</div>
+                `;
+            }
+        }
+    } else {
+        if (videoActionsEl) videoActionsEl.innerHTML = '';
+        if (videoDisplayEl) {
+            videoDisplayEl.innerHTML = `
+                <div style="text-align:center; padding:1.2rem; background:#fff; border:1px dashed #cbd5e1; border-radius:6px; color:#94a3b8; font-size:0.82rem;">
+                    <i class="fa-solid fa-film" style="font-size:1.8rem; margin-bottom:0.3rem; display:block; color:#cbd5e1;"></i>
+                    No demo video attached yet. Upload a short video file or paste a YouTube / Web link below.
+                </div>
+            `;
+        }
+    }
+}
+window.renderProductMediaModalContent = renderProductMediaModalContent;
+
+function triggerMediaAddPhotos() {
+    const p = (state.products || []).find(x => x.id === _activeMediaProdId);
+    if (!p) return;
+    const currentCount = (p.imagesBase64 || []).length;
+    if (currentCount >= 8) {
+        alert("Maximum 8 photos reached! Please delete or replace an existing photo first.");
+        return;
+    }
+    const input = document.getElementById("media-photo-file-input");
+    if (input) {
+        input.value = "";
+        input.click();
+    }
+}
+window.triggerMediaAddPhotos = triggerMediaAddPhotos;
+
+async function handleMediaPhotosAdded(input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const p = (state.products || []).find(x => x.id === _activeMediaProdId);
+    if (!p) return;
+
+    if (!p.imagesBase64) p.imagesBase64 = p.imageBase64 ? [p.imageBase64] : [];
+    const files = Array.from(input.files);
+    const availableSlots = 8 - p.imagesBase64.length;
+    if (availableSlots <= 0) {
+        alert("Maximum 8 photos limit reached!");
+        return;
+    }
+
+    const toProcess = files.slice(0, availableSlots);
+    for (let f of toProcess) {
+        const compressed = await compressImage(f, 900, 900, 0.75);
+        p.imagesBase64.push(compressed);
+    }
+    p.imageBase64 = p.imagesBase64[0] || null;
+
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderProductMediaModalContent();
+    if (typeof renderStockTable === 'function') renderStockTable();
+}
+window.handleMediaPhotosAdded = handleMediaPhotosAdded;
+
+function triggerReplacePhoto(prodId, index) {
+    _activeMediaProdId = prodId;
+    _replacePhotoIndex = index;
+    const input = document.getElementById("media-replace-file-input");
+    if (input) {
+        input.value = "";
+        input.click();
+    }
+}
+window.triggerReplacePhoto = triggerReplacePhoto;
+
+async function handleMediaPhotoReplaced(input) {
+    if (!input || !input.files || input.files.length === 0 || _replacePhotoIndex === null) return;
+    const p = (state.products || []).find(x => x.id === _activeMediaProdId);
+    if (!p || !p.imagesBase64 || _replacePhotoIndex >= p.imagesBase64.length) return;
+
+    const file = input.files[0];
+    const compressed = await compressImage(file, 900, 900, 0.75);
+    p.imagesBase64[_replacePhotoIndex] = compressed;
+    p.imageBase64 = p.imagesBase64[0] || null;
+
+    _replacePhotoIndex = null;
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderProductMediaModalContent();
+    if (typeof renderStockTable === 'function') renderStockTable();
+}
+window.handleMediaPhotoReplaced = handleMediaPhotoReplaced;
+
+function removeProductMediaPhoto(prodId, index) {
+    const p = (state.products || []).find(x => x.id === prodId);
+    if (!p || !p.imagesBase64) return;
+    if (!confirm("Are you sure you want to delete this photo?")) return;
+
+    p.imagesBase64.splice(index, 1);
+    p.imageBase64 = p.imagesBase64.length > 0 ? p.imagesBase64[0] : null;
+
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderProductMediaModalContent();
+    if (typeof renderStockTable === 'function') renderStockTable();
+}
+window.removeProductMediaPhoto = removeProductMediaPhoto;
+
+function setProductCoverPhoto(prodId, index) {
+    const p = (state.products || []).find(x => x.id === prodId);
+    if (!p || !p.imagesBase64 || index >= p.imagesBase64.length) return;
+
+    const chosen = p.imagesBase64.splice(index, 1)[0];
+    p.imagesBase64.unshift(chosen);
+    p.imageBase64 = p.imagesBase64[0];
+
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderProductMediaModalContent();
+    if (typeof renderStockTable === 'function') renderStockTable();
+}
+window.setProductCoverPhoto = setProductCoverPhoto;
+
+function clearAllMediaPhotos(prodId) {
+    const id = prodId || _activeMediaProdId;
+    const p = (state.products || []).find(x => x.id === id);
+    if (!p) return;
+    if (!confirm("Are you sure you want to delete all photos for this product?")) return;
+
+    p.imagesBase64 = [];
+    p.imageBase64 = null;
+
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderProductMediaModalContent();
+    if (typeof renderStockTable === 'function') renderStockTable();
+}
+window.clearAllMediaPhotos = clearAllMediaPhotos;
+
+function handleMediaVideoUploaded(input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const p = (state.products || []).find(x => x.id === _activeMediaProdId);
+    if (!p) return;
+
+    const file = input.files[0];
+    if (file.size > 8 * 1024 * 1024) {
+        alert("Video file exceeds 8MB. For best performance and zero storage limit, please upload to YouTube and paste the link.");
+        input.value = "";
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        p.videoBase64 = e.target.result;
+        p.videoUrl = "";
+        saveState();
+        if (typeof syncToCloud === 'function') syncToCloud();
+        renderProductMediaModalContent();
+        if (typeof renderStockTable === 'function') renderStockTable();
+        alert("Product video uploaded successfully!");
+    };
+    reader.readAsDataURL(file);
+}
+window.handleMediaVideoUploaded = handleMediaVideoUploaded;
+
+function saveMediaVideoUrl() {
+    const p = (state.products || []).find(x => x.id === _activeMediaProdId);
+    if (!p) return;
+
+    const urlInput = document.getElementById("media-video-url-input");
+    const val = (urlInput ? urlInput.value : "").trim();
+    if (!val) {
+        alert("Please enter a valid video link (YouTube / URL).");
+        return;
+    }
+
+    p.videoUrl = val;
+    p.videoBase64 = "";
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    if (urlInput) urlInput.value = "";
+    renderProductMediaModalContent();
+    if (typeof renderStockTable === 'function') renderStockTable();
+    alert("Product video link saved successfully!");
+}
+window.saveMediaVideoUrl = saveMediaVideoUrl;
+
+function removeProductVideo(prodId) {
+    const id = prodId || _activeMediaProdId;
+    const p = (state.products || []).find(x => x.id === id);
+    if (!p) return;
+    if (!confirm("Are you sure you want to delete this product video?")) return;
+
+    p.videoUrl = "";
+    p.videoBase64 = "";
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderProductMediaModalContent();
+    if (typeof renderStockTable === 'function') renderStockTable();
+    alert("Product video deleted.");
+}
+window.removeProductVideo = removeProductVideo;
+
+function renderStockModalPhotoPreviews() {
+    const prevBox = document.getElementById("stock-preview-images");
+    if (!prevBox) return;
+    const imgs = window._pendingProductImages || [];
+    if (imgs.length === 0) {
+        prevBox.innerHTML = '<span style="font-size:0.75rem; color:#94a3b8; font-style:italic;">No photos attached yet.</span>';
+        return;
+    }
+    prevBox.innerHTML = imgs.map((src, idx) => `
+        <div style="position:relative; width:52px; height:52px; border-radius:4px; overflow:hidden; border:1px solid #cbd5e1; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
+            <img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;">
+            <span style="position:absolute; top:1px; left:1px; background:rgba(0,0,0,0.65); color:#fff; font-size:0.55rem; padding:0 3px; border-radius:2px; font-weight:700;">#${idx+1}</span>
+            <button type="button" onclick="removePendingProductPhoto(${idx})" style="position:absolute; top:1px; right:1px; width:17px; height:17px; background:#ef4444; color:#fff; border:none; border-radius:50%; font-size:0.6rem; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; line-height:1;" title="Delete this photo">&times;</button>
+        </div>
+    `).join('');
+}
+window.renderStockModalPhotoPreviews = renderStockModalPhotoPreviews;
+
+function removePendingProductPhoto(idx) {
+    if (window._pendingProductImages && window._pendingProductImages.length > idx) {
+        window._pendingProductImages.splice(idx, 1);
+        renderStockModalPhotoPreviews();
+    }
+}
+window.removePendingProductPhoto = removePendingProductPhoto;

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=4.3.7">
+    <link rel="stylesheet" href="style.css?v=4.3.8">
     <script>
         if (window.location.protocol.startsWith('http')) {
             const mLink = document.createElement('link');
@@ -543,6 +543,86 @@
                 <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> Save Payment</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- MODAL: PRODUCT PHOTOS & VIDEO MANAGER -->
+<div id="product-media-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="border-bottom: 2px solid #0e254f; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <div>
+                <h2 id="media-modal-title" style="font-size:1.15rem; color:#0e254f; margin:0;"><i class="fa-solid fa-photo-film" style="color:#2563eb;"></i> Manage Product Media</h2>
+                <div id="media-modal-subtitle" style="font-size:0.78rem; color:#64748b; margin-top:2px;"></div>
+            </div>
+            <button class="close-btn" onclick="closeModal('product-media-modal')">&times;</button>
+        </div>
+        
+        <input type="hidden" id="media-modal-prod-id">
+
+        <!-- 1. PHOTOS MANAGEMENT -->
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1rem; margin-bottom:1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+                <div>
+                    <h3 style="font-size:0.95rem; font-weight:700; color:#0e254f; margin:0;"><i class="fa-solid fa-images" style="color:#3b82f6;"></i> Product Photos (<span id="media-photos-count">0</span> / 8)</h3>
+                    <small style="font-size:0.72rem; color:#64748b;">Maximum 8 photos. First photo is the main cover.</small>
+                </div>
+                <div style="display:flex; gap:0.4rem;">
+                    <button type="button" class="btn btn-primary" onclick="triggerMediaAddPhotos()" style="font-size:0.8rem; padding:0.35rem 0.8rem; font-weight:700;">
+                        <i class="fa-solid fa-plus-circle"></i> Add Photos
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="clearAllMediaPhotos()" style="font-size:0.75rem; padding:0.35rem 0.6rem; color:#dc2626; border-color:#fca5a5;">
+                        <i class="fa-solid fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+            
+            <input type="file" id="media-photo-file-input" accept="image/*" multiple style="display:none;" onchange="handleMediaPhotosAdded(this)">
+            <input type="file" id="media-replace-file-input" accept="image/*" style="display:none;" onchange="handleMediaPhotoReplaced(this)">
+            
+            <div id="media-photos-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:0.75rem;">
+                <!-- Photos rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- 2. VIDEO MANAGEMENT -->
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:1rem; margin-bottom:1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+                <div>
+                    <h3 style="font-size:0.95rem; font-weight:700; color:#0e254f; margin:0;"><i class="fa-solid fa-video" style="color:#dc2626;"></i> Product Video (Demo Clip / Link)</h3>
+                    <small style="font-size:0.72rem; color:#64748b;">Upload a short video demo clip or paste a YouTube / Web link.</small>
+                </div>
+                <div id="media-video-actions"></div>
+            </div>
+
+            <div id="media-video-display" style="margin-bottom:0.75rem;">
+                <!-- Current video preview rendered here -->
+            </div>
+
+            <div id="media-video-upload-section" style="border-top:1px dashed #cbd5e1; padding-top:0.75rem;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                    <!-- Option A: File Upload -->
+                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem;">
+                        <label style="display:block; font-size:0.78rem; font-weight:700; color:#0e254f; margin-bottom:0.3rem;"><i class="fa-solid fa-file-video"></i> Upload Video File (MP4/WebM)</label>
+                        <input type="file" id="media-video-file-input" accept="video/mp4,video/webm" style="width:100%; font-size:0.78rem;" onchange="handleMediaVideoUploaded(this)">
+                        <small style="font-size:0.68rem; color:#64748b; display:block; margin-top:3px;">Max 8MB clip recommended.</small>
+                    </div>
+
+                    <!-- Option B: URL Link -->
+                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem;">
+                        <label style="display:block; font-size:0.78rem; font-weight:700; color:#0e254f; margin-bottom:0.3rem;"><i class="fa-brands fa-youtube" style="color:#ef4444;"></i> Or Paste Video Link (YouTube / URL)</label>
+                        <div style="display:flex; gap:0.3rem;">
+                            <input type="url" id="media-video-url-input" placeholder="https://youtu.be/..." style="flex:1; padding:0.35rem 0.5rem; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px;">
+                            <button type="button" class="btn btn-primary" onclick="saveMediaVideoUrl()" style="padding:0.35rem 0.6rem; font-size:0.78rem; font-weight:700;">Save</button>
+                        </div>
+                        <small style="font-size:0.68rem; color:#64748b; display:block; margin-top:3px;">YouTube links take zero storage.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top:1rem; border-top:1px solid #e2e8f0; padding-top:0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('product-media-modal')" style="width:100%; font-weight:700;">Done / Close</button>
+        </div>
     </div>
 </div>
 
@@ -1269,8 +1349,8 @@
         <button class="nav-item" data-tab="orders-tab"><i class="fa-solid fa-truck-ramp-box"></i><span>Orders</span></button>
     </nav>
 
-<script src="core.js?v=4.3.7"></script>
-<script src="admin.js?v=4.3.7"></script>
+<script src="core.js?v=4.3.8"></script>
+<script src="admin.js?v=4.3.8"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
