@@ -5902,12 +5902,12 @@ function renderAdminOffersList() {
     });
 
     const countEl = document.getElementById("offers-stats-count");
-    if (countEl) countEl.textContent = ${filtered.length} of  Offers;
+    if (countEl) countEl.textContent = `${filtered.length} of ${offers.length} Offers`;
     const partiesCountEl = document.getElementById("offers-parties-count");
     if (partiesCountEl) {
         const allowedParties = (state.merchants || []).filter(m => m.allowOffers === true).length;
         const totalParties = (state.merchants || []).length;
-        partiesCountEl.innerHTML = <i class="fa-solid fa-user-check"></i>  of  Parties Allowed;
+        partiesCountEl.innerHTML = `<i class=\"fa-solid fa-user-check\"></i> ${allowedParties} of ${totalParties} Parties Allowed`;
     }
 
     const badgeEl = document.getElementById("sidebar-offers-badge");
@@ -6173,6 +6173,6 @@ window.togglePartyOfferDirect = function(merchantId) {
     if (typeof syncToCloud === 'function') syncToCloud();
     renderMerchantsGrid();
     renderAdminOffersList();
-    const statusText = m.allowOffers ? "àªšàª¾àª²à« (ON)" : "àª¬àª‚àª§ (OFF)";
-    alert(àªªàª¾àª°à«àªŸà«€ "" àª®àª¾àªŸà«‡ àª¸à«àªªà«‡àª¶àª¿àª¯àª² àª‘àª«àª°à«àª¸  àª•àª°à«€ àª¦à«‡àªµàª¾àª®àª¾àª‚ àª†àªµà«€ àª›à«‡.);
+    const statusText = m.allowOffers ? "\u0a9a\u0abe\u0ab2\u0ac1 (ON)" : "\u0aac\u0a82\u0aa7 (OFF)";
+    alert(`\u0aac\u0abe\u0ab0\u0acd\u0a9f\u0ac0 "${m.name}" \u0aae\u0abe\u0a9f\u0ac7 \u0ab8\u0acd\u0aaa\u0ac7\u0ab6\u0abf\u0aaf\u0ab2 \u0a91\u0aab\u0ab0\u0acd\u0ab8 ${statusText} \u0a95\u0ab0\u0ac0 \u0aa6\u0ac7\u0ab5\u0abe\u0aae\u0abe\u0a82 \u0a86\u0ab5\u0ac0 \u0a9b\u0ac7.`);
 };
