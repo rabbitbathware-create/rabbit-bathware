@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <script>
@@ -1385,32 +1385,29 @@
             <div class="modal-body" style="padding:1.25rem; overflow-y:auto; flex:1;">
                 
                 <!-- EMPTY CART STATE (MODERN E-COMMERCE STYLE) -->
-                <div id="dealer-cart-empty-view" style="display: none; text-align: center; padding: 1.5rem 0.5rem 1rem;">
-                    <!-- Circular Icon with Soft Glow -->
-                    <div style="width: 86px; height: 86px; margin: 0.25rem auto 1.25rem; border-radius: 50%; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(37,99,235,0.15); border: 2px solid #bfdbfe;">
-                        <i class="fa-solid fa-cart-arrow-down" style="font-size: 2.6rem; color: #2563eb;"></i>
+                <div id="dealer-cart-empty-view" style="display: none; text-align: center; padding: 1.75rem 0.75rem 1.25rem;">
+                    <!-- Circular Icon with Soft Rabbit Navy Glow -->
+                    <div style="width: 86px; height: 86px; margin: 0 auto 1.25rem; border-radius: 50%; background: linear-gradient(135deg, #eef3f9 0%, #dbe5f1 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(14,37,79,0.12); border: 2px solid #b8cde4;">
+                        <i class="fa-solid fa-cart-arrow-down" style="font-size: 2.6rem; color: #0e254f;"></i>
                     </div>
 
-                    <!-- Heading & Subtitle -->
-                    <h3 style="font-size: 1.2rem; font-weight: 800; color: #0e254f; margin: 0 0 0.4rem 0;">Your Cart is Empty!</h3>
-                    <p style="font-size: 0.88rem; font-weight: 600; color: #334155; margin: 0 0 0.35rem 0;">
-                        &#2730;&#2724;&#2759; &#2745;&#2716;&#2753; &#2744;&#2753;&#2727;&#2752; &#2709;&#2763;&#2712;&#2746;&#2707; &#2730;&#2765;&#2736;&#2763;&#2721;&#2709;&#2765;&#2719; &#2707;&#2736;&#2765;&#2721;&#2736;&#2724;&#2750;&#2690; &#2697;&#2724;&#2759;&#2736;&#2759;&#2738; &#2728;&#2736;&#2752;.
-                    </p>
-                    <p style="font-size: 0.76rem; color: #64748b; margin: 0 0 1.6rem 0; line-height: 1.4;">
-                        Explore our sanitary ware, kitchen sinks &amp; bath fittings collection to start adding items to your order sheet.
+                    <!-- Heading & Subtitle (English Only) -->
+                    <h3 style="font-size: 1.25rem; font-weight: 800; color: #0e254f; margin: 0 0 0.5rem 0; letter-spacing: -0.2px;">Your Cart is Empty!</h3>
+                    <p style="font-size: 0.84rem; color: #64748b; margin: 0 auto 1.5rem auto; line-height: 1.5; max-width: 320px;">
+                        Looks like you haven't added any products to your order yet. Explore our complete collection to start adding items.
                     </p>
 
-                    <!-- Main CTA: Add Products / Browse Catalog -->
-                    <button type="button" class="btn btn-primary" onclick="exploreProductsFromCart()" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; width: 100%; padding: 0.8rem 1.25rem; font-size: 0.95rem; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 15px rgba(37,99,235,0.3); display: flex; align-items: center; justify-content: center; gap: 0.5rem; border: none; cursor: pointer; transition: all 0.2s;">
-                        <i class="fa-solid fa-bag-shopping" style="font-size: 1.1rem;"></i> + Add Products / Browse Catalog (+ &#2730;&#2765;&#2736;&#2763;&#2721;&#2709;&#2765;&#2719;&#2749; &#2697;&#2724;&#2759;&#2736;&#2763;)
+                    <!-- Main CTA: Add Products / Browse Catalog in Rabbit Navy Blue -->
+                    <button type="button" class="btn btn-primary" onclick="exploreProductsFromCart()" style="background: #0e254f; color: #ffffff; width: 100%; padding: 0.85rem 1.25rem; font-size: 0.95rem; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 14px rgba(14,37,79,0.25); display: flex; align-items: center; justify-content: center; gap: 0.5rem; border: none; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#163875'" onmouseout="this.style.background='#0e254f'">
+                        <i class="fa-solid fa-bag-shopping" style="font-size: 1.1rem;"></i> + Add Products / Browse Catalog
                     </button>
 
                     <!-- Secondary Close Button -->
-                    <button type="button" class="btn" onclick="closeModal('cart-modal')" style="background: transparent; color: #64748b; width: 100%; margin-top: 0.65rem; padding: 0.55rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;">
+                    <button type="button" class="btn" onclick="closeModal('cart-modal')" style="background: transparent; color: #64748b; width: 100%; margin-top: 0.65rem; padding: 0.55rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#94a3b8'; this.style.color='#0e254f'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#64748b'">
                         <i class="fa-solid fa-xmark"></i> Close Cart
                     </button>
                 </div>
-
+                
                 <!-- FILLED CART VIEW (SHOWN ONLY WHEN ITEMS > 0) -->
                 <div id="dealer-cart-filled-view">
                     <div class="dealer-cart-items" id="dealer-cart-items" style="max-height: none; overflow-y: visible;">
@@ -1508,7 +1505,7 @@
 
     <!-- SCRIPTS -->
     <script src="core.js?v=4.4.0"></script>
-    <script src="dealer.js?v=4.4.0"></script>
+    <script src="dealer.js?v=4.4.1"></script>
 
     <!-- PWA Registration -->
     <script>
