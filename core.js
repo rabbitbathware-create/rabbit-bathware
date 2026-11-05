@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BMS Portal - Core Application State & Shared Utilities v3.0
 // Shared state across admin.html, staff.html, and dealer.html
 // ============================================================
@@ -192,12 +192,25 @@ const DEFAULT_MERCHANTS = [
     }
 ];
 
+const DEFAULT_FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBFDl4KVuUfFAVRWqzTVqjs4EG-BpzTZH0",
+    authDomain: "rabbitbathware-d9d1b.firebaseapp.com",
+    databaseURL: "https://rabbitbathware-d9d1b-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "rabbitbathware-d9d1b",
+    storageBucket: "rabbitbathware-d9d1b.firebasestorage.app",
+    messagingSenderId: "589259338882",
+    appId: "1:589259338882:web:ec25ce7838b6e67a62f09b",
+    measurementId: "G-3TEHE9CGMZ"
+};
+window.DEFAULT_FIREBASE_CONFIG = DEFAULT_FIREBASE_CONFIG;
+
 const DEFAULT_SETTINGS = {
     adminWA: "919876543210",
     gstRate: 18,
     companyName: "Shree Ram Bathware",
-    currencySymbol: "₹",
-    allAsPerOrder: false
+    currencySymbol: "\u20B9",
+    allAsPerOrder: false,
+    firebaseConfigJSON: JSON.stringify(DEFAULT_FIREBASE_CONFIG)
 };
 
 // ---- SHARED STATE ----
@@ -268,22 +281,30 @@ function invalidatePerformanceCache() {
 }
 window.invalidatePerformanceCache = invalidatePerformanceCache;
 
+function getEffectiveFirebaseConfig() {
+    if (state && state.settings && state.settings.firebaseConfigJSON) {
+        try {
+            const parsed = typeof state.settings.firebaseConfigJSON === 'string'
+                ? JSON.parse(state.settings.firebaseConfigJSON)
+                : state.settings.firebaseConfigJSON;
+            if (parsed && parsed.apiKey && parsed.databaseURL && !parsed.apiKey.includes('...')) {
+                return parsed;
+            }
+        } catch (err) {}
+    }
+    return DEFAULT_FIREBASE_CONFIG;
+}
+
 function initFirebaseSync() {
     try {
-        if (typeof firebase === 'undefined') return;
-        if (!state.settings || !state.settings.firebaseConfigJSON) return;
-        
-        let config;
-        try {
-            config = typeof state.settings.firebaseConfigJSON === 'string' 
-                ? JSON.parse(state.settings.firebaseConfigJSON) 
-                : state.settings.firebaseConfigJSON;
-        } catch (err) {
-            console.warn("Invalid Firebase Config JSON:", err);
+        if (typeof firebase === 'undefined') {
+            console.warn("Firebase SDK not loaded.");
             return;
         }
         
+        const config = getEffectiveFirebaseConfig();
         if (!config || !config.apiKey || !config.databaseURL) {
+            console.warn("Firebase config incomplete.");
             return;
         }
         
@@ -292,13 +313,70 @@ function initFirebaseSync() {
         }
         window.firebaseDB = firebase.database();
         _firebaseInitialized = true;
-        console.log("Firebase Realtime Cloud Database connected successfully!");
+        console.log("Firebase Realtime Cloud Database connected successfully! (rabbitbathware-d9d1b)");
 
-        // Realtime Listener across all India branches
+        // Realtime Listener across all India branches & devices
         window.firebaseDB.ref("bms_state").on("value", (snapshot) => {
             const remoteVal = snapshot.val();
             if (remoteVal && typeof remoteVal === 'object' && Object.keys(remoteVal).length > 0) {
                 _isSyncingFromRemote = true;
+                
+                // Smart Merge to ensure locally added data (e.g. from Mobile) is never lost
+                let hasLocalAdditions = false;
+                if (state) {
+                    // 1. Merge Merchants
+                    if (Array.isArray(state.merchants) && state.merchants.length > 0) {
+                        const remoteMerchants = Array.isArray(remoteVal.merchants) ? remoteVal.merchants : [];
+                        const mergedMerchants = [...remoteMerchants];
+                        state.merchants.forEach(lm => {
+                            if (!mergedMerchants.some(rm => (rm.id && rm.id === lm.id) || (rm.uid && rm.uid === lm.uid))) {
+                                mergedMerchants.push(lm);
+                                hasLocalAdditions = true;
+                            }
+                        });
+                        remoteVal.merchants = mergedMerchants;
+                    }
+
+                    // 2. Merge Products
+                    if (Array.isArray(state.products) && state.products.length > 0) {
+                        const remoteProducts = Array.isArray(remoteVal.products) ? remoteVal.products : [];
+                        const mergedProducts = [...remoteProducts];
+                        state.products.forEach(lp => {
+                            if (!mergedProducts.some(rp => rp.id && rp.id === lp.id)) {
+                                mergedProducts.push(lp);
+                                hasLocalAdditions = true;
+                            }
+                        });
+                        remoteVal.products = mergedProducts;
+                    }
+
+                    // 3. Merge Orders
+                    if (Array.isArray(state.orders) && state.orders.length > 0) {
+                        const remoteOrders = Array.isArray(remoteVal.orders) ? remoteVal.orders : [];
+                        const mergedOrders = [...remoteOrders];
+                        state.orders.forEach(lo => {
+                            if (!mergedOrders.some(ro => ro.id && ro.id === lo.id)) {
+                                mergedOrders.push(lo);
+                                hasLocalAdditions = true;
+                            }
+                        });
+                        remoteVal.orders = mergedOrders;
+                    }
+
+                    // 4. Merge Dealer Requests
+                    if (Array.isArray(state.dealerRequests) && state.dealerRequests.length > 0) {
+                        const remoteReqs = Array.isArray(remoteVal.dealerRequests) ? remoteVal.dealerRequests : [];
+                        const mergedReqs = [...remoteReqs];
+                        state.dealerRequests.forEach(lr => {
+                            if (!mergedReqs.some(rr => rr.id && rr.id === lr.id)) {
+                                mergedReqs.push(lr);
+                                hasLocalAdditions = true;
+                            }
+                        });
+                        remoteVal.dealerRequests = mergedReqs;
+                    }
+                }
+
                 state = remoteVal;
                 try {
                     localStorage.setItem("bms_state", JSON.stringify(state));
@@ -306,13 +384,23 @@ function initFirebaseSync() {
                 invalidatePerformanceCache();
                 _isSyncingFromRemote = false;
                 
-                // Dispatch event or call active tab refresher
+                // If local had newer items not yet in cloud, push merged state back to cloud
+                if (hasLocalAdditions) {
+                    console.log("Local items merged with cloud state, syncing back to Firebase...");
+                    debouncedCloudPush();
+                }
+
+                // Dispatch event across tabs and portals
                 window.dispatchEvent(new CustomEvent('bms_remote_sync', { detail: state }));
                 if (typeof refreshCurrentTab === 'function') {
                     refreshCurrentTab();
                 } else if (typeof renderDashboard === 'function') {
                     renderDashboard();
                 }
+            } else {
+                // If cloud database is empty, seed it with current local state!
+                console.log("Cloud RTDB is empty. Seeding local state to Firebase...");
+                syncToCloud();
             }
         });
     } catch (e) {
@@ -324,7 +412,8 @@ window.initFirebaseSync = initFirebaseSync;
 const debouncedCloudPush = debounce(() => {
     if (_isSyncingFromRemote || !_firebaseInitialized || !window.firebaseDB) return;
     try {
-        window.firebaseDB.ref("bms_state").set(state).catch(err => {
+        const cleanState = JSON.parse(JSON.stringify(state));
+        window.firebaseDB.ref("bms_state").set(cleanState).catch(err => {
             console.warn("Cloud sync push error:", err);
         });
     } catch (e) {
@@ -404,6 +493,9 @@ function loadState() {
             if (!state.orders) state.orders = [];
             if (!state.ledger) state.ledger = [];
             if (!state.settings) state.settings = { ...DEFAULT_SETTINGS };
+            if (!state.settings.firebaseConfigJSON || state.settings.firebaseConfigJSON.includes('...')) {
+                state.settings.firebaseConfigJSON = JSON.stringify(DEFAULT_FIREBASE_CONFIG);
+            }
             if (!state.homeBanners || state.homeBanners.length === 0) state.homeBanners = [...DEFAULT_HOME_BANNERS];
             if (!state.homeCategoryCards || state.homeCategoryCards.length === 0) state.homeCategoryCards = [...DEFAULT_HOME_CATEGORY_CARDS];
             if (!state.dealerRequests) state.dealerRequests = [];

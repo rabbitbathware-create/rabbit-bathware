@@ -1,4 +1,4 @@
-    let dealerMerchant = null;
+﻿    let dealerMerchant = null;
     let dealerCart = {};
     let activeAuthMode = 'pin';
     let lastSubmittedOrder = null;
@@ -2387,3 +2387,17 @@ function exploreProductsFromCart() {
     }, 80);
 }
 window.exploreProductsFromCart = exploreProductsFromCart;
+
+// Listen to realtime cloud sync events from Firebase
+window.addEventListener('bms_remote_sync', function() {
+    console.log("Dealer Portal: Firebase bms_remote_sync received, refreshing views...");
+    try {
+        if (typeof renderDealerGradePills === 'function') renderDealerGradePills();
+        if (typeof renderDealerCatalog === 'function') renderDealerCatalog();
+        if (typeof renderDealerOffers === 'function') renderDealerOffers();
+        if (typeof renderDealerCart === 'function') renderDealerCart();
+        if (typeof renderDealerOrdersList === 'function') renderDealerOrdersList();
+    } catch(err) {
+        console.warn("Dealer remote sync UI update error:", err);
+    }
+});

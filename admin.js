@@ -1,4 +1,4 @@
-
+﻿
 // Global Delegated Click Listener for Party Action Buttons
 if (typeof document !== 'undefined') {
     document.addEventListener('click', function(e) {
@@ -6593,3 +6593,22 @@ function removePendingProductPhoto(idx) {
     }
 }
 window.removePendingProductPhoto = removePendingProductPhoto;
+
+// Listen to realtime cloud sync events from Firebase across devices
+window.addEventListener('bms_remote_sync', function() {
+    console.log("Admin Portal: Firebase bms_remote_sync received, refreshing views...");
+    try {
+        if (typeof renderMerchantsGrid === 'function') renderMerchantsGrid();
+        if (typeof renderDealerRequests === 'function') renderDealerRequests();
+        if (typeof renderOrdersList === 'function') renderOrdersList();
+        if (typeof renderProductsTable === 'function') renderProductsTable();
+        if (typeof renderDashboard === 'function') renderDashboard();
+        if (typeof renderLedgerTable === 'function') renderLedgerTable();
+        if (typeof renderOffersAdmin === 'function') renderOffersAdmin();
+        if (typeof renderAdminBanners === 'function') renderAdminBanners();
+        if (typeof renderAdminCategoryCards === 'function') renderAdminCategoryCards();
+        if (typeof renderStockValuation === 'function') renderStockValuation();
+    } catch(err) {
+        console.warn("Admin remote sync UI update error:", err);
+    }
+});
