@@ -1,4 +1,4 @@
-﻿    let dealerMerchant = null;
+    let dealerMerchant = null;
     let dealerCart = {};
     let activeAuthMode = 'pin';
     let lastSubmittedOrder = null;
@@ -1320,13 +1320,24 @@
         const countBadge = document.getElementById('dealer-cart-count');
         if (countBadge) countBadge.textContent = cartItems.reduce((s, [_, q]) => s + q, 0);
 
+        const emptyView = document.getElementById('dealer-cart-empty-view');
+        const filledView = document.getElementById('dealer-cart-filled-view');
+
         if (cartItems.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:2rem; color:#94a3b8; font-style:italic;">No items added yet.</div>';
-            document.getElementById('dealer-sum-basic').textContent = '₹0';
-            document.getElementById('dealer-sum-gst').textContent = '₹0';
-            document.getElementById('dealer-sum-bill').textContent = '₹0';
-            document.getElementById('dealer-sum-cash').textContent = '₹0';
-            document.getElementById('dealer-sum-payment').textContent = '₹0';
+            if (emptyView) emptyView.style.display = 'block';
+            if (filledView) filledView.style.display = 'none';
+            container.innerHTML = '';
+            
+            const basicEl = document.getElementById('dealer-sum-basic');
+            if (basicEl) basicEl.textContent = '\u20B90';
+            const gstEl = document.getElementById('dealer-sum-gst');
+            if (gstEl) gstEl.textContent = '\u20B90';
+            const billEl = document.getElementById('dealer-sum-bill');
+            if (billEl) billEl.textContent = '\u20B90';
+            const cashEl = document.getElementById('dealer-sum-cash');
+            if (cashEl) cashEl.textContent = '\u20B90';
+            const payEl = document.getElementById('dealer-sum-payment');
+            if (payEl) payEl.textContent = '\u20B90';
             
             const totalLabel = document.getElementById('dealer-cart-total-label');
             if (totalLabel) totalLabel.textContent = (!dealerMerchant || isHideTotals) ? 'Total Amount:' : 'Total Payment:';
@@ -1336,9 +1347,15 @@
             const weightEl = document.getElementById('dealer-cart-total-weight');
             if (weightEl) weightEl.textContent = '0.00';
             
-            document.getElementById('dealer-submit-btn').disabled = true;
+            const submitBtn = document.getElementById('dealer-submit-btn');
+            if (submitBtn) submitBtn.disabled = true;
             return;
         }
+
+        if (emptyView) emptyView.style.display = 'none';
+        if (filledView) filledView.style.display = 'block';
+        const submitBtn = document.getElementById('dealer-submit-btn');
+        if (submitBtn) submitBtn.disabled = false;
         
         let totalCheque = 0;
         let totalCash = 0;
@@ -2347,3 +2364,26 @@ function addOfferToCart(offerId) {
     alert(`🎉 ${qty} pcs of "${o.model}" added to cart at Special Offer rate of ₹${o.offerPrice.toLocaleString('en-IN')}/pc!`);
 }
 window.addOfferToCart = addOfferToCart;
+
+
+function openDealerCartModal() {
+    if (typeof renderDealerCart === 'function') {
+        renderDealerCart();
+    }
+    openModal('cart-modal');
+}
+window.openDealerCartModal = openDealerCartModal;
+
+function exploreProductsFromCart() {
+    closeModal('cart-modal');
+    if (typeof switchDealerView === 'function') {
+        switchDealerView('products');
+    }
+    setTimeout(() => {
+        const prodSec = document.getElementById('view-products') || document.querySelector('.dealer-product-grid');
+        if (prodSec) {
+            prodSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 80);
+}
+window.exploreProductsFromCart = exploreProductsFromCart;
