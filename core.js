@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BMS Portal - Core Application State & Shared Utilities v3.0
 // Shared state across admin.html, staff.html, and dealer.html
 // ============================================================
@@ -1937,3 +1937,344 @@ window.printGSTInvoice = printGSTInvoice;
 window.printDispatchChallan = printDispatchChallan;
 window.printOrderInvoice = printOrderInvoice;
 
+
+
+
+// ==========================================
+// INTERACTIVE IMAGE CROPPER & ZOOM ADJUSTER
+// ==========================================
+const _cropperState = {
+    img: null,
+    scale: 1.0,
+    baseScale: 1.0,
+    minScale: 0.5,
+    maxScale: 3.5,
+    posX: 0,
+    posY: 0,
+    rotation: 0,
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    startPosX: 0,
+    startPosY: 0,
+    queue: [],
+    queueIndex: 0,
+    onComplete: null,
+    results: [],
+    prevModalId: null
+};
+
+function cropperInitEvents() {
+    const vp = document.getElementById("cropper-viewport-container");
+    if (!vp || vp._hasEvents) return;
+    vp._hasEvents = true;
+
+    // Mouse drag
+    vp.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        _cropperState.isDragging = true;
+        _cropperState.startX = e.clientX;
+        _cropperState.startY = e.clientY;
+        _cropperState.startPosX = _cropperState.posX;
+        _cropperState.startPosY = _cropperState.posY;
+        vp.style.cursor = "grabbing";
+    });
+
+    window.addEventListener("mousemove", (e) => {
+        if (!_cropperState.isDragging) return;
+        const rect = vp.getBoundingClientRect();
+        const ratio = 600 / (rect.width || 320);
+        _cropperState.posX = _cropperState.startPosX + (e.clientX - _cropperState.startX) * ratio;
+        _cropperState.posY = _cropperState.startPosY + (e.clientY - _cropperState.startY) * ratio;
+        cropperRedraw();
+    });
+
+    window.addEventListener("mouseup", () => {
+        if (_cropperState.isDragging) {
+            _cropperState.isDragging = false;
+            vp.style.cursor = "grab";
+        }
+    });
+
+    // Mouse wheel zoom
+    vp.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const step = e.deltaY < 0 ? 0.08 : -0.08;
+        cropperZoomStep(step);
+    }, { passive: false });
+
+    // Touch events for mobile
+    let initialTouchDist = 0;
+    let initialTouchScale = 1.0;
+
+    vp.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 1) {
+            _cropperState.isDragging = true;
+            _cropperState.startX = e.touches[0].clientX;
+            _cropperState.startY = e.touches[0].clientY;
+            _cropperState.startPosX = _cropperState.posX;
+            _cropperState.startPosY = _cropperState.posY;
+        } else if (e.touches.length === 2) {
+            _cropperState.isDragging = false;
+            initialTouchDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            initialTouchScale = _cropperState.scale;
+        }
+    }, { passive: false });
+
+    vp.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1 && _cropperState.isDragging) {
+            const rect = vp.getBoundingClientRect();
+            const ratio = 600 / (rect.width || 320);
+            _cropperState.posX = _cropperState.startPosX + (e.touches[0].clientX - _cropperState.startX) * ratio;
+            _cropperState.posY = _cropperState.startPosY + (e.touches[0].clientY - _cropperState.startY) * ratio;
+            cropperRedraw();
+        } else if (e.touches.length === 2 && initialTouchDist > 0) {
+            const newDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            const newScale = Math.min(Math.max(initialTouchScale * (newDist / initialTouchDist), 0.5), 3.5);
+            _cropperState.scale = newScale;
+            const slider = document.getElementById("cropper-zoom-slider");
+            if (slider) slider.value = newScale.toFixed(2);
+            const lbl = document.getElementById("cropper-zoom-label");
+            if (lbl) lbl.textContent = Math.round(newScale * 100) + "%";
+            cropperRedraw();
+        }
+    }, { passive: false });
+
+    vp.addEventListener("touchend", () => {
+        _cropperState.isDragging = false;
+        initialTouchDist = 0;
+    });
+}
+
+function openImageCropper(items, onComplete, options) {
+    const list = Array.isArray(items) ? items : [items];
+    if (list.length === 0) return;
+
+    _cropperState.queue = list;
+    _cropperState.queueIndex = 0;
+    _cropperState.results = [];
+    _cropperState.onComplete = onComplete;
+    _cropperState.options = options || {};
+
+    const active = document.querySelector('.modal-overlay.active');
+    _cropperState.prevModalId = active ? active.id : null;
+
+    cropperInitEvents();
+    cropperLoadCurrent();
+}
+window.openImageCropper = openImageCropper;
+
+function cropperLoadCurrent() {
+    const item = _cropperState.queue[_cropperState.queueIndex];
+    if (!item) return;
+
+    const total = _cropperState.queue.length;
+    const currentNum = _cropperState.queueIndex + 1;
+
+    const titleEl = document.getElementById("cropper-modal-title");
+    if (titleEl) {
+        if (total > 1) {
+            titleEl.innerHTML = `<i class="fa-solid fa-crop-simple" style="color:#2563eb;"></i> Adjust Photo (${currentNum} of ${total})`;
+        } else {
+            titleEl.innerHTML = `<i class="fa-solid fa-crop-simple" style="color:#2563eb;"></i> Adjust &amp; Crop Photo`;
+        }
+    }
+
+    const applyBtnText = document.getElementById("cropper-apply-text");
+    if (applyBtnText) {
+        applyBtnText.textContent = (currentNum < total) ? "Apply & Next" : "Save & Apply";
+    }
+
+    const skipBtn = document.getElementById("cropper-skip-btn");
+    if (skipBtn) {
+        skipBtn.style.display = (total > 1) ? "inline-block" : "none";
+    }
+
+    const img = new Image();
+    img.onload = () => {
+        _cropperState.img = img;
+        const iw = img.naturalWidth || img.width;
+        const ih = img.naturalHeight || img.height;
+        _cropperState.rotation = 0;
+        _cropperState.posX = 0;
+        _cropperState.posY = 0;
+        _cropperState.scale = 1.0;
+        _cropperState.baseScale = Math.min(600 / iw, 600 / ih);
+
+        const slider = document.getElementById("cropper-zoom-slider");
+        if (slider) slider.value = "1.0";
+        const lbl = document.getElementById("cropper-zoom-label");
+        if (lbl) lbl.textContent = "100%";
+
+        openModal("image-cropper-modal");
+        const m = document.getElementById("image-cropper-modal");
+        if (m) m.style.zIndex = "3500";
+
+        cropperRedraw();
+    };
+    img.src = item;
+}
+
+function cropperRedraw() {
+    const canvas = document.getElementById("cropper-canvas");
+    if (!canvas || !_cropperState.img) return;
+    const ctx = canvas.getContext("2d");
+    const cw = canvas.width;
+    const ch = canvas.height;
+
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, cw, ch);
+
+    const iw = _cropperState.img.naturalWidth || _cropperState.img.width;
+    const ih = _cropperState.img.naturalHeight || _cropperState.img.height;
+    const totalScale = _cropperState.baseScale * _cropperState.scale;
+
+    ctx.save();
+    ctx.translate(cw / 2 + _cropperState.posX, ch / 2 + _cropperState.posY);
+    ctx.rotate((_cropperState.rotation * Math.PI) / 180);
+    ctx.scale(totalScale, totalScale);
+    ctx.drawImage(_cropperState.img, -iw / 2, -ih / 2, iw, ih);
+    ctx.restore();
+}
+window.cropperRedraw = cropperRedraw;
+
+function cropperZoomStep(delta) {
+    let next = _cropperState.scale + delta;
+    next = Math.min(Math.max(next, 0.5), 3.5);
+    _cropperState.scale = next;
+    const slider = document.getElementById("cropper-zoom-slider");
+    if (slider) slider.value = next.toFixed(2);
+    const lbl = document.getElementById("cropper-zoom-label");
+    if (lbl) lbl.textContent = Math.round(next * 100) + "%";
+    cropperRedraw();
+}
+window.cropperZoomStep = cropperZoomStep;
+
+function cropperOnZoomSlider(val) {
+    const next = Math.min(Math.max(parseFloat(val) || 1, 0.5), 3.5);
+    _cropperState.scale = next;
+    const lbl = document.getElementById("cropper-zoom-label");
+    if (lbl) lbl.textContent = Math.round(next * 100) + "%";
+    cropperRedraw();
+}
+window.cropperOnZoomSlider = cropperOnZoomSlider;
+
+function cropperRotate90() {
+    _cropperState.rotation = (_cropperState.rotation + 90) % 360;
+    if (_cropperState.img) {
+        const iw = _cropperState.img.naturalWidth || _cropperState.img.width;
+        const ih = _cropperState.img.naturalHeight || _cropperState.img.height;
+        const is90or270 = (_cropperState.rotation % 180 !== 0);
+        const effW = is90or270 ? ih : iw;
+        const effH = is90or270 ? iw : ih;
+        _cropperState.baseScale = Math.min(600 / effW, 600 / effH);
+    }
+    cropperRedraw();
+}
+window.cropperRotate90 = cropperRotate90;
+
+function cropperResetTransform() {
+    _cropperState.scale = 1.0;
+    _cropperState.posX = 0;
+    _cropperState.posY = 0;
+    _cropperState.rotation = 0;
+    if (_cropperState.img) {
+        const iw = _cropperState.img.naturalWidth || _cropperState.img.width;
+        const ih = _cropperState.img.naturalHeight || _cropperState.img.height;
+        _cropperState.baseScale = Math.min(600 / iw, 600 / ih);
+    }
+    const slider = document.getElementById("cropper-zoom-slider");
+    if (slider) slider.value = "1.0";
+    const lbl = document.getElementById("cropper-zoom-label");
+    if (lbl) lbl.textContent = "100%";
+    cropperRedraw();
+}
+window.cropperResetTransform = cropperResetTransform;
+
+function cropperGetCroppedDataUrl() {
+    if (!_cropperState.img) return null;
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = 900;
+    outCanvas.height = 900;
+    const ctx = outCanvas.getContext("2d");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, 900, 900);
+
+    const iw = _cropperState.img.naturalWidth || _cropperState.img.width;
+    const ih = _cropperState.img.naturalHeight || _cropperState.img.height;
+    const ratio = 900 / 600;
+    const totalScale = _cropperState.baseScale * _cropperState.scale * ratio;
+
+    ctx.save();
+    ctx.translate(450 + _cropperState.posX * ratio, 450 + _cropperState.posY * ratio);
+    ctx.rotate((_cropperState.rotation * Math.PI) / 180);
+    ctx.scale(totalScale, totalScale);
+    ctx.drawImage(_cropperState.img, -iw / 2, -ih / 2, iw, ih);
+    ctx.restore();
+
+    return outCanvas.toDataURL("image/jpeg", 0.82);
+}
+
+function confirmImageCrop() {
+    const cropped = cropperGetCroppedDataUrl();
+    if (cropped) {
+        _cropperState.results.push(cropped);
+    }
+    if (_cropperState.queueIndex + 1 < _cropperState.queue.length) {
+        _cropperState.queueIndex++;
+        cropperLoadCurrent();
+    } else {
+        finishCropperSession();
+    }
+}
+window.confirmImageCrop = confirmImageCrop;
+
+function skipImageCrop() {
+    const orig = _cropperState.queue[_cropperState.queueIndex];
+    if (orig) {
+        _cropperState.results.push(orig);
+    }
+    if (_cropperState.queueIndex + 1 < _cropperState.queue.length) {
+        _cropperState.queueIndex++;
+        cropperLoadCurrent();
+    } else {
+        finishCropperSession();
+    }
+}
+window.skipImageCrop = skipImageCrop;
+
+function finishCropperSession() {
+    closeModal("image-cropper-modal");
+    const prev = _cropperState.prevModalId;
+    if (prev && prev !== "image-cropper-modal") {
+        setTimeout(() => {
+            openModal(prev);
+        }, 50);
+    }
+    if (typeof _cropperState.onComplete === 'function') {
+        _cropperState.onComplete(_cropperState.results);
+    }
+    _cropperState.queue = [];
+    _cropperState.results = [];
+}
+
+function cancelImageCrop() {
+    closeModal("image-cropper-modal");
+    const prev = _cropperState.prevModalId;
+    if (prev && prev !== "image-cropper-modal") {
+        setTimeout(() => {
+            openModal(prev);
+        }, 50);
+    }
+    _cropperState.queue = [];
+    _cropperState.results = [];
+}
+window.cancelImageCrop = cancelImageCrop;

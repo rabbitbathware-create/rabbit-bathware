@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=4.3.8">
+    <link rel="stylesheet" href="style.css?v=4.3.9">
     <script>
         if (window.location.protocol.startsWith('http')) {
             const mLink = document.createElement('link');
@@ -971,6 +971,84 @@
     </div>
 </div>
 
+
+<!-- MODAL: IMAGE CROPPER & ZOOM ADJUSTER -->
+<div id="image-cropper-modal" class="modal-overlay" style="z-index: 3500;">
+    <div class="modal-content" style="max-width: 440px; width: 94%; padding: 1.1rem; border-radius: 12px; background: #ffffff; box-shadow: 0 20px 45px rgba(0,0,0,0.35); display: flex; flex-direction: column; gap: 0.65rem;">
+        
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
+            <div>
+                <h3 id="cropper-modal-title" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #0e254f; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-crop-simple" style="color: #2563eb;"></i> Adjust &amp; Crop Photo
+                </h3>
+                <small id="cropper-modal-subtitle" style="color: #64748b; font-size: 0.74rem; display: block; margin-top: 2px;">
+                    Drag to move photo, use slider or pinch to zoom in/out
+                </small>
+            </div>
+            <button type="button" class="close-btn" onclick="cancelImageCrop()" style="font-size: 1.5rem; line-height: 1; border: none; background: transparent; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <!-- Viewport Box Container -->
+        <div style="position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 320px; margin: 0 auto; background: #0f172a; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; user-select: none; touch-action: none; cursor: grab;" id="cropper-viewport-container">
+            <canvas id="cropper-canvas" width="600" height="600" style="display: block; width: 100%; height: 100%; object-fit: contain;"></canvas>
+            
+            <!-- Grid Guides Overlay -->
+            <div id="cropper-grid-overlay" style="position: absolute; inset: 0; pointer-events: none; border: 2px solid rgba(255,255,255,0.75); display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;">
+                <div style="border-right: 1px dashed rgba(255,255,255,0.35); border-bottom: 1px dashed rgba(255,255,255,0.35);"></div>
+                <div style="border-right: 1px dashed rgba(255,255,255,0.35); border-bottom: 1px dashed rgba(255,255,255,0.35);"></div>
+                <div style="border-bottom: 1px dashed rgba(255,255,255,0.35);"></div>
+                <div style="border-right: 1px dashed rgba(255,255,255,0.35); border-bottom: 1px dashed rgba(255,255,255,0.35);"></div>
+                <div style="border-right: 1px dashed rgba(255,255,255,0.35); border-bottom: 1px dashed rgba(255,255,255,0.35);"></div>
+                <div style="border-bottom: 1px dashed rgba(255,255,255,0.35);"></div>
+                <div style="border-right: 1px dashed rgba(255,255,255,0.35);"></div>
+                <div style="border-right: 1px dashed rgba(255,255,255,0.35);"></div>
+                <div></div>
+            </div>
+
+            <!-- Touch Hint Badge -->
+            <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #fff; font-size: 0.68rem; padding: 3px 10px; border-radius: 12px; pointer-events: none; backdrop-filter: blur(2px); white-space: nowrap;">
+                <i class="fa-solid fa-arrows-up-down-left-right"></i> Drag to move &bull; Scroll / Pinch to zoom
+            </div>
+        </div>
+
+        <!-- Controls: Zoom & Rotate & Fit -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <!-- Zoom row -->
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button type="button" class="btn btn-outline" onclick="cropperZoomStep(-0.15)" style="padding: 4px 8px; font-size: 0.8rem;" title="Zoom Out">
+                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                </button>
+                <input type="range" id="cropper-zoom-slider" min="0.6" max="3.5" step="0.01" value="1" style="flex: 1; accent-color: #2563eb; cursor: pointer;" oninput="cropperOnZoomSlider(this.value)">
+                <button type="button" class="btn btn-outline" onclick="cropperZoomStep(0.15)" style="padding: 4px 8px; font-size: 0.8rem;" title="Zoom In">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </button>
+                <span id="cropper-zoom-label" style="font-size: 0.72rem; font-weight: 700; color: #475569; min-width: 40px; text-align: right;">100%</span>
+            </div>
+            
+            <!-- Rotate & Reset row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #cbd5e1; padding-top: 0.4rem;">
+                <button type="button" class="btn btn-outline" onclick="cropperRotate90()" style="font-size: 0.75rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-rotate-right"></i> Rotate 90&deg;
+                </button>
+                <button type="button" class="btn btn-outline" onclick="cropperResetTransform()" style="font-size: 0.75rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-arrows-to-dot"></i> Fit &amp; Center
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer / Action Buttons -->
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem;">
+            <button type="button" class="btn btn-outline" onclick="cancelImageCrop()" style="padding: 0.45rem 1rem; font-size: 0.85rem;">Cancel</button>
+            <button type="button" id="cropper-skip-btn" class="btn btn-outline" onclick="skipImageCrop()" style="display: none; padding: 0.45rem 0.8rem; font-size: 0.82rem; color: #64748b;">Skip</button>
+            <button type="button" class="btn btn-primary" onclick="confirmImageCrop()" style="padding: 0.45rem 1.2rem; font-size: 0.85rem; font-weight: 700; background: #2563eb; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-check"></i> <span id="cropper-apply-text">Save &amp; Apply</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
 <!-- MODAL: ADD / EDIT PRODUCT STOCK -->
 <div id="add-stock-modal" class="modal-overlay">
     <div class="modal-content" style="max-width: 620px; max-height: 90vh; overflow-y: auto;">
@@ -1099,7 +1177,7 @@
 
             <div class="form-group" style="margin-bottom:1rem;">
                 <label style="font-weight:700; font-size:0.8rem;">Product Photos (Upload up to 3 photos)</label>
-                <input type="file" id="stock-images-input" accept="image/*" multiple style="width:100%; padding:0.4rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.85rem;">
+                <input type="file" id="stock-images-input" accept="image/*" multiple onchange="handleStockImagesSelected(this)" style="width:100%; padding:0.4rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.85rem;">
                 <div id="stock-preview-images" style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;"></div>
             </div>
 
@@ -1863,8 +1941,8 @@
         <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i><span>Ledger</span></button>
     </nav>
 
-<script src="core.js?v=4.3.8"></script>
-<script src="admin.js?v=4.3.8"></script>
+<script src="core.js?v=4.3.9"></script>
+<script src="admin.js?v=4.3.9"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {

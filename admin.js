@@ -1246,7 +1246,8 @@ function openAddProductModal() {
         document.getElementById("stock-box-bill-rate").value = "";
     }
     toggleBoxFields();
-    document.getElementById("stock-preview-images").innerHTML = "";
+    window._pendingProductImages = [];
+    renderStockModalPhotoPreviews();
     openModal("add-stock-modal");
 }
 
@@ -1310,11 +1311,11 @@ function openEditProductModal(id) {
         document.getElementById("stock-is-hot").checked = !!p.isHot;
     }
 
-    const prevBox = document.getElementById("stock-preview-images");
-    if (prevBox) {
-        const imgs = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageBase64 ? [p.imageBase64] : []);
-        prevBox.innerHTML = imgs.map(src => `<img src="${src}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1;">`).join('');
-    }
+    window._pendingProductImages = (p.imagesBase64 && p.imagesBase64.length > 0) ? [...p.imagesBase64] : (p.imageBase64 ? [p.imageBase64] : []);
+    renderStockModalPhotoPreviews();
+    // preview initialized
+    // end preview
+    // modal open
     
     openModal("add-stock-modal");
 }
@@ -1400,13 +1401,13 @@ function handleNewProduct(e) {
         renderStockTable();
     };
 
-    if (fileInput && fileInput.files && fileInput.files.length > 0) {
-        const files = Array.from(fileInput.files).slice(0, 3);
+    if (window._pendingProductImages && window._pendingProductImages.length > 0) { saveProd(window._pendingProductImages); window._pendingProductImages = []; return; } else if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        const files = Array.from(fileInput.files).slice(0, 8);
         const loadedImages = [];
         
         const processImages = async () => {
             for (let i = 0; i < files.length; i++) {
-                const compressed = await compressImage(files[i], 800, 800, 0.7);
+                const compressed = await compressImage(files[i], 900, 900, 0.75);
                 loadedImages.push(compressed);
             }
             saveProd(loadedImages);
@@ -6238,8 +6239,9 @@ function renderProductMediaModalContent() {
                         </span>
                     </div>
                     <div style="padding:0.4rem; display:flex; flex-direction:column; gap:0.25rem; background:#fff;">
-                        <div style="display:flex; gap:0.25rem;">
+                        <div style="display:flex; gap:0.25rem; align-items:center;">
                             ${idx > 0 ? `<button type="button" class="btn btn-outline" onclick="setProductCoverPhoto('${p.id}', ${idx})" style="flex:1; font-size:0.68rem; padding:2px 4px; font-weight:600;" title="Set as main cover photo">Set Cover</button>` : `<span style="flex:1; font-size:0.68rem; color:#16a34a; font-weight:700; text-align:center; padding:2px;">Main Photo</span>`}
+                            <button type="button" class="btn btn-outline" onclick="openPhotoCropModalForExisting('${p.id}', ${idx})" style="font-size:0.68rem; padding:2px 6px; color:#2563eb; border-color:#93c5fd;" title="Zoom & Crop / Adjust this photo"><i class="fa-solid fa-crop-simple"></i></button>
                             <button type="button" class="btn btn-outline" onclick="triggerReplacePhoto('${p.id}', ${idx})" style="font-size:0.68rem; padding:2px 6px;" title="Replace this photo with another"><i class="fa-solid fa-arrows-rotate"></i></button>
                             <button type="button" class="btn btn-danger" onclick="removeProductMediaPhoto('${p.id}', ${idx})" style="font-size:0.68rem; padding:2px 6px;" title="Delete this photo"><i class="fa-solid fa-trash"></i></button>
                         </div>
@@ -6323,20 +6325,31 @@ async function handleMediaPhotosAdded(input) {
     const availableSlots = 8 - p.imagesBase64.length;
     if (availableSlots <= 0) {
         alert("Maximum 8 photos limit reached!");
+        input.value = "";
         return;
     }
 
     const toProcess = files.slice(0, availableSlots);
-    for (let f of toProcess) {
-        const compressed = await compressImage(f, 900, 900, 0.75);
-        p.imagesBase64.push(compressed);
-    }
-    p.imageBase64 = p.imagesBase64[0] || null;
+    input.value = "";
 
-    saveState();
-    if (typeof syncToCloud === 'function') syncToCloud();
-    renderProductMediaModalContent();
-    if (typeof renderStockTable === 'function') renderStockTable();
+    const dataUrls = await Promise.all(toProcess.map(f => new Promise(res => {
+        const reader = new FileReader();
+        reader.onload = (e) => res(e.target.result);
+        reader.readAsDataURL(f);
+    })));
+
+    openImageCropper(dataUrls, (results) => {
+        if (!results || results.length === 0) return;
+        results.forEach(imgData => {
+            p.imagesBase64.push(imgData);
+        });
+        p.imageBase64 = p.imagesBase64[0] || null;
+
+        saveState();
+        if (typeof syncToCloud === 'function') syncToCloud();
+        renderProductMediaModalContent();
+        if (typeof renderStockTable === 'function') renderStockTable();
+    });
 }
 window.handleMediaPhotosAdded = handleMediaPhotosAdded;
 
@@ -6357,17 +6370,50 @@ async function handleMediaPhotoReplaced(input) {
     if (!p || !p.imagesBase64 || _replacePhotoIndex >= p.imagesBase64.length) return;
 
     const file = input.files[0];
-    const compressed = await compressImage(file, 900, 900, 0.75);
-    p.imagesBase64[_replacePhotoIndex] = compressed;
-    p.imageBase64 = p.imagesBase64[0] || null;
-
+    const targetIdx = _replacePhotoIndex;
     _replacePhotoIndex = null;
-    saveState();
-    if (typeof syncToCloud === 'function') syncToCloud();
-    renderProductMediaModalContent();
-    if (typeof renderStockTable === 'function') renderStockTable();
+    input.value = "";
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        openImageCropper([e.target.result], (results) => {
+            if (!results || results.length === 0) return;
+            p.imagesBase64[targetIdx] = results[0];
+            if (targetIdx === 0) {
+                p.imageBase64 = results[0];
+            }
+            saveState();
+            if (typeof syncToCloud === 'function') syncToCloud();
+            renderProductMediaModalContent();
+            if (typeof renderStockTable === 'function') renderStockTable();
+        });
+    };
+    reader.readAsDataURL(file);
 }
 window.handleMediaPhotoReplaced = handleMediaPhotoReplaced;
+
+function openPhotoCropModalForExisting(prodId, photoIndex) {
+    const p = (state.products || []).find(x => x.id === prodId);
+    if (!p) return;
+    const photos = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageBase64 ? [p.imageBase64] : []);
+    if (!photos[photoIndex]) return;
+
+    openImageCropper([photos[photoIndex]], (results) => {
+        if (!results || results.length === 0) return;
+        const newPhoto = results[0];
+        if (!p.imagesBase64) p.imagesBase64 = [newPhoto];
+        else p.imagesBase64[photoIndex] = newPhoto;
+
+        if (photoIndex === 0) {
+            p.imageBase64 = newPhoto;
+        }
+        saveState();
+        if (typeof syncToCloud === 'function') syncToCloud();
+        renderProductMediaModalContent();
+        if (typeof renderStockTable === 'function') renderStockTable();
+    });
+}
+window.openPhotoCropModalForExisting = openPhotoCropModalForExisting;
 
 function removeProductMediaPhoto(prodId, index) {
     const p = (state.products || []).find(x => x.id === prodId);
@@ -6479,6 +6525,48 @@ function removeProductVideo(prodId) {
 }
 window.removeProductVideo = removeProductVideo;
 
+async function handleStockImagesSelected(input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const currentPending = window._pendingProductImages || [];
+    const availableSlots = 8 - currentPending.length;
+    if (availableSlots <= 0) {
+        alert("Maximum 8 photos limit reached!");
+        input.value = "";
+        return;
+    }
+    const files = Array.from(input.files).slice(0, availableSlots);
+    input.value = "";
+
+    const dataUrls = await Promise.all(files.map(f => new Promise(res => {
+        const reader = new FileReader();
+        reader.onload = (e) => res(e.target.result);
+        reader.readAsDataURL(f);
+    })));
+
+    openImageCropper(dataUrls, (results) => {
+        if (!results || results.length === 0) return;
+        if (!window._pendingProductImages) window._pendingProductImages = [];
+        results.forEach(img => {
+            if (window._pendingProductImages.length < 8) {
+                window._pendingProductImages.push(img);
+            }
+        });
+        renderStockModalPhotoPreviews();
+    });
+}
+window.handleStockImagesSelected = handleStockImagesSelected;
+
+function adjustPendingProductPhoto(idx) {
+    if (!window._pendingProductImages || !window._pendingProductImages[idx]) return;
+    openImageCropper([window._pendingProductImages[idx]], (results) => {
+        if (results && results.length > 0) {
+            window._pendingProductImages[idx] = results[0];
+            renderStockModalPhotoPreviews();
+        }
+    });
+}
+window.adjustPendingProductPhoto = adjustPendingProductPhoto;
+
 function renderStockModalPhotoPreviews() {
     const prevBox = document.getElementById("stock-preview-images");
     if (!prevBox) return;
@@ -6488,10 +6576,11 @@ function renderStockModalPhotoPreviews() {
         return;
     }
     prevBox.innerHTML = imgs.map((src, idx) => `
-        <div style="position:relative; width:52px; height:52px; border-radius:4px; overflow:hidden; border:1px solid #cbd5e1; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-            <img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;">
-            <span style="position:absolute; top:1px; left:1px; background:rgba(0,0,0,0.65); color:#fff; font-size:0.55rem; padding:0 3px; border-radius:2px; font-weight:700;">#${idx+1}</span>
-            <button type="button" onclick="removePendingProductPhoto(${idx})" style="position:absolute; top:1px; right:1px; width:17px; height:17px; background:#ef4444; color:#fff; border:none; border-radius:50%; font-size:0.6rem; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; line-height:1;" title="Delete this photo">&times;</button>
+        <div style="position:relative; width:56px; height:56px; border-radius:6px; overflow:hidden; border:1px solid #cbd5e1; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
+            <img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain; cursor:pointer;" onclick="adjustPendingProductPhoto(${idx})" title="Click to adjust/crop photo">
+            <span style="position:absolute; top:2px; left:2px; background:rgba(0,0,0,0.65); color:#fff; font-size:0.55rem; padding:1px 3px; border-radius:2px; font-weight:700;">#${idx+1}</span>
+            <button type="button" onclick="adjustPendingProductPhoto(${idx})" style="position:absolute; bottom:2px; left:2px; width:18px; height:18px; background:#2563eb; color:#fff; border:none; border-radius:3px; font-size:0.58rem; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Zoom &amp; Crop / Adjust"><i class="fa-solid fa-crop-simple"></i></button>
+            <button type="button" onclick="removePendingProductPhoto(${idx})" style="position:absolute; top:2px; right:2px; width:18px; height:18px; background:#ef4444; color:#fff; border:none; border-radius:50%; font-size:0.65rem; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Delete this photo">&times;</button>
         </div>
     `).join('');
 }
