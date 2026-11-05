@@ -1096,7 +1096,7 @@
 
                     imgHtml = `
                         <div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openGallery('${p.id}')">
-                            <img id="main-img-${p.id}" src="${imgList[0]}" alt="${p.model}" style="max-height:100%; max-width:100%; width:auto; height:auto; object-fit:contain; margin:auto; display:block;">
+                            <img id="main-img-${p.id}" src="${imgList[0]}" alt="${p.model}" style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:cover; border-radius:4px; display:block; margin:auto;">
                             ${arrowsHtml}
                             ${dotsHtml}
                             ${videoBadgeHtml}
@@ -2271,7 +2271,7 @@ function renderDealerOffers() {
         card.style.position = 'relative';
 
         const imgHtml = (imgSrc && imgSrc !== 'logo.png')
-            ? `<div class="dealer-prod-image" style="position:relative;"><img src="${imgSrc}" alt="${offer.model}" style="max-height:100%; max-width:100%; object-fit:contain;"></div>`
+            ? `<div class="dealer-prod-image" style="position:relative;"><img src="${imgSrc}" alt="${offer.model}" style="width:100%; height:100%; object-fit:cover; border-radius:4px;"></div>`
             : `<div class="dealer-prod-image" style="position:relative;">${getProductSVG(offer.category || prod.category || 'Ceramic Sanitary Ware')}</div>`;
 
         card.innerHTML = `
