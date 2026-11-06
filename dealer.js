@@ -173,6 +173,55 @@
         switchAmazonSlide(prodId, currentIdx);
     }
 
+    // Touch swipe gesture support for product photos on mobile
+    let prodTouchStartX = 0;
+    let prodTouchStartY = 0;
+    let prodTouchCardId = null;
+    let prodTouchSwiped = false;
+
+    document.addEventListener('touchstart', function(e) {
+        const imgBox = e.target.closest('.dealer-prod-image');
+        if (!imgBox) return;
+        const card = imgBox.closest('.dealer-prod-card');
+        if (!card) return;
+        const pId = card.id ? card.id.replace('dcard-', '') : null;
+        if (!pId) return;
+
+        prodTouchStartX = e.touches[0].clientX;
+        prodTouchStartY = e.touches[0].clientY;
+        prodTouchCardId = pId;
+        prodTouchSwiped = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!prodTouchCardId) return;
+        const dx = e.touches[0].clientX - prodTouchStartX;
+        const dy = e.touches[0].clientY - prodTouchStartY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+            prodTouchSwiped = true;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+        if (!prodTouchCardId) return;
+        const pId = prodTouchCardId;
+        prodTouchCardId = null;
+
+        if (!prodTouchSwiped) return;
+
+        const dx = e.changedTouches[0].clientX - prodTouchStartX;
+        const dy = e.changedTouches[0].clientY - prodTouchStartY;
+
+        if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+            window._ignoreGalleryClickUntil = Date.now() + 450;
+            if (dx < 0) {
+                navAmazonSlide(pId, 1);
+            } else {
+                navAmazonSlide(pId, -1);
+            }
+        }
+    }, { passive: true });
+
     function onDealerIdInput() {
         const val = document.getElementById('dealer-login-id').value.trim();
         const banner = document.getElementById('merchant-welcome-banner');
@@ -298,6 +347,45 @@
         currentHeroSlide = 0;
         updateSliderPosition();
         startHeroAutoPlay();
+
+        // Hero Slider Touch Swipe for Mobile
+        const heroWrap = document.getElementById('kowf-hero-wrap');
+        if (heroWrap && !heroWrap._touchAttached) {
+            heroWrap._touchAttached = true;
+            let heroStartX = 0;
+            let heroStartY = 0;
+            let heroMoved = false;
+
+            heroWrap.addEventListener('touchstart', (e) => {
+                heroStartX = e.touches[0].clientX;
+                heroStartY = e.touches[0].clientY;
+                heroMoved = false;
+                if (heroAutoTimer) clearInterval(heroAutoTimer);
+            }, { passive: true });
+
+            heroWrap.addEventListener('touchmove', (e) => {
+                const dx = e.touches[0].clientX - heroStartX;
+                const dy = e.touches[0].clientY - heroStartY;
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+                    heroMoved = true;
+                }
+            }, { passive: true });
+
+            heroWrap.addEventListener('touchend', (e) => {
+                if (heroMoved) {
+                    const dx = e.changedTouches[0].clientX - heroStartX;
+                    const dy = e.changedTouches[0].clientY - heroStartY;
+                    if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy)) {
+                        if (dx < 0) {
+                            nextHeroSlide();
+                        } else {
+                            prevHeroSlide();
+                        }
+                    }
+                }
+                startHeroAutoPlay();
+            }, { passive: true });
+        }
     }
 
     if (!window.heroSliderResizeAttached) {
@@ -1098,7 +1186,6 @@
                         <div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openGallery('${p.id}')">
                             <img id="main-img-${p.id}" src="${imgList[0]}" alt="${p.model}" style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:cover; border-radius:4px; display:block; margin:auto;">
                             ${arrowsHtml}
-                            ${dotsHtml}
                             ${videoBadgeHtml}
                         </div>
                     `;
@@ -1111,9 +1198,9 @@
                     imgHtml = `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openGallery('${p.id}')">${getProductSVG(p.category)}${videoBadgeHtml}</div>`;
                 }
 
-                const hotBadgeHtml = p.isHot ? `
-                    <span style="position:absolute; top:8px; left:8px; background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; font-size:0.65rem; font-weight:800; padding:0.2rem 0.5rem; border-radius:4px; box-shadow:0 2px 6px rgba(217,119,6,0.4); text-transform:uppercase; letter-spacing:0.5px; z-index:2;">
-                        <i class="fa-solid fa-fire"></i> Hot Seller
+                const hotBadgeInline = p.isHot ? `
+                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:0.68rem; font-weight:800; background:linear-gradient(135deg, #fef3c7, #fde68a); color:#b45309; border:1px solid #fcd34d; border-radius:4px; padding:1px 6px;">
+                        <i class="fa-solid fa-fire" style="color:#d97706;"></i> Hot Seller
                     </span>
                 ` : '';
 
@@ -1135,8 +1222,9 @@
 
                 const materialSpecBadge = p.material ? `<span style="display:inline-block; font-size:0.68rem; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:1px 6px;" title="Material Specification"><i class="fa-solid fa-shapes" style="font-size:0.6rem; color:#94a3b8;"></i> ${p.material}</span>` : '';
 
-                const specBadgesRow = (gradeBadgeHtml || materialSpecBadge) ? `
+                const specBadgesRow = (hotBadgeInline || gradeBadgeHtml || materialSpecBadge) ? `
                     <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin:0.25rem 0 0.4rem 0;">
+                        ${hotBadgeInline}
                         ${gradeBadgeHtml}
                         ${materialSpecBadge}
                     </div>
@@ -1147,8 +1235,8 @@
                 card.id = `dcard-${p.id}`;
                 card.style.position = 'relative';
                 card.innerHTML = `
-                    ${hotBadgeHtml}
                     ${imgHtml}
+                    ${dotsHtml}
                     <div class="dealer-prod-name">${p.model}</div>
                     ${specBadgesRow}
                     <div class="dealer-prod-spec">${subSpecText}${p.colour}${finishSpecText}</div>
@@ -2151,6 +2239,7 @@
     };
 
     window.openGallery = function(prodId) {
+        if (window._ignoreGalleryClickUntil && Date.now() < window._ignoreGalleryClickUntil) return;
         const p = state.products.find(x => x.id === prodId);
         if (!p) return;
 
@@ -2279,6 +2368,7 @@ function renderDealerOffers() {
                 <i class="fa-solid fa-fire"></i> ${offer.badge || (discountPct > 0 ? `${discountPct}% OFF` : 'SPECIAL BULK OFFER')}
             </span>
             ${imgHtml}
+                    ${dotsHtml}
             <div class="dealer-prod-name">${offer.model}</div>
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin:0.25rem 0 0.4rem 0;">
                 <span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:4px; padding:1px 6px;">
