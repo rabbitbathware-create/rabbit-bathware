@@ -259,13 +259,8 @@
 
     function switchDealerView(view) {
         if (view === 'offers') {
-            if (!dealerMerchant) {
-                alert("àª¸à«àªªà«‡àª¶àª¿àª¯àª² àª‘àª«àª°à«àª¸ àªœà«‹àªµàª¾ àª®àª¾àªŸà«‡ àª•à«ƒàªªàª¾ àª•àª°à«€àª¨à«‡ àª¤àª®àª¾àª°àª¾ àª¡à«€àª²àª° àªàª•àª¾àª‰àª¨à«àªŸàª¥à«€ àª²à«‰àª—àª¿àª¨ àª•àª°à«‹.");
-                openDealerLoginModal();
-                return;
-            }
-            if (dealerMerchant.allowOffers !== true) {
-                alert("àª¸à«àªªà«‡àª¶àª¿àª¯àª² àª‘àª«àª°à«àª¸ àª¹àª¾àª²àª®àª¾àª‚ àª¤àª®àª¾àª°à«€ àªªàª¾àª°à«àªŸà«€ àª®àª¾àªŸà«‡ àª‰àªªàª²àª¬à«àª§ àª¨àª¥à«€. àªµàª§à« àª®àª¾àª¹àª¿àª¤à«€ àª®àª¾àªŸà«‡ àªàª¡àª®àª¿àª¨àª¨à«‹ àª¸àª‚àªªàª°à«àª• àª•àª°à«‹.");
+            if (dealerMerchant && dealerMerchant.allowOffers === false) {
+                alert("Special offers are currently restricted for your party account. Please contact admin.");
                 return;
             }
             renderDealerOffers();
@@ -893,7 +888,7 @@
         const drawerMyOrders = document.getElementById('drawer-my-orders-link');
         const offersNavBtn = document.getElementById('nav-btn-offers');
         const mobileOffersNavBtn = document.getElementById('mobile-nav-btn-offers');
-        const canSeeOffers = !!(dealerMerchant && dealerMerchant.allowOffers === true);
+        const canSeeOffers = !dealerMerchant || dealerMerchant.allowOffers !== false;
         if (offersNavBtn) offersNavBtn.style.display = canSeeOffers ? 'inline-flex' : 'none';
         if (mobileOffersNavBtn) mobileOffersNavBtn.style.display = canSeeOffers ? 'flex' : 'none';
 
@@ -1164,8 +1159,9 @@
                 const imgList = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageBase64 ? [p.imageBase64] : []);
                 
                 let imgHtml = '';
+                let dotsHtml = '';
                 if (imgList.length > 0) {
-                    const dotsHtml = imgList.length > 1 ? `
+                    dotsHtml = imgList.length > 1 ? `
                         <div class="amazon-slider-dots" id="amz-dots-${p.id}">
                             ${imgList.map((_, i) => `<span class="amazon-slider-dot ${i === 0 ? 'active' : ''}" onclick="event.stopPropagation(); switchAmazonSlide('${p.id}', ${i})"></span>`).join('')}
                         </div>
@@ -2368,7 +2364,6 @@ function renderDealerOffers() {
                 <i class="fa-solid fa-fire"></i> ${offer.badge || (discountPct > 0 ? `${discountPct}% OFF` : 'SPECIAL BULK OFFER')}
             </span>
             ${imgHtml}
-                    ${dotsHtml}
             <div class="dealer-prod-name">${offer.model}</div>
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin:0.25rem 0 0.4rem 0;">
                 <span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:4px; padding:1px 6px;">
@@ -2427,7 +2422,7 @@ function addOfferToCart(offerId) {
         openDealerLoginModal();
         return;
     }
-    if (dealerMerchant.allowOffers !== true) {
+    if (dealerMerchant.allowOffers === false) {
         alert("àª¸à«àªªà«‡àª¶àª¿àª¯àª² àª‘àª«àª°à«àª¸ àª¹àª¾àª²àª®àª¾àª‚ àª¤àª®àª¾àª°à«€ àªªàª¾àª°à«àªŸà«€ àª®àª¾àªŸà«‡ àª‰àªªàª²àª¬à«àª§ àª¨àª¥à«€. àª•à«ƒàªªàª¾ àª•àª°à«€àª¨à«‡ àªàª¡àª®àª¿àª¨àª¨à«‹ àª¸àª‚àªªàª°à«àª• àª•àª°à«‹.");
         return;
     }
