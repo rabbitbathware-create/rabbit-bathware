@@ -2241,17 +2241,24 @@
 
     window.openGallery = function(prodId) {
         if (window._ignoreGalleryClickUntil && Date.now() < window._ignoreGalleryClickUntil) return;
-        const p = state.products.find(x => x.id === prodId);
-        if (!p) return;
+        let p = (state.products || []).find(x => x.id === prodId);
+        let offer = (state.offers || []).find(x => x.id === prodId);
+        if (!p && offer) {
+            p = (state.products || []).find(x => x.id === offer.productId) || {};
+        }
+        if (!p && !offer) return;
 
         const images = [];
-        if (p.imagesBase64 && p.imagesBase64.length > 0) {
-            p.imagesBase64.forEach(img => { if (img) images.push(img); });
-        } else if (p.imageBase64) {
+        if (offer && offer.image && offer.image !== 'logo.png') {
+            images.push(offer.image);
+        }
+        if (p && p.imagesBase64 && p.imagesBase64.length > 0) {
+            p.imagesBase64.forEach(img => { if (img && !images.includes(img)) images.push(img); });
+        } else if (p && p.imageBase64 && !images.includes(p.imageBase64)) {
             images.push(p.imageBase64);
         }
 
-        const hasVideo = !!(p.videoUrl || p.videoBase64);
+        const hasVideo = !!(p && (p.videoUrl || p.videoBase64));
         if (images.length === 0 && !hasVideo) return;
 
         const modal = document.getElementById("lightbox-modal");
@@ -2259,7 +2266,11 @@
         const cap = document.getElementById("lightbox-caption");
         if (!modal || !gallery) return;
 
-        cap.textContent = `${p.model} - ${p.grade} / ${p.colour}`;
+        const titleText = offer ? (offer.model || p.model || 'Special Offer') : p.model;
+        const gradeText = p && p.grade ? ` - ${p.grade}` : '';
+        const colourText = p && p.colour ? ` / ${p.colour}` : '';
+        const offerSuffix = offer ? ' (Special Offer)' : '';
+        cap.textContent = `${titleText}${gradeText}${colourText}${offerSuffix}`;
 
         gallery.innerHTML = '';
 
@@ -2294,13 +2305,17 @@
             item.className = 'lightbox-gallery-item';
             item.innerHTML = `
                 <span class="gallery-badge">${idx + 1} / ${images.length}</span>
-                <img src="${src}" alt="${p.model} - Photo ${idx + 1}" onclick="this.classList.toggle('zoomed')">
+                <img src="${src}" alt="${titleText} - Photo ${idx + 1}" onclick="this.classList.toggle('zoomed')">
             `;
             gallery.appendChild(item);
         });
 
         gallery.scrollTop = 0;
         modal.classList.add("active");
+    };
+
+    window.openOfferGallery = function(offerId) {
+        window.openGallery(offerId);
     };
 
     window.closeLightbox = function(e) {
@@ -2361,8 +2376,8 @@ function renderDealerOffers() {
         card.style.position = 'relative';
 
         const imgHtml = (imgSrc && imgSrc !== 'logo.png')
-            ? `<div class="dealer-prod-image" style="position:relative;"><img src="${imgSrc}" alt="${offer.model}" style="width:100%; height:100%; object-fit:cover; border-radius:4px;"></div>`
-            : `<div class="dealer-prod-image" style="position:relative;">${getProductSVG(offer.category || prod.category || 'Ceramic Sanitary Ware')}</div>`;
+            ? `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openOfferGallery('${offer.id}')"><img src="${imgSrc}" alt="${offer.model}" style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:cover; border-radius:4px; display:block; margin:auto;"></div>`
+            : `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openOfferGallery('${offer.id}')">${getProductSVG(offer.category || prod.category || 'Ceramic Sanitary Ware')}</div>`;
 
         card.innerHTML = `
             <span style="position:absolute; top:8px; left:8px; background:linear-gradient(135deg, #ef4444, #dc2626); color:#fff; font-size:0.65rem; font-weight:800; padding:0.2rem 0.5rem; border-radius:4px; box-shadow:0 2px 6px rgba(220,38,38,0.3); text-transform:uppercase; letter-spacing:0.5px; z-index:2;">
