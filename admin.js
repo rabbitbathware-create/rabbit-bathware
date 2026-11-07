@@ -6008,6 +6008,8 @@ function openAddOfferModal() {
     document.getElementById("offer-id").value = "";
     document.getElementById("offer-modal-title").innerHTML = `<i class="fa-solid fa-fire"></i> Add Special Offer Product`;
     document.getElementById("offer-active").checked = true;
+    window._pendingOfferImages = [];
+    renderOfferModalPhotoPreviews();
     populateOfferProductSelect("");
     openModal("offer-modal");
 }
@@ -6028,6 +6030,20 @@ function openEditOfferModal(offerId) {
     document.getElementById("offer-badge").value = o.badge || "";
     document.getElementById("offer-desc").value = o.description || "";
     document.getElementById("offer-active").checked = (o.active !== false);
+
+    const prod = (state.products || []).find(p => p.id === o.productId) || {};
+    let existingImgs = [];
+    if (o.imagesBase64 && o.imagesBase64.length > 0) {
+        existingImgs = [...o.imagesBase64];
+    } else if (o.image && o.image !== 'logo.png') {
+        existingImgs = [o.image];
+    } else if (prod.imagesBase64 && prod.imagesBase64.length > 0) {
+        existingImgs = [...prod.imagesBase64];
+    } else if (prod.imageBase64 && prod.imageBase64 !== 'logo.png') {
+        existingImgs = [prod.imageBase64];
+    }
+    window._pendingOfferImages = existingImgs;
+    renderOfferModalPhotoPreviews();
 
     populateOfferProductSelect(o.productId || "");
     openModal("offer-modal");
@@ -6063,6 +6079,11 @@ function onOfferProductSelectChange() {
         if (!document.getElementById("offer-price").value) {
             document.getElementById("offer-price").value = Math.round((prod.price || 0) * 0.8);
         }
+        if (!window._pendingOfferImages || window._pendingOfferImages.length === 0) {
+            const pImgs = (prod.imagesBase64 && prod.imagesBase64.length > 0) ? [...prod.imagesBase64] : (prod.imageBase64 ? [prod.imageBase64] : []);
+            window._pendingOfferImages = pImgs;
+            renderOfferModalPhotoPreviews();
+        }
     }
 }
 window.onOfferProductSelectChange = onOfferProductSelectChange;
@@ -6083,7 +6104,8 @@ function handleSaveOffer(e) {
     const desc = document.getElementById("offer-desc").value.trim();
     const active = document.getElementById("offer-active").checked;
 
-    const imgBase64 = document.getElementById("offer-image-base64") ? document.getElementById("offer-image-base64").value : "";
+    const offerImages = window._pendingOfferImages || [];
+    const mainImg = offerImages.length > 0 ? offerImages[0] : "";
 
     if (offerId) {
         const existing = state.offers.find(o => o.id === offerId);
@@ -6098,7 +6120,8 @@ function handleSaveOffer(e) {
             existing.badge = badge;
             existing.description = desc;
             existing.active = active;
-            if (imgBase64) existing.image = imgBase64;
+            existing.imagesBase64 = offerImages;
+            existing.image = mainImg || existing.image || "";
         }
     } else {
         const newOffer = {
@@ -6112,7 +6135,8 @@ function handleSaveOffer(e) {
             minQty: minQty,
             badge: badge || "Special Offer",
             description: desc,
-            image: imgBase64 || "",
+            imagesBase64: offerImages,
+            image: mainImg,
             active: active
         };
         state.offers.push(newOffer);
@@ -6125,6 +6149,75 @@ function handleSaveOffer(e) {
     alert("Offer saved successfully!");
 }
 window.handleSaveOffer = handleSaveOffer;
+
+async function handleOfferImagesSelected(input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const currentPending = window._pendingOfferImages || [];
+    const availableSlots = 8 - currentPending.length;
+    if (availableSlots <= 0) {
+        alert("Maximum 8 photos limit reached!");
+        input.value = "";
+        return;
+    }
+    const files = Array.from(input.files).slice(0, availableSlots);
+    input.value = "";
+
+    const dataUrls = await Promise.all(files.map(f => new Promise(res => {
+        const reader = new FileReader();
+        reader.onload = (e) => res(e.target.result);
+        reader.readAsDataURL(f);
+    })));
+
+    openImageCropper(dataUrls, (results) => {
+        if (!results || results.length === 0) return;
+        if (!window._pendingOfferImages) window._pendingOfferImages = [];
+        results.forEach(img => {
+            if (window._pendingOfferImages.length < 8) {
+                window._pendingOfferImages.push(img);
+            }
+        });
+        renderOfferModalPhotoPreviews();
+    });
+}
+window.handleOfferImagesSelected = handleOfferImagesSelected;
+
+function adjustPendingOfferPhoto(idx) {
+    if (!window._pendingOfferImages || !window._pendingOfferImages[idx]) return;
+    openImageCropper([window._pendingOfferImages[idx]], (results) => {
+        if (results && results.length > 0) {
+            window._pendingOfferImages[idx] = results[0];
+            renderOfferModalPhotoPreviews();
+        }
+    });
+}
+window.adjustPendingOfferPhoto = adjustPendingOfferPhoto;
+
+function removePendingOfferPhoto(idx) {
+    if (window._pendingOfferImages && window._pendingOfferImages.length > idx) {
+        window._pendingOfferImages.splice(idx, 1);
+        renderOfferModalPhotoPreviews();
+    }
+}
+window.removePendingOfferPhoto = removePendingOfferPhoto;
+
+function renderOfferModalPhotoPreviews() {
+    const prevBox = document.getElementById("offer-preview-images");
+    if (!prevBox) return;
+    const imgs = window._pendingOfferImages || [];
+    if (imgs.length === 0) {
+        prevBox.innerHTML = '<span style="font-size:0.75rem; color:#94a3b8; font-style:italic;">No photos attached yet. Select photos above to crop & set.</span>';
+        return;
+    }
+    prevBox.innerHTML = imgs.map((src, idx) => `
+        <div style="position:relative; width:56px; height:56px; border-radius:6px; overflow:hidden; border:1px solid #cbd5e1; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
+            <img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain; cursor:pointer;" onclick="adjustPendingOfferPhoto(${idx})" title="Click to adjust/crop photo">
+            <span style="position:absolute; top:2px; left:2px; background:rgba(0,0,0,0.65); color:#fff; font-size:0.55rem; padding:1px 3px; border-radius:2px; font-weight:700;">#${idx+1}</span>
+            <button type="button" onclick="adjustPendingOfferPhoto(${idx})" style="position:absolute; bottom:2px; left:2px; width:18px; height:18px; background:#2563eb; color:#fff; border:none; border-radius:3px; font-size:0.58rem; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Zoom & Crop / Adjust"><i class="fa-solid fa-crop-simple"></i></button>
+            <button type="button" onclick="removePendingOfferPhoto(${idx})" style="position:absolute; top:2px; right:2px; width:18px; height:18px; background:#ef4444; color:#fff; border:none; border-radius:50%; font-size:0.65rem; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Delete this photo">&times;</button>
+        </div>
+    `).join('');
+}
+window.renderOfferModalPhotoPreviews = renderOfferModalPhotoPreviews;
 
 function deleteOffer(offerId) {
     if (!confirm("Are you sure you want to delete this special offer?")) return;

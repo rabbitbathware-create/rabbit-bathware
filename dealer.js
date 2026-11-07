@@ -2356,9 +2356,11 @@ function renderDealerOffers() {
 
     activeOffers.forEach(offer => {
         const prod = (state.products || []).find(p => p.id === offer.productId) || {};
-        const imgList = (offer.image ? [offer.image] : [])
-            .concat(prod.imagesBase64 && prod.imagesBase64.length > 0 ? prod.imagesBase64 : (prod.imageBase64 ? [prod.imageBase64] : []))
-            .filter(Boolean);
+        const imgList = (offer.imagesBase64 && offer.imagesBase64.length > 0)
+            ? offer.imagesBase64
+            : (offer.image ? [offer.image] : [])
+                .concat(prod.imagesBase64 && prod.imagesBase64.length > 0 ? prod.imagesBase64 : (prod.imageBase64 ? [prod.imageBase64] : []))
+                .filter(Boolean);
         const imgSrc = imgList.length > 0 ? imgList[0] : (offer.image || prod.image || '');
 
         const regPrice = parseFloat(offer.regularPrice) || prod.price || 0;
@@ -2375,11 +2377,22 @@ function renderDealerOffers() {
         card.id = `dcard-${cartKey}`;
         card.style.position = 'relative';
 
+        const dotsHtml = imgList.length > 1 ? `
+            <div class="amazon-slider-dots" id="amz-dots-${cartKey}">
+                ${imgList.map((_, i) => `<span class="amazon-slider-dot ${i === 0 ? 'active' : ''}" onclick="event.stopPropagation(); switchAmazonSlide('${cartKey}', ${i})"></span>`).join('')}
+            </div>
+        ` : '';
+
+        const arrowsHtml = imgList.length > 1 ? `
+            <button class="amazon-slider-arrow prev" onclick="event.stopPropagation(); navAmazonSlide('${cartKey}', -1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="amazon-slider-arrow next" onclick="event.stopPropagation(); navAmazonSlide('${cartKey}', 1)"><i class="fa-solid fa-chevron-right"></i></button>
+        ` : '';
+
         const imgHtml = (imgSrc && imgSrc !== 'logo.png')
-            ? `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openOfferGallery('${offer.id}')"><img src="${imgSrc}" alt="${offer.model}" style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:cover; border-radius:4px; display:block; margin:auto;"></div>`
+            ? `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openOfferGallery('${offer.id}')"><img id="main-img-${cartKey}" src="${imgSrc}" alt="${offer.model}" style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:cover; border-radius:4px; display:block; margin:auto;">${arrowsHtml}</div>`
             : `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openOfferGallery('${offer.id}')">${getProductSVG(offer.category || prod.category || 'Ceramic Sanitary Ware')}</div>`;
 
-                const offerBadgeHtml = `
+        const offerBadgeHtml = `
             <span style="display:inline-flex; align-items:center; gap:3px; font-size:0.68rem; font-weight:800; background:linear-gradient(135deg, #ef4444, #dc2626); color:#fff; border-radius:4px; padding:2px 7px; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 1px 3px rgba(220,38,38,0.25);">
                 <i class="fa-solid fa-fire"></i> ${offer.badge || (discountPct > 0 ? `${discountPct}% OFF` : 'SPECIAL BULK OFFER')}
             </span>
@@ -2387,6 +2400,7 @@ function renderDealerOffers() {
 
 card.innerHTML = `
             ${imgHtml}
+            ${dotsHtml}
             <div class="dealer-prod-name">${offer.model}</div>
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin:0.25rem 0 0.4rem 0;">
                 ${offerBadgeHtml}
