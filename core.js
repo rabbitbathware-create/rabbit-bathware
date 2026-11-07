@@ -254,8 +254,8 @@ function isCategoryVisibleToMerchant(catName, merchant) {
 }
 
 function canMerchantViewOffers(merchant) {
-    if (!merchant) return true;
-    return merchant.allowOffers !== false;
+    if (!merchant) return false;
+    return merchant.allowOffers === true;
 }
 
 // State Loading and Initialization

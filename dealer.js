@@ -259,8 +259,13 @@
 
     function switchDealerView(view) {
         if (view === 'offers') {
-            if (dealerMerchant && dealerMerchant.allowOffers === false) {
-                alert("Special offers are currently restricted for your party account. Please contact admin.");
+            if (!dealerMerchant) {
+                alert("સ્પેશિયલ ઑફર્સ જોવા માટે કૃપા કરીને તમારા ડીલર એકાઉન્ટથી લૉગિન કરો.");
+                openDealerLoginModal();
+                return;
+            }
+            if (dealerMerchant.allowOffers !== true) {
+                alert("સ્પેશિયલ ઑફર્સ હાલમાં તમારી પાર્ટી માટે ઉપલબ્ધ નથી. વધુ માહિતી માટે એડમિનનો સંપર્ક કરો.");
                 return;
             }
             renderDealerOffers();
@@ -888,7 +893,7 @@
         const drawerMyOrders = document.getElementById('drawer-my-orders-link');
         const offersNavBtn = document.getElementById('nav-btn-offers');
         const mobileOffersNavBtn = document.getElementById('mobile-nav-btn-offers');
-        const canSeeOffers = !dealerMerchant || dealerMerchant.allowOffers !== false;
+        const canSeeOffers = !!(dealerMerchant && dealerMerchant.allowOffers === true);
         if (offersNavBtn) offersNavBtn.style.display = canSeeOffers ? 'inline-flex' : 'none';
         if (mobileOffersNavBtn) mobileOffersNavBtn.style.display = canSeeOffers ? 'flex' : 'none';
 
@@ -2418,12 +2423,12 @@ window.validateOfferQtyInput = validateOfferQtyInput;
 
 function addOfferToCart(offerId) {
     if (!dealerMerchant) {
-        alert("àª¸à«àªªà«‡àª¶àª¿àª¯àª² àª‘àª«àª°à«àª¸àª¨à«‹ àª²àª¾àª­ àª²à«‡àªµàª¾ àª®àª¾àªŸà«‡ àª•à«ƒàªªàª¾ àª•àª°à«€àª¨à«‡ àª¤àª®àª¾àª°àª¾ àª¡à«€àª²àª° àªàª•àª¾àª‰àª¨à«àªŸàª¥à«€ àª²à«‰àª—àª¿àª¨ àª•àª°à«‹.");
+        alert("સ્પેશિયલ ઑફર્સનો લાભ લેવા માટે કૃપા કરીને તમારા ડીલર એકાઉન્ટથી લૉગિન કરો.");
         openDealerLoginModal();
         return;
     }
-    if (dealerMerchant.allowOffers === false) {
-        alert("àª¸à«àªªà«‡àª¶àª¿àª¯àª² àª‘àª«àª°à«àª¸ àª¹àª¾àª²àª®àª¾àª‚ àª¤àª®àª¾àª°à«€ àªªàª¾àª°à«àªŸà«€ àª®àª¾àªŸà«‡ àª‰àªªàª²àª¬à«àª§ àª¨àª¥à«€. àª•à«ƒàªªàª¾ àª•àª°à«€àª¨à«‡ àªàª¡àª®àª¿àª¨àª¨à«‹ àª¸àª‚àªªàª°à«àª• àª•àª°à«‹.");
+    if (dealerMerchant.allowOffers !== true) {
+        alert("સ્પેશિયલ ઑફર્સ હાલમાં તમારી પાર્ટી માટે ઉપલબ્ધ નથી. કૃપા કરીને એડમિનનો સંપર્ક કરો.");
         return;
     }
 
