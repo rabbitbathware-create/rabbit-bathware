@@ -2299,3 +2299,21 @@ body {
     from { transform: translateY(100%); }
     to   { transform: translateY(0); }
 }
+
+/* Touch gesture optimizations for mobile slider */
+.dealer-prod-card {
+    touch-action: pan-y !important;
+}
+.dealer-prod-image {
+    touch-action: pan-y !important;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+.dealer-prod-image img {
+    touch-action: pan-y !important;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: auto;
+}

@@ -143,14 +143,27 @@
     }
 
     function switchAmazonSlide(prodId, index) {
-        const p = state.products.find(x => x.id === prodId);
-        if (!p) return;
-        const imgList = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageBase64 ? [p.imageBase64] : []);
+        let p = (state.products || []).find(x => x.id === prodId);
+        let offer = null;
+        if (!p) {
+            const cleanId = prodId.replace('offer:', '');
+            offer = (state.offers || []).find(x => x.id === prodId || x.id === cleanId);
+            if (offer) {
+                p = (state.products || []).find(x => x.id === offer.productId) || {};
+            }
+        }
+        const imgList = (offer && offer.imagesBase64 && offer.imagesBase64.length > 0)
+            ? offer.imagesBase64
+            : (offer && offer.image ? [offer.image] : [])
+                .concat(p && p.imagesBase64 && p.imagesBase64.length > 0 ? p.imagesBase64 : (p && p.imageBase64 ? [p.imageBase64] : []))
+                .filter(Boolean);
         if (imgList.length === 0) return;
 
         prodPhotoIndices[prodId] = index;
         const mainImg = document.getElementById(`main-img-${prodId}`);
-        if (mainImg) mainImg.src = imgList[index];
+        if (mainImg) {
+            mainImg.src = imgList[index];
+        }
 
         const dotsContainer = document.getElementById(`amz-dots-${prodId}`);
         if (dotsContainer) {
@@ -163,9 +176,20 @@
     }
 
     function navAmazonSlide(prodId, dir) {
-        const p = state.products.find(x => x.id === prodId);
-        if (!p) return;
-        const imgList = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageBase64 ? [p.imageBase64] : []);
+        let p = (state.products || []).find(x => x.id === prodId);
+        let offer = null;
+        if (!p) {
+            const cleanId = prodId.replace('offer:', '');
+            offer = (state.offers || []).find(x => x.id === prodId || x.id === cleanId);
+            if (offer) {
+                p = (state.products || []).find(x => x.id === offer.productId) || {};
+            }
+        }
+        const imgList = (offer && offer.imagesBase64 && offer.imagesBase64.length > 0)
+            ? offer.imagesBase64
+            : (offer && offer.image ? [offer.image] : [])
+                .concat(p && p.imagesBase64 && p.imagesBase64.length > 0 ? p.imagesBase64 : (p && p.imageBase64 ? [p.imageBase64] : []))
+                .filter(Boolean);
         if (imgList.length <= 1) return;
 
         let currentIdx = prodPhotoIndices[prodId] || 0;
@@ -173,54 +197,74 @@
         switchAmazonSlide(prodId, currentIdx);
     }
 
-    // Touch swipe gesture support for product photos on mobile
+    // Robust Mobile Touch Swipe gesture support for product photos
     let prodTouchStartX = 0;
     let prodTouchStartY = 0;
+    let prodTouchLastX = 0;
+    let prodTouchLastY = 0;
     let prodTouchCardId = null;
-    let prodTouchSwiped = false;
+    let prodTouchIsHorizontal = false;
 
-    document.addEventListener('touchstart', function(e) {
-        const imgBox = e.target.closest('.dealer-prod-image');
-        if (!imgBox) return;
-        const card = imgBox.closest('.dealer-prod-card');
+    function handleProdTouchStart(e) {
+        if (!e.touches || !e.touches[0]) return;
+        const card = e.target.closest('.dealer-prod-card');
         if (!card) return;
         const pId = card.id ? card.id.replace('dcard-', '') : null;
         if (!pId) return;
 
-        prodTouchStartX = e.touches[0].clientX;
-        prodTouchStartY = e.touches[0].clientY;
+        const touch = e.touches[0];
+        prodTouchStartX = touch.clientX;
+        prodTouchStartY = touch.clientY;
+        prodTouchLastX = touch.clientX;
+        prodTouchLastY = touch.clientY;
         prodTouchCardId = pId;
-        prodTouchSwiped = false;
-    }, { passive: true });
+        prodTouchIsHorizontal = false;
+    }
 
-    document.addEventListener('touchmove', function(e) {
-        if (!prodTouchCardId) return;
-        const dx = e.touches[0].clientX - prodTouchStartX;
-        const dy = e.touches[0].clientY - prodTouchStartY;
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-            prodTouchSwiped = true;
+    function handleProdTouchMove(e) {
+        if (!prodTouchCardId || !e.touches || !e.touches[0]) return;
+        const touch = e.touches[0];
+        prodTouchLastX = touch.clientX;
+        prodTouchLastY = touch.clientY;
+
+        const dx = touch.clientX - prodTouchStartX;
+        const dy = touch.clientY - prodTouchStartY;
+
+        // If user is swiping horizontally across the photo, claim the gesture and prevent vertical scroll cancel
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) {
+            prodTouchIsHorizontal = true;
+            if (e.cancelable) {
+                e.preventDefault();
+            }
         }
-    }, { passive: true });
+    }
 
-    document.addEventListener('touchend', function(e) {
+    function handleProdTouchEnd(e) {
         if (!prodTouchCardId) return;
         const pId = prodTouchCardId;
         prodTouchCardId = null;
 
-        if (!prodTouchSwiped) return;
+        const endX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : prodTouchLastX;
+        const endY = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : prodTouchLastY;
 
-        const dx = e.changedTouches[0].clientX - prodTouchStartX;
-        const dy = e.changedTouches[0].clientY - prodTouchStartY;
+        const dx = endX - prodTouchStartX;
+        const dy = endY - prodTouchStartY;
 
-        if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
-            window._ignoreGalleryClickUntil = Date.now() + 450;
+        // Threshold of 20px delta on mobile cards
+        if (Math.abs(dx) >= 20 && (Math.abs(dx) > Math.abs(dy) * 0.6 || prodTouchIsHorizontal)) {
+            window._ignoreGalleryClickUntil = Date.now() + 500;
             if (dx < 0) {
                 navAmazonSlide(pId, 1);
             } else {
                 navAmazonSlide(pId, -1);
             }
         }
-    }, { passive: true });
+    }
+
+    document.addEventListener('touchstart', handleProdTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleProdTouchMove, { passive: false });
+    document.addEventListener('touchend', handleProdTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', handleProdTouchEnd, { passive: true });
 
     function onDealerIdInput() {
         const val = document.getElementById('dealer-login-id').value.trim();
