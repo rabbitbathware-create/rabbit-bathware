@@ -2379,13 +2379,17 @@ function renderDealerOffers() {
             ? `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openOfferGallery('${offer.id}')"><img src="${imgSrc}" alt="${offer.model}" style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:cover; border-radius:4px; display:block; margin:auto;"></div>`
             : `<div class="dealer-prod-image" style="position:relative; cursor:pointer;" onclick="openOfferGallery('${offer.id}')">${getProductSVG(offer.category || prod.category || 'Ceramic Sanitary Ware')}</div>`;
 
-        card.innerHTML = `
-            <span style="position:absolute; top:8px; left:8px; background:linear-gradient(135deg, #ef4444, #dc2626); color:#fff; font-size:0.65rem; font-weight:800; padding:0.2rem 0.5rem; border-radius:4px; box-shadow:0 2px 6px rgba(220,38,38,0.3); text-transform:uppercase; letter-spacing:0.5px; z-index:2;">
+                const offerBadgeHtml = `
+            <span style="display:inline-flex; align-items:center; gap:3px; font-size:0.68rem; font-weight:800; background:linear-gradient(135deg, #ef4444, #dc2626); color:#fff; border-radius:4px; padding:2px 7px; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 1px 3px rgba(220,38,38,0.25);">
                 <i class="fa-solid fa-fire"></i> ${offer.badge || (discountPct > 0 ? `${discountPct}% OFF` : 'SPECIAL BULK OFFER')}
             </span>
+        `;
+
+card.innerHTML = `
             ${imgHtml}
             <div class="dealer-prod-name">${offer.model}</div>
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin:0.25rem 0 0.4rem 0;">
+                ${offerBadgeHtml}
                 <span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:4px; padding:1px 6px;">
                     <i class="fa-solid fa-boxes-stacked"></i> Min ${minQty} pcs
                 </span>
