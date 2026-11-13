@@ -1,4 +1,4 @@
-﻿    let dealerMerchant = null;
+    let dealerMerchant = null;
     let dealerCart = {};
     let activeAuthMode = 'pin';
     let lastSubmittedOrder = null;
@@ -304,12 +304,12 @@
     function switchDealerView(view) {
         if (view === 'offers') {
             if (!dealerMerchant) {
-                alert("સ્પેશિયલ ઑફર્સ જોવા માટે કૃપા કરીને તમારા ડીલર એકાઉન્ટથી લૉગિન કરો.");
+                alert("Please log in with your dealer account to view special offers.");
                 openDealerLoginModal();
                 return;
             }
             if (dealerMerchant.allowOffers !== true) {
-                alert("સ્પેશિયલ ઑફર્સ હાલમાં તમારી પાર્ટી માટે ઉપલબ્ધ નથી. વધુ માહિતી માટે એડમિનનો સંપર્ક કરો.");
+                alert("Special bulk offers are currently not enabled for your account. Please contact admin.");
                 return;
             }
             renderDealerOffers();
@@ -512,7 +512,7 @@
         const call10 = extract10Digits(callingPhone);
 
         if (!wa10 || wa10.length !== 10) {
-            alert('કૃપા કરીને માન્ય 10 અંકનો WhatsApp નંબર દાખલ કરો.');
+            alert('Please enter a valid 10-digit WhatsApp number.');
             return;
         }
 
@@ -524,7 +524,7 @@
         });
 
         if (existingMerchant) {
-            alert(`આ મોબાઇલ નંબર (+91 ${wa10}) પહેલેથી જ રજિસ્ટર્ડ ડીલર ("${existingMerchant.name || existingMerchant.shopName || ''}") તરીકે નોંધાયેલો છે.\n\nકૃપા કરીને 'Dealer Login' પર ક્લિક કરી PIN અથવા OTP વડે લોગિન કરો.`);
+            alert(`This mobile number (+91 ${wa10}) is already registered as an authorized dealer ("${existingMerchant.name || existingMerchant.shopName || ''}").\n\nPlease click on 'Dealer Login' to access your account via PIN or OTP.`);
             closeModal('new-dealer-modal');
             openDealerLoginModal();
             const idInput = document.getElementById('dealer-login-id');
@@ -555,7 +555,7 @@
 
         if (existingReq || alreadyLocallySubmitted) {
             const reqShop = (existingReq && existingReq.shopName) ? ` ("${existingReq.shopName}")` : '';
-            alert(`આ મોબાઇલ નંબર (+91 ${wa10}) પરથી રજિસ્ટ્રેશન રિકવેસ્ટ પહેલેથી જ સબમિટ થયેલી છે${reqShop}.\n\nઅમારી ટીમ દ્વારા તમારા વિસ્તાર અને વિગતોની ચકાસણી (Verification) ચાલુ છે.\nએક જ નંબર પરથી બીજી વાર રજિસ્ટ્રેશન કરવાની જરૂર નથી. કૃપા કરીને વેરિફિકેશન પૂર્ણ થવાની રાહ જુઓ અથવા હેલ્પલાઇન પર સંપર્ક કરો.`);
+            alert(`A dealer registration request has already been submitted for this mobile number (+91 ${wa10})${reqShop}.\n\nOur team is currently verifying your business details and area authorization.\nDuplicate registration is not required. Please wait for our team to contact you, or reach out to our helpline for assistance.`);
             return;
         }
 
@@ -621,7 +621,7 @@
         window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
 
         closeModal('new-dealer-modal');
-        alert(`🎉 આભાર, ${ownerName}!\nતમારી ડીલર રજિસ્ટ્રેશન રિકવેસ્ટ WhatsApp પર મોકલાઈ ગઈ છે.\nઅમારી ટીમ તમારા વિસ્તારની ચકાસણી કરીને ટૂંક સમયમાં તમારો સંપર્ક કરશે.`);
+        alert(`🎉 Thank you, ${ownerName}!\nYour Dealer Registration Request has been sent via WhatsApp.\nOur team will review your area and contact you shortly.`);
     }
 
     function openDealerLoginModal() { openModal('dealer-auth-modal'); }
@@ -2568,12 +2568,12 @@ window.validateOfferQtyInput = validateOfferQtyInput;
 
 function addOfferToCart(offerId) {
     if (!dealerMerchant) {
-        alert("સ્પેશિયલ ઑફર્સનો લાભ લેવા માટે કૃપા કરીને તમારા ડીલર એકાઉન્ટથી લૉગિન કરો.");
+        alert("Please log in with your dealer account to claim special offers.");
         openDealerLoginModal();
         return;
     }
     if (dealerMerchant.allowOffers !== true) {
-        alert("સ્પેશિયલ ઑફર્સ હાલમાં તમારી પાર્ટી માટે ઉપલબ્ધ નથી. કૃપા કરીને એડમિનનો સંપર્ક કરો.");
+        alert("Special bulk offers are currently not enabled for your account. Please contact admin.");
         return;
     }
 
