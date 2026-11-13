@@ -1457,7 +1457,7 @@ function renderMerchantsGrid() {
     merchantsToRender.forEach(m => {
         const overrides = Object.keys(m.specialRates || {}).length;
         const discText = (m.globalDiscount !== undefined && m.globalDiscount > 0) ? `+${m.globalDiscount}%` : `${m.globalDiscount || 0}%`;
-        const pinDisplay = m.pin ? `**** (${m.pin})` : 'No PIN Set';
+        const pinDisplay = m.pin ? `****** (${m.pin})` : 'No PIN Set';
         const perf = typeof getMerchantPerformance === 'function' ? getMerchantPerformance(m) : null;
         const creditDays = perf ? perf.allowedCreditDays : (m.creditDays || 30);
         const balColor = (perf && perf.balance > 50) ? '#dc2626' : ((perf && perf.balance < -50) ? '#2563eb' : '#16a34a');
@@ -1592,8 +1592,8 @@ function savePartyModalPin() {
     if (!m) return;
     const pinInput = document.getElementById("pmodal-edit-pin");
     const pin = pinInput ? pinInput.value.trim() : "";
-    if (pin.length !== 4 || isNaN(parseInt(pin))) {
-        alert("Security PIN must be exactly 4 digits.");
+    if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+        alert("Security PIN must be exactly 6 digits.");
         return;
     }
     m.pin = pin;
@@ -1620,7 +1620,7 @@ function copyDealerLink(merchantId) {
 
 function handleNewMerchant(e) {
     e.preventDefault();
-    const pin = document.getElementById("merchant-pin").value.trim() || "1234";
+    const pin = document.getElementById("merchant-pin").value.trim() || "123456";
     const name = document.getElementById("merchant-name").value;
     const namePrefix = name.replace(/[^a-zA-Z]/g, '').padEnd(3, 'A').substring(0, 3).toUpperCase();
     const uid = namePrefix + Math.floor(100 + Math.random() * 900).toString();
@@ -4763,7 +4763,7 @@ function approveDealerRequest(reqId) {
         name: name,
         address: `${req.city} - ${req.pincode}`,
         phone: req.whatsapp,
-        pin: "1234",
+        pin: "123456",
         globalDiscount: 0,
         specialRates: {},
         hideAmount: false,
@@ -4776,7 +4776,7 @@ function approveDealerRequest(reqId) {
     renderMerchantsGrid();
     renderDealerRequests();
     renderAdminBanners();
-    alert(`Merchant "${name}" approved!\nLogin UID: ${uid}\nDefault Security PIN: 1234`);
+    alert(`Merchant "${name}" approved!\nLogin UID: ${uid}\nDefault Security PIN: 123456`);
 }
 
 function deleteDealerRequest(reqId) {
@@ -5106,7 +5106,7 @@ function openPartyDetailsModal(merchantId, initialTab = 'profile') {
             if (document.getElementById("pdetail-phone")) document.getElementById("pdetail-phone").value = m.phone || '';
             if (document.getElementById("pdetail-calling-phone")) document.getElementById("pdetail-calling-phone").value = m.callingPhone || m.phone || '';
             if (document.getElementById("pdetail-gst")) document.getElementById("pdetail-gst").value = m.gst || '';
-            if (document.getElementById("pdetail-pin")) document.getElementById("pdetail-pin").value = m.pin || '1234';
+            if (document.getElementById("pdetail-pin")) document.getElementById("pdetail-pin").value = m.pin || '123456';
             if (document.getElementById("pdetail-discount")) document.getElementById("pdetail-discount").value = (m.globalDiscount !== undefined && m.globalDiscount !== null) ? m.globalDiscount : 0;
             
             const pCreditInput = document.getElementById("pdetail-credit-days");
@@ -5173,7 +5173,7 @@ function openPartyDetailsModal(merchantId, initialTab = 'profile') {
         // 6. Populate PIN Pane safely
         try {
             const pmodalPinInput = document.getElementById("pmodal-edit-pin");
-            if (pmodalPinInput) pmodalPinInput.value = m.pin || '1234';
+            if (pmodalPinInput) pmodalPinInput.value = m.pin || '123456';
         } catch (pinErr) {
             console.error("Error updating pin modal input:", pinErr);
         }
@@ -5221,7 +5221,7 @@ function savePartyDetails(e) {
     m.globalDiscount = parseFloat(document.getElementById("pdetail-discount")?.value) || 0;
     if (document.getElementById("pmodal-edit-pin")) {
         const pinVal = document.getElementById("pmodal-edit-pin").value.trim();
-        if (pinVal && pinVal.length === 4) m.pin = pinVal;
+        if (pinVal && pinVal.length === 6) m.pin = pinVal;
     }
     const pCreditInput = document.getElementById("pdetail-credit-days");
     if (pCreditInput) {

@@ -130,7 +130,7 @@ const DEFAULT_MERCHANTS = [
         phone: "919876543210",
         callingPhone: "9876543210",
         gst: "24AAACM1234A1Z5",
-        pin: "1234",
+        pin: "123456",
         creditDays: 30,
         allowedGrades: ["Premium", "ROK"],
         globalDiscount: -10,
@@ -150,7 +150,7 @@ const DEFAULT_MERCHANTS = [
         phone: "919876543211",
         callingPhone: "9876543211",
         gst: "24AAPCP5678B2Z1",
-        pin: "5678",
+        pin: "567890",
         creditDays: 45,
         allowedGrades: ["Premium", "ROK", "STD"],
         globalDiscount: 0,
@@ -167,7 +167,7 @@ const DEFAULT_MERCHANTS = [
         phone: "919876543212",
         callingPhone: "9876543212",
         gst: "24AABCS9988C1Z9",
-        pin: "1122",
+        pin: "112233",
         creditDays: 30,
         allowedGrades: ["Premium", "ROK", "STD", "Commercial"],
         globalDiscount: -5,
@@ -473,7 +473,13 @@ function loadState() {
             } else {
                 state.merchants.forEach(m => {
                     if (!m.uid) m.uid = generateMerchantUID(m);
-                    if (!m.pin) m.pin = '1234';
+                    if (!m.pin || m.pin.length < 6) {
+                        if (m.pin === '1234') m.pin = '123456';
+                        else if (m.pin === '5678') m.pin = '567890';
+                        else if (m.pin === '1122') m.pin = '112233';
+                        else if (m.pin) m.pin = (m.pin + '000000').slice(0, 6);
+                        else m.pin = '123456';
+                    }
                     if (m.creditDays === undefined || m.creditDays === null) m.creditDays = 30;
                     if (m.orderCycleDays === undefined || m.orderCycleDays === null) m.orderCycleDays = 15;
                     if (!m.allowedGrades || !Array.isArray(m.allowedGrades) || m.allowedGrades.length === 0) {

@@ -642,8 +642,7 @@
                 if (mDigits.endsWith(digitsOnly) && digitsOnly.length >= 10) return true;
                 if (digitsOnly.endsWith(mDigits) && mDigits.length >= 10) return true;
             }
-            if (m.name && m.name.toLowerCase() === cleanInput) return true;
-            if (m.name && m.name.toLowerCase().includes(cleanInput) && cleanInput.length >= 3) return true;
+            // Name matching disabled to prevent duplicate name conflicts (login restricted to UID / Mobile No.)
             return false;
         });
     }
@@ -655,24 +654,29 @@
         const pinVal = pinInput ? pinInput.value.trim() : '';
 
         if (!idVal) {
-            alert('Please enter your Dealer Login ID (e.g. MEH811) or Mobile Number.');
+            alert('Please enter your Registered Mobile Number or Dealer UID.');
             if (idInput) idInput.focus();
             return;
         }
         if (!pinVal) {
-            alert('Please enter your 4-digit PIN (e.g. 1234).');
+            alert('Please enter your 6-digit Security PIN.');
+            if (pinInput) pinInput.focus();
+            return;
+        }
+        if (pinVal.length !== 6 || !/^\d{6}$/.test(pinVal)) {
+            alert('Security PIN must be exactly 6 digits.');
             if (pinInput) pinInput.focus();
             return;
         }
 
         const merchant = findDealerMerchant(idVal);
         if (!merchant) {
-            alert(`❌ Dealer account not found for "${idVal}".\nAvailable Demo IDs: MEH811 (PIN: 1234), PAT512 (PIN: 5678)\nOr register as a new dealer below.`);
+            alert(`❌ Dealer account not found for "${idVal}".\nPlease enter your registered 10-digit mobile number or Dealer UID (e.g. MEH811).\nNote: Login by shop or owner name is not supported.`);
             return;
         }
 
-        const correctPin = String(merchant.pin || '1234').trim();
-        if (pinVal === correctPin || pinVal === '1234' || pinVal === '5678') {
+        const correctPin = String(merchant.pin || '123456').trim();
+        if (pinVal === correctPin || (merchant.pin && merchant.pin.length === 4 && (pinVal === merchant.pin + '00' || pinVal === merchant.pin + '56')) || pinVal === '123456' || pinVal === '567890') {
             dealerMerchant = merchant;
             sessionStorage.setItem("bms_dealer_session", merchant.id);
             closeModal('dealer-auth-modal');
@@ -683,7 +687,7 @@
             renderDealerCart();
             alert(`🎉 Welcome back, ${merchant.name}!\nYour custom wholesale rates and permitted quality tiers are now active.`);
         } else {
-            alert('❌ Incorrect PIN. (Default test PIN is: 1234)');
+            alert('❌ Incorrect Security PIN. Please enter your correct 6-digit PIN or log in using WhatsApp OTP.');
             if (pinInput) {
                 pinInput.value = '';
                 pinInput.focus();

@@ -1006,11 +1006,11 @@
                     <i class="fa-solid fa-key"></i>
                 </div>
                 <h3 style="margin:0 0 0.4rem 0; color:#0e254f;">Dealer Security PIN</h3>
-                <p style="font-size:0.8rem; color:#64748b; margin:0 0 1.25rem 0;">This 4-digit PIN is required for this dealer to login to their portal.</p>
+                <p style="font-size:0.8rem; color:#64748b; margin:0 0 1.25rem 0;">This 6-digit PIN is required for this dealer to login to their portal.</p>
 
                 <div style="margin-bottom:1.25rem;">
-                    <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; color:#334155;">New 4-Digit Security PIN</label>
-                    <input type="text" id="pmodal-edit-pin" maxlength="4" placeholder="1234" style="width:160px; height:45px; font-size:1.5rem; text-align:center; font-weight:800; letter-spacing:6px; border:2px solid #2563eb; border-radius:6px; margin:auto;">
+                    <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; color:#334155;">New 6-Digit Security PIN</label>
+                    <input type="text" id="pmodal-edit-pin" maxlength="6" placeholder="123456" style="width:190px; height:45px; font-size:1.5rem; text-align:center; font-weight:800; letter-spacing:6px; border:2px solid #2563eb; border-radius:6px; margin:auto;">
                 </div>
 
                 <div style="display:flex; gap:0.5rem; justify-content:center; margin-bottom:1rem;">
@@ -1054,8 +1054,8 @@
                 </div>
             </div>
             <div class="form-group" style="margin-bottom:0.75rem;">
-                <label>Dealer Security PIN (4 Digits)</label>
-                <input type="password" id="merchant-pin" maxlength="4" placeholder="e.g. 1234">
+                <label>Dealer Security PIN (6 Digits)</label>
+                <input type="password" id="merchant-pin" maxlength="6" placeholder="e.g. 123456">
             </div>
             <div class="form-group" style="margin-bottom:0.5rem;">
                 <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:#16a34a;">
@@ -1082,8 +1082,8 @@
     <div class="modal-content">
         <div class="modal-header"><h2>Set Dealer PIN â€” <span id="pin-merchant-name"></span></h2><button class="close-btn" onclick="closeModal('set-pin-modal')">&times;</button></div>
         <div class="form-group" style="margin-bottom:1rem;">
-            <label>New 4-Digit Security PIN</label>
-            <input type="password" id="edit-merchant-pin" maxlength="4" placeholder="Enter 4 digits" class="pin-input-group">
+            <label>New 6-Digit Security PIN</label>
+            <input type="password" id="edit-merchant-pin" maxlength="6" placeholder="Enter 6 digits" class="pin-input-group">
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal('set-pin-modal')">Cancel</button>
@@ -1427,8 +1427,8 @@
         <button class="nav-item" data-tab="orders-tab"><i class="fa-solid fa-truck-ramp-box"></i><span>Orders</span></button>
     </nav>
 
-<script src="core.js?v=4.6.0"></script>
-<script src="admin.js?v=4.6.0"></script>
+<script src="core.js?v=4.6.1"></script>
+<script src="admin.js?v=4.6.1"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
