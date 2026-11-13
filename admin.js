@@ -1,4 +1,4 @@
-﻿
+
 // Global Delegated Click Listener for Party Action Buttons
 if (typeof document !== 'undefined') {
     document.addEventListener('click', function(e) {
@@ -4855,7 +4855,7 @@ function renderAdminBanners() {
                     ` : ''}
                 </div>
                 <div>
-                    <div style="font-weight:700; color:#0e254f; font-size:0.9rem;">${b.title}</div>
+                    <div style="font-weight:700; color:#0e254f; font-size:0.9rem;">${b.title || ("Custom Banner Photo " + (idx+1))}</div>
                     <div style="font-size:0.75rem; color:#64748b;">${b.subtitle || ''}</div>
                     <div style="font-size:0.72rem; color:#2563eb; margin-top:2px;">
                         ${b.imageUrl ? '💻 Desktop Banner attached' : 'No desktop image'} ${b.mobileImageUrl ? ' &bull; 📱 Mobile Banner attached' : ''}
@@ -4872,23 +4872,29 @@ function renderAdminBanners() {
 
 function handleAddAdminBanner(e) {
     e.preventDefault();
-    const tag = document.getElementById("banner-tag").value.trim() || "✨ RABBIT LUXURY COLLECTION";
+    const tag = document.getElementById("banner-tag").value.trim();
     const title = document.getElementById("banner-title").value.trim();
     const subtitle = document.getElementById("banner-subtitle").value.trim();
     const fileInput = document.getElementById("banner-file");
     const mobileFileInput = document.getElementById("banner-mobile-file");
 
-    if (!title) { alert("Please enter a title for the banner."); return; }
+    const desktopFile = fileInput && fileInput.files ? fileInput.files[0] : null;
+    const mobileFile = mobileFileInput && mobileFileInput.files ? mobileFileInput.files[0] : null;
+
+    if (!title && !desktopFile && !mobileFile) {
+        alert("Please either enter a title or choose a banner photo to upload.");
+        return;
+    }
 
     const newBanner = {
         id: "banner-" + Date.now(),
-        tag: tag,
-        title: title,
-        subtitle: subtitle,
+        tag: tag || (title ? "✨ RABBIT LUXURY COLLECTION" : ""),
+        title: title || "",
+        subtitle: subtitle || "",
         badge: "Direct Factory Pricing",
         btnText: "Explore Collection",
         btnTarget: "products",
-        bgGradient: "linear-gradient(135deg, #0e254f 0%, #1e3a8a 50%, #0f172a 100%)",
+        bgGradient: (desktopFile || mobileFile) ? "transparent" : "linear-gradient(135deg, #0e254f 0%, #1e3a8a 50%, #0f172a 100%)",
         imageUrl: "",
         mobileImageUrl: ""
     };

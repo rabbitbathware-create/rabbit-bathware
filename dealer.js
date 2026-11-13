@@ -363,23 +363,39 @@
         banners.forEach((b, idx) => {
             const slide = document.createElement('div');
             slide.className = 'kowf-slide';
-            slide.style.background = b.bgGradient || '#0e254f';
             
             const activeImg = (isMobileScreen && b.mobileImageUrl) ? b.mobileImageUrl : (b.imageUrl || b.mobileImageUrl);
             if (activeImg) {
+                slide.classList.add('has-image');
+                slide.style.background = 'transparent';
                 slide.style.backgroundImage = `url('${activeImg}')`;
+                slide.style.backgroundSize = 'cover';
+                slide.style.backgroundPosition = 'center';
+                slide.style.backgroundRepeat = 'no-repeat';
+            } else {
+                slide.style.background = b.bgGradient || '#0e254f';
             }
 
-            slide.innerHTML = `
-                <div class="kowf-slide-content">
-                    <div class="kowf-slide-tag"><i class="fa-solid fa-gem"></i> ${b.tag || 'RABBIT BATHWARE'}</div>
-                    <h1 class="kowf-slide-title">${b.title}</h1>
-                    <p class="kowf-slide-subtitle">${b.subtitle}</p>
-                    <button class="kowf-slide-btn" onclick="switchDealerView('products')">
-                        ${b.btnText || 'Explore Catalog'} &nbsp;<i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                </div>
-            `;
+            const hasTitle = Boolean(b.title && b.title.trim());
+            const hasSubtitle = Boolean(b.subtitle && b.subtitle.trim());
+
+            if (activeImg && !hasTitle && !hasSubtitle) {
+                // Pure image banner: clear original photo with no text obstruction
+                slide.innerHTML = '';
+                slide.style.cursor = 'pointer';
+                slide.onclick = () => switchDealerView(b.btnTarget || 'products');
+            } else {
+                slide.innerHTML = `
+                    <div class="kowf-slide-content">
+                        ${b.tag ? `<div class="kowf-slide-tag"><i class="fa-solid fa-gem"></i> ${b.tag}</div>` : ''}
+                        ${hasTitle ? `<h1 class="kowf-slide-title">${b.title}</h1>` : ''}
+                        ${hasSubtitle ? `<p class="kowf-slide-subtitle">${b.subtitle}</p>` : ''}
+                        <button class="kowf-slide-btn" onclick="switchDealerView('${b.btnTarget || 'products'}')">
+                            ${b.btnText || 'Explore Catalog'} &nbsp;<i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                `;
+            }
             track.appendChild(slide);
 
             const dot = document.createElement('span');
