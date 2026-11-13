@@ -4899,25 +4899,39 @@ function handleAddAdminBanner(e) {
         mobileImageUrl: ""
     };
 
-    const readFile = (file) => {
-        return new Promise((resolve) => {
-            if (!file) resolve("");
-            const reader = new FileReader();
-            reader.onload = (evt) => resolve(evt.target.result);
-            reader.readAsDataURL(file);
+    const readAndCompress = (file, maxW, maxH) => {
+        return new Promise(async (resolve) => {
+            if (!file) { resolve(""); return; }
+            try {
+                if (typeof compressImage === 'function') {
+                    const compressed = await compressImage(file, maxW, maxH, 0.82);
+                    resolve(compressed);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => resolve(evt.target.result);
+                    reader.readAsDataURL(file);
+                }
+            } catch(err) {
+                console.warn("Banner compress fallback:", err);
+                const reader = new FileReader();
+                reader.onload = (evt) => resolve(evt.target.result);
+                reader.readAsDataURL(file);
+            }
         });
     };
 
-    Promise.all([readFile(desktopFile), readFile(mobileFile)]).then(([desktopUrl, mobileUrl]) => {
-        newBanner.imageUrl = desktopUrl;
-        newBanner.mobileImageUrl = mobileUrl;
+    Promise.all([readAndCompress(desktopFile, 1920, 1080), readAndCompress(mobileFile, 1080, 1440)]).then(([desktopUrl, mobileUrl]) => {
+        const finalImg = desktopUrl || mobileUrl || "";
+        const finalMobImg = mobileUrl || desktopUrl || "";
+        newBanner.imageUrl = finalImg;
+        newBanner.mobileImageUrl = finalMobImg;
         if (!state.homeBanners) state.homeBanners = [];
-        state.homeBanners.push(newBanner);
+        state.homeBanners.unshift(newBanner);
         saveState();
         if (typeof syncToCloud === 'function') syncToCloud();
         renderAdminBanners();
         document.getElementById("add-banner-form").reset();
-        alert("Homepage Banner uploaded and published successfully!");
+        alert("Homepage Banner uploaded and published to Slide 1 successfully!");
     });
 }
 
