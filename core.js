@@ -5,37 +5,52 @@
 
 const DEFAULT_HOME_BANNERS = [
     {
-        id: "banner-1",
-        tag: "LUXURY BATHWARE COLLECTION",
-        title: "The Brilliance of Luxury Reimagined",
-        subtitle: "Direct Factory Dispatch of 100% Vitreous China Sanitary Ware, Designer Basins & Quartz Sinks.",
-        badge: "10-Year Craftsmanship Guarantee",
-        btnText: "Explore Collection",
-        btnTarget: "products",
-        bgGradient: "linear-gradient(135deg, #0e254f 0%, #1e3a8a 50%, #0f172a 100%)",
-        imageUrl: ""
-    },
-    {
-        id: "banner-2",
-        tag: "TOP SELLING SANITARY WARE",
+        id: "banner-sanitary-ware",
+        tag: "100% VITREOUS CHINA",
         title: "Vitreous China One-Piece & Wall Hung",
-        subtitle: "Engineered with Tornado 4D Flush & Nano Stain-Free Glaze for ultimate hygiene and luxury.",
-        badge: "Eco-Saver 3L / 6L Dual Flush",
-        btnText: "View Sanitary Ware",
+        subtitle: "Tornado 4D Rimless Flush • Nano Glaze Anti-Bacterial Technology",
+        badge: "10-Year Craftsmanship Guarantee",
+        btnText: "Explore Sanitary Ware",
         btnTarget: "products",
-        bgGradient: "linear-gradient(135deg, #1e293b 0%, #334155 50%, #0e254f 100%)",
-        imageUrl: ""
+        bgGradient: "transparent",
+        imageUrl: "banners/banner1.jpg",
+        mobileImageUrl: "banners/banner1.jpg"
     },
     {
-        id: "banner-3",
-        tag: "DESIGNER ART BASINS & VANITIES",
-        title: "Artistic Table Tops & Modular Vanities",
-        subtitle: "Handcrafted finishes, marble textures, and waterproof cabinetry made for premium homes.",
-        badge: "Waterproof HD Cabinets",
-        btnText: "Become a Dealer",
-        btnTarget: "register",
-        bgGradient: "linear-gradient(135deg, #0f172a 0%, #1e40af 60%, #1e3a8a 100%)",
-        imageUrl: ""
+        id: "banner-art-basins",
+        tag: "DESIGNER LUXURY",
+        title: "Handcrafted Art Basins & Modular Vanities",
+        subtitle: "Matte Finish Table-Top Basins • Waterproof PVC Vanity Cabinets",
+        badge: "Exclusive Morbi Craft",
+        btnText: "View Art Basins",
+        btnTarget: "products",
+        bgGradient: "transparent",
+        imageUrl: "banners/banner2.jpg",
+        mobileImageUrl: "banners/banner2.jpg"
+    },
+    {
+        id: "banner-kitchen-sinks",
+        tag: "MODULAR KITCHEN",
+        title: "Quartz Granite & 304 Steel Kitchen Sinks",
+        subtitle: "Scratch-Proof Quartz Stone • Anti-Corrosion Heavy Duty Handmade Sinks",
+        badge: "Direct Factory Pricing",
+        btnText: "Explore Kitchen Sinks",
+        btnTarget: "products",
+        bgGradient: "transparent",
+        imageUrl: "banners/banner3.jpg",
+        mobileImageUrl: "banners/banner3.jpg"
+    },
+    {
+        id: "banner-luxury-showers",
+        tag: "WELLNESS & FITTINGS",
+        title: "Concealed Rainfall Showers & Bath Fittings",
+        subtitle: "Thermostatic Water Mixers • Multi-Flow Luxury Shower Systems",
+        badge: "High Pressure Certified",
+        btnText: "View Shower Systems",
+        btnTarget: "products",
+        bgGradient: "transparent",
+        imageUrl: "banners/banner4.jpg",
+        mobileImageUrl: "banners/banner4.jpg"
     }
 ];
 
