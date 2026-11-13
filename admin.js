@@ -4908,9 +4908,6 @@ function handleAddAdminBanner(e) {
         });
     };
 
-    const desktopFile = fileInput && fileInput.files ? fileInput.files[0] : null;
-    const mobileFile = mobileFileInput && mobileFileInput.files ? mobileFileInput.files[0] : null;
-
     Promise.all([readFile(desktopFile), readFile(mobileFile)]).then(([desktopUrl, mobileUrl]) => {
         newBanner.imageUrl = desktopUrl;
         newBanner.mobileImageUrl = mobileUrl;
