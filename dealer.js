@@ -353,9 +353,19 @@
     function renderHeroSlider() {
         const track = document.getElementById('kowf-slider-track');
         const dots = document.getElementById('kowf-slider-dots');
+        const prevBtn = document.querySelector('.kowf-slider-arrow.left');
+        const nextBtn = document.querySelector('.kowf-slider-arrow.right');
         if (!track || !dots) return;
 
-        const banners = (state.homeBanners && state.homeBanners.length > 0) ? state.homeBanners : DEFAULT_HOME_BANNERS;
+        let banners = (state.homeBanners && state.homeBanners.length > 0) ? state.homeBanners : DEFAULT_HOME_BANNERS;
+        
+        // If there are custom banners with images, ignore the empty default placeholder text slides
+        const hasCustomWithImage = banners.some(b => b && (b.imageUrl || b.mobileImageUrl));
+        if (hasCustomWithImage) {
+            const filtered = banners.filter(b => b && (b.imageUrl || b.mobileImageUrl || (b.title && b.id !== 'banner-1' && b.id !== 'banner-2' && b.id !== 'banner-3')));
+            if (filtered.length > 0) banners = filtered;
+        }
+
         track.innerHTML = '';
         dots.innerHTML = '';
 
@@ -406,7 +416,18 @@
 
         currentHeroSlide = 0;
         updateSliderPosition();
-        startHeroAutoPlay();
+
+        if (banners.length <= 1) {
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
+            if (dots) dots.style.display = 'none';
+            if (heroAutoTimer) clearInterval(heroAutoTimer);
+        } else {
+            if (prevBtn) prevBtn.style.display = 'flex';
+            if (nextBtn) nextBtn.style.display = 'flex';
+            if (dots) dots.style.display = 'flex';
+            startHeroAutoPlay();
+        }
 
         // Hero Slider Touch Swipe for Mobile
         const heroWrap = document.getElementById('kowf-hero-wrap');
@@ -2647,6 +2668,8 @@ window.exploreProductsFromCart = exploreProductsFromCart;
 window.addEventListener('bms_remote_sync', function() {
     console.log("Dealer Portal: Firebase bms_remote_sync received, refreshing views...");
     try {
+        if (typeof renderHeroSlider === 'function') renderHeroSlider();
+        if (typeof renderHomeCategoryCards === 'function') renderHomeCategoryCards();
         if (typeof renderDealerGradePills === 'function') renderDealerGradePills();
         if (typeof renderDealerCatalog === 'function') renderDealerCatalog();
         if (typeof renderDealerOffers === 'function') renderDealerOffers();

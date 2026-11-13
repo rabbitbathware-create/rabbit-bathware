@@ -418,6 +418,19 @@ function initFirebaseSync() {
                         });
                         remoteVal.dealerRequests = mergedReqs;
                     }
+
+                    // 5. Merge Home Banners (protect custom banners with images)
+                    if (Array.isArray(state.homeBanners) && state.homeBanners.length > 0) {
+                        const remoteBanners = Array.isArray(remoteVal.homeBanners) ? remoteVal.homeBanners : [];
+                        const hasCustomInRemote = remoteBanners.some(b => b && (b.imageUrl || b.mobileImageUrl));
+                        const hasCustomInLocal = state.homeBanners.some(b => b && (b.imageUrl || b.mobileImageUrl));
+                        if (hasCustomInRemote) {
+                            remoteVal.homeBanners = remoteBanners;
+                        } else if (hasCustomInLocal) {
+                            remoteVal.homeBanners = state.homeBanners;
+                            hasLocalAdditions = true;
+                        }
+                    }
                 }
 
                 state = remoteVal;
