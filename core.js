@@ -321,6 +321,13 @@ function initFirebaseSync() {
             if (remoteVal && typeof remoteVal === 'object' && Object.keys(remoteVal).length > 0) {
                 _isSyncingFromRemote = true;
                 
+                if (remoteVal.homeBanners && !Array.isArray(remoteVal.homeBanners)) {
+                    remoteVal.homeBanners = Object.values(remoteVal.homeBanners);
+                }
+                if (state && state.homeBanners && !Array.isArray(state.homeBanners)) {
+                    state.homeBanners = Object.values(state.homeBanners);
+                }
+
                 // Track & merge tombstones so permanently deleted items are NEVER resurrected
                 const remoteDeletedMerchants = Array.isArray(remoteVal.deletedMerchantIds) ? remoteVal.deletedMerchantIds : [];
                 const localDeletedMerchants = (state && Array.isArray(state.deletedMerchantIds)) ? state.deletedMerchantIds : [];
@@ -576,6 +583,9 @@ function loadState() {
             if (!state.settings) state.settings = { ...DEFAULT_SETTINGS };
             if (!state.settings.firebaseConfigJSON || state.settings.firebaseConfigJSON.includes('...')) {
                 state.settings.firebaseConfigJSON = JSON.stringify(DEFAULT_FIREBASE_CONFIG);
+            }
+            if (state.homeBanners && !Array.isArray(state.homeBanners)) {
+                state.homeBanners = Object.values(state.homeBanners);
             }
             if (!state.homeBanners || state.homeBanners.length === 0) state.homeBanners = [...DEFAULT_HOME_BANNERS];
             if (!state.homeCategoryCards || state.homeCategoryCards.length === 0) state.homeCategoryCards = [...DEFAULT_HOME_CATEGORY_CARDS];
