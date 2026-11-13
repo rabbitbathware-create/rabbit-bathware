@@ -485,6 +485,8 @@
 
     function submitNewDealerRequest(e) {
         e.preventDefault();
+        if (typeof loadState === 'function') loadState();
+
         const shopName = document.getElementById('req-shop-name').value.trim();
         const ownerName = document.getElementById('req-owner-name').value.trim();
         const city = document.getElementById('req-city').value.trim();
@@ -496,6 +498,64 @@
 
         if (!shopName || !ownerName || !city || !pincode || !whatsapp) {
             alert('Please fill all required fields.');
+            return;
+        }
+
+        // Phone normalization: extract last 10 digits
+        function extract10Digits(num) {
+            if (!num) return '';
+            const digits = String(num).replace(/\D/g, '');
+            return digits.length >= 10 ? digits.slice(-10) : digits;
+        }
+
+        const wa10 = extract10Digits(whatsapp);
+        const call10 = extract10Digits(callingPhone);
+
+        if (!wa10 || wa10.length !== 10) {
+            alert('કૃપા કરીને માન્ય 10 અંકનો WhatsApp નંબર દાખલ કરો.');
+            return;
+        }
+
+        // 1. Check if number already belongs to an approved dealer (Merchant)
+        const existingMerchant = (state.merchants || []).find(m => {
+            if (!m) return false;
+            const mPhone = extract10Digits(m.phone || m.whatsapp || '');
+            return (wa10 && mPhone === wa10) || (call10 && mPhone === call10);
+        });
+
+        if (existingMerchant) {
+            alert(`આ મોબાઇલ નંબર (+91 ${wa10}) પહેલેથી જ રજિસ્ટર્ડ ડીલર ("${existingMerchant.name || existingMerchant.shopName || ''}") તરીકે નોંધાયેલો છે.\n\nકૃપા કરીને 'Dealer Login' પર ક્લિક કરી PIN અથવા OTP વડે લોગિન કરો.`);
+            closeModal('new-dealer-modal');
+            openDealerLoginModal();
+            const idInput = document.getElementById('dealer-login-id');
+            if (idInput) {
+                idInput.value = wa10;
+                idInput.focus();
+            }
+            return;
+        }
+
+        // 2. Check if registration request already submitted with this number
+        const existingReq = (state.dealerRequests || []).find(r => {
+            if (!r) return false;
+            const rWa = extract10Digits(r.whatsapp || '');
+            const rCall = extract10Digits(r.callingPhone || '');
+            return (wa10 && (rWa === wa10 || rCall === wa10)) ||
+                   (call10 && (rWa === call10 || rCall === call10));
+        });
+
+        let localSubmittedPhones = [];
+        try {
+            localSubmittedPhones = JSON.parse(localStorage.getItem('bms_submitted_dealer_phones') || '[]');
+        } catch (err) {
+            localSubmittedPhones = [];
+        }
+
+        const alreadyLocallySubmitted = localSubmittedPhones.includes(wa10) || (call10 && localSubmittedPhones.includes(call10));
+
+        if (existingReq || alreadyLocallySubmitted) {
+            const reqShop = (existingReq && existingReq.shopName) ? ` ("${existingReq.shopName}")` : '';
+            alert(`આ મોબાઇલ નંબર (+91 ${wa10}) પરથી રજિસ્ટ્રેશન રિકવેસ્ટ પહેલેથી જ સબમિટ થયેલી છે${reqShop}.\n\nઅમારી ટીમ દ્વારા તમારા વિસ્તાર અને વિગતોની ચકાસણી (Verification) ચાલુ છે.\nએક જ નંબર પરથી બીજી વાર રજિસ્ટ્રેશન કરવાની જરૂર નથી. કૃપા કરીને વેરિફિકેશન પૂર્ણ થવાની રાહ જુઓ અથવા હેલ્પલાઇન પર સંપર્ક કરો.`);
             return;
         }
 
@@ -530,6 +590,14 @@
         saveState();
         if (typeof syncToCloud === 'function') syncToCloud();
 
+        // Remember submitted phone locally
+        if (!localSubmittedPhones.includes(wa10)) {
+            localSubmittedPhones.push(wa10);
+            try {
+                localStorage.setItem('bms_submitted_dealer_phones', JSON.stringify(localSubmittedPhones));
+            } catch (e) {}
+        }
+
         let msg = `*🆕 NEW DEALER REGISTRATION & ORDER INQUIRY*\n`;
         msg += `-----------------------------\n`;
         msg += `*Shop / Firm:* ${shopName}\n`;
@@ -553,7 +621,7 @@
         window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
 
         closeModal('new-dealer-modal');
-        alert(`🎉 Thank you, ${ownerName}!\nYour Dealer Request has been sent via WhatsApp.\nOur team will review your area and contact you shortly.`);
+        alert(`🎉 આભાર, ${ownerName}!\nતમારી ડીલર રજિસ્ટ્રેશન રિકવેસ્ટ WhatsApp પર મોકલાઈ ગઈ છે.\nઅમારી ટીમ તમારા વિસ્તારની ચકાસણી કરીને ટૂંક સમયમાં તમારો સંપર્ક કરશે.`);
     }
 
     function openDealerLoginModal() { openModal('dealer-auth-modal'); }
