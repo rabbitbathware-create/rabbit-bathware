@@ -321,14 +321,54 @@ function initFirebaseSync() {
             if (remoteVal && typeof remoteVal === 'object' && Object.keys(remoteVal).length > 0) {
                 _isSyncingFromRemote = true;
                 
+                // Track & merge tombstones so permanently deleted items are NEVER resurrected
+                const remoteDeletedMerchants = Array.isArray(remoteVal.deletedMerchantIds) ? remoteVal.deletedMerchantIds : [];
+                const localDeletedMerchants = (state && Array.isArray(state.deletedMerchantIds)) ? state.deletedMerchantIds : [];
+                const allDeletedMerchants = Array.from(new Set([...remoteDeletedMerchants, ...localDeletedMerchants]));
+                remoteVal.deletedMerchantIds = allDeletedMerchants;
+                if (state) state.deletedMerchantIds = allDeletedMerchants;
+
+                const remoteDeletedReqs = Array.isArray(remoteVal.deletedDealerRequestIds) ? remoteVal.deletedDealerRequestIds : [];
+                const localDeletedReqs = (state && Array.isArray(state.deletedDealerRequestIds)) ? state.deletedDealerRequestIds : [];
+                const allDeletedReqs = Array.from(new Set([...remoteDeletedReqs, ...localDeletedReqs]));
+                remoteVal.deletedDealerRequestIds = allDeletedReqs;
+                if (state) state.deletedDealerRequestIds = allDeletedReqs;
+
+                const remoteDeletedProducts = Array.isArray(remoteVal.deletedProductIds) ? remoteVal.deletedProductIds : [];
+                const localDeletedProducts = (state && Array.isArray(state.deletedProductIds)) ? state.deletedProductIds : [];
+                const allDeletedProducts = Array.from(new Set([...remoteDeletedProducts, ...localDeletedProducts]));
+                remoteVal.deletedProductIds = allDeletedProducts;
+                if (state) state.deletedProductIds = allDeletedProducts;
+
+                const remoteDeletedOrders = Array.isArray(remoteVal.deletedOrderIds) ? remoteVal.deletedOrderIds : [];
+                const localDeletedOrders = (state && Array.isArray(state.deletedOrderIds)) ? state.deletedOrderIds : [];
+                const allDeletedOrders = Array.from(new Set([...remoteDeletedOrders, ...localDeletedOrders]));
+                remoteVal.deletedOrderIds = allDeletedOrders;
+                if (state) state.deletedOrderIds = allDeletedOrders;
+
+                // Strip any deleted items from remoteVal
+                if (Array.isArray(remoteVal.merchants)) {
+                    remoteVal.merchants = remoteVal.merchants.filter(m => m && !allDeletedMerchants.includes(m.id));
+                }
+                if (Array.isArray(remoteVal.dealerRequests)) {
+                    remoteVal.dealerRequests = remoteVal.dealerRequests.filter(r => r && !allDeletedReqs.includes(r.id));
+                }
+                if (Array.isArray(remoteVal.products)) {
+                    remoteVal.products = remoteVal.products.filter(p => p && !allDeletedProducts.includes(p.id));
+                }
+                if (Array.isArray(remoteVal.orders)) {
+                    remoteVal.orders = remoteVal.orders.filter(o => o && !allDeletedOrders.includes(o.id));
+                }
+
                 // Smart Merge to ensure locally added data (e.g. from Mobile) is never lost
                 let hasLocalAdditions = false;
                 if (state) {
-                    // 1. Merge Merchants
+                    // 1. Merge Merchants (excluding deleted)
                     if (Array.isArray(state.merchants) && state.merchants.length > 0) {
                         const remoteMerchants = Array.isArray(remoteVal.merchants) ? remoteVal.merchants : [];
                         const mergedMerchants = [...remoteMerchants];
                         state.merchants.forEach(lm => {
+                            if (!lm || allDeletedMerchants.includes(lm.id)) return;
                             if (!mergedMerchants.some(rm => (rm.id && rm.id === lm.id) || (rm.uid && rm.uid === lm.uid))) {
                                 mergedMerchants.push(lm);
                                 hasLocalAdditions = true;
@@ -337,11 +377,12 @@ function initFirebaseSync() {
                         remoteVal.merchants = mergedMerchants;
                     }
 
-                    // 2. Merge Products
+                    // 2. Merge Products (excluding deleted)
                     if (Array.isArray(state.products) && state.products.length > 0) {
                         const remoteProducts = Array.isArray(remoteVal.products) ? remoteVal.products : [];
                         const mergedProducts = [...remoteProducts];
                         state.products.forEach(lp => {
+                            if (!lp || allDeletedProducts.includes(lp.id)) return;
                             if (!mergedProducts.some(rp => rp.id && rp.id === lp.id)) {
                                 mergedProducts.push(lp);
                                 hasLocalAdditions = true;
@@ -350,11 +391,12 @@ function initFirebaseSync() {
                         remoteVal.products = mergedProducts;
                     }
 
-                    // 3. Merge Orders
+                    // 3. Merge Orders (excluding deleted)
                     if (Array.isArray(state.orders) && state.orders.length > 0) {
                         const remoteOrders = Array.isArray(remoteVal.orders) ? remoteVal.orders : [];
                         const mergedOrders = [...remoteOrders];
                         state.orders.forEach(lo => {
+                            if (!lo || allDeletedOrders.includes(lo.id)) return;
                             if (!mergedOrders.some(ro => ro.id && ro.id === lo.id)) {
                                 mergedOrders.push(lo);
                                 hasLocalAdditions = true;
@@ -363,11 +405,12 @@ function initFirebaseSync() {
                         remoteVal.orders = mergedOrders;
                     }
 
-                    // 4. Merge Dealer Requests
+                    // 4. Merge Dealer Requests (excluding deleted)
                     if (Array.isArray(state.dealerRequests) && state.dealerRequests.length > 0) {
                         const remoteReqs = Array.isArray(remoteVal.dealerRequests) ? remoteVal.dealerRequests : [];
                         const mergedReqs = [...remoteReqs];
                         state.dealerRequests.forEach(lr => {
+                            if (!lr || allDeletedReqs.includes(lr.id)) return;
                             if (!mergedReqs.some(rr => rr.id && rr.id === lr.id)) {
                                 mergedReqs.push(lr);
                                 hasLocalAdditions = true;
@@ -421,9 +464,26 @@ const debouncedCloudPush = debounce(() => {
     }
 }, 600);
 
-function syncToCloud() {
+function instantCloudPush() {
+    if (!_firebaseInitialized || !window.firebaseDB) return;
+    try {
+        const cleanState = JSON.parse(JSON.stringify(state));
+        window.firebaseDB.ref("bms_state").set(cleanState).catch(err => {
+            console.warn("Instant cloud push error:", err);
+        });
+    } catch (e) {
+        console.error("Error in instantCloudPush:", e);
+    }
+}
+window.instantCloudPush = instantCloudPush;
+
+function syncToCloud(immediate = false) {
     if (_isSyncingFromRemote) return;
-    debouncedCloudPush();
+    if (immediate) {
+        instantCloudPush();
+    } else {
+        debouncedCloudPush();
+    }
 }
 window.syncToCloud = syncToCloud;
 
@@ -492,7 +552,9 @@ function loadState() {
                 });
                 DEFAULT_MERCHANTS.forEach(dm => {
                     if (!state.merchants.some(m => m.id === dm.id || m.uid === dm.uid)) {
-                        state.merchants.push(dm);
+                        if (!state.deletedMerchantIds || !state.deletedMerchantIds.includes(dm.id)) {
+                            state.merchants.push(dm);
+                        }
                     }
                 });
             }
@@ -527,6 +589,20 @@ function loadState() {
         }
     } else {
         initStateDefaults();
+    }
+    if (state) {
+        if (Array.isArray(state.deletedMerchantIds) && Array.isArray(state.merchants)) {
+            state.merchants = state.merchants.filter(m => m && !state.deletedMerchantIds.includes(m.id));
+        }
+        if (Array.isArray(state.deletedDealerRequestIds) && Array.isArray(state.dealerRequests)) {
+            state.dealerRequests = state.dealerRequests.filter(r => r && !state.deletedDealerRequestIds.includes(r.id));
+        }
+        if (Array.isArray(state.deletedProductIds) && Array.isArray(state.products)) {
+            state.products = state.products.filter(p => p && !state.deletedProductIds.includes(p.id));
+        }
+        if (Array.isArray(state.deletedOrderIds) && Array.isArray(state.orders)) {
+            state.orders = state.orders.filter(o => o && !state.deletedOrderIds.includes(o.id));
+        }
     }
     migrateProductCategories();
     invalidatePerformanceCache();

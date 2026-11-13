@@ -1178,8 +1178,15 @@ function deleteProduct(id) {
     const p = state.products.find(x => x.id === id);
     if (!p) return;
     if (confirm(`Delete product "${p.model}"?`)) {
+        if (!state.deletedProductIds) state.deletedProductIds = [];
+        if (!state.deletedProductIds.includes(id)) state.deletedProductIds.push(id);
         state.products = state.products.filter(x => x.id !== id);
         saveState();
+        if (typeof syncToCloud === 'function') syncToCloud(true);
+        if (window.firebaseDB) {
+            window.firebaseDB.ref("bms_state/products").set(state.products);
+            window.firebaseDB.ref("bms_state/deletedProductIds").set(state.deletedProductIds);
+        }
         renderStockTable();
     }
 }
@@ -3468,8 +3475,15 @@ function deleteOrder(orderId) {
 
     // Remove order
     state.orders.splice(idx, 1);
+    if (!state.deletedOrderIds) state.deletedOrderIds = [];
+    if (!state.deletedOrderIds.includes(orderId)) state.deletedOrderIds.push(orderId);
     
     saveState();
+    if (typeof syncToCloud === 'function') syncToCloud(true);
+    if (window.firebaseDB) {
+        window.firebaseDB.ref("bms_state/orders").set(state.orders);
+        window.firebaseDB.ref("bms_state/deletedOrderIds").set(state.deletedOrderIds);
+    }
     renderOrdersList();
     refreshCurrentTab();
 }
@@ -4656,11 +4670,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function deleteMerchant(merchantId) {
-    const m = state.merchants.find(x => x.id === merchantId);
+    const m = (state.merchants || []).find(x => x.id === merchantId);
     if (!m) return;
     if (confirm(`Are you sure you want to permanently delete merchant "${m.name}"?`)) {
-        state.merchants = state.merchants.filter(x => x.id !== merchantId);
+        if (!state.deletedMerchantIds) state.deletedMerchantIds = [];
+        if (!state.deletedMerchantIds.includes(merchantId)) state.deletedMerchantIds.push(merchantId);
+        state.merchants = (state.merchants || []).filter(x => x.id !== merchantId);
         saveState();
+        if (typeof syncToCloud === 'function') syncToCloud(true);
+        if (window.firebaseDB) {
+            window.firebaseDB.ref("bms_state/merchants").set(state.merchants);
+            window.firebaseDB.ref("bms_state/deletedMerchantIds").set(state.deletedMerchantIds);
+        }
         renderMerchantsGrid();
         if (typeof renderDashboard === 'function') renderDashboard();
     }
@@ -4770,9 +4791,20 @@ function approveDealerRequest(reqId) {
         hideTotals: true
     };
 
+    if (!state.merchants) state.merchants = [];
     state.merchants.push(newMerchant);
-    state.dealerRequests = state.dealerRequests.filter(r => r.id !== reqId);
+
+    if (!state.deletedDealerRequestIds) state.deletedDealerRequestIds = [];
+    if (!state.deletedDealerRequestIds.includes(reqId)) state.deletedDealerRequestIds.push(reqId);
+    state.dealerRequests = (state.dealerRequests || []).filter(r => r.id !== reqId);
+
     saveState();
+    if (typeof syncToCloud === 'function') syncToCloud(true);
+    if (window.firebaseDB) {
+        window.firebaseDB.ref("bms_state/merchants").set(state.merchants);
+        window.firebaseDB.ref("bms_state/dealerRequests").set(state.dealerRequests);
+        window.firebaseDB.ref("bms_state/deletedDealerRequestIds").set(state.deletedDealerRequestIds);
+    }
     renderMerchantsGrid();
     renderDealerRequests();
     renderAdminBanners();
@@ -4781,13 +4813,19 @@ function approveDealerRequest(reqId) {
 
 function deleteDealerRequest(reqId) {
     if (confirm('Delete this dealer inquiry request?')) {
+        if (!state.deletedDealerRequestIds) state.deletedDealerRequestIds = [];
+        if (!state.deletedDealerRequestIds.includes(reqId)) state.deletedDealerRequestIds.push(reqId);
         state.dealerRequests = (state.dealerRequests || []).filter(r => r.id !== reqId);
         saveState();
+        if (typeof syncToCloud === 'function') syncToCloud(true);
+        if (window.firebaseDB) {
+            window.firebaseDB.ref("bms_state/dealerRequests").set(state.dealerRequests);
+            window.firebaseDB.ref("bms_state/deletedDealerRequestIds").set(state.deletedDealerRequestIds);
+        }
         renderDealerRequests();
-    renderAdminBanners();
+        renderAdminBanners();
     }
 }
-
 
 function renderAdminBanners() {
     const container = document.getElementById("admin-banners-list");
@@ -5014,6 +5052,8 @@ function addAdminCategoryCard() {
 function deleteAdminCategoryCard(id) {
     if (confirm("Are you sure you want to delete this category card?")) {
         state.homeCategoryCards = (state.homeCategoryCards || []).filter(c => c.id !== id);
+        saveState();
+        if (typeof syncToCloud === 'function') syncToCloud(true);
         renderAdminCategoryCards();
     }
 }

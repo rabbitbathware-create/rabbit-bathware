@@ -553,7 +553,7 @@
 
         const alreadyLocallySubmitted = localSubmittedPhones.includes(wa10) || (call10 && localSubmittedPhones.includes(call10));
 
-        if (existingReq || alreadyLocallySubmitted) {
+        if (existingReq) {
             const reqShop = (existingReq && existingReq.shopName) ? ` ("${existingReq.shopName}")` : '';
             alert(`A dealer registration request has already been submitted for this mobile number (+91 ${wa10})${reqShop}.\n\nOur team is currently verifying your business details and area authorization.\nDuplicate registration is not required. Please wait for our team to contact you, or reach out to our helpline for assistance.`);
             return;
