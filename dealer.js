@@ -675,8 +675,8 @@
             return;
         }
 
-        const correctPin = String(merchant.pin || '123456').trim();
-        if (pinVal === correctPin || (merchant.pin && merchant.pin.length === 4 && (pinVal === merchant.pin + '00' || pinVal === merchant.pin + '56')) || pinVal === '123456' || pinVal === '567890') {
+        const correctPin = String(merchant.pin || '').trim();
+        if (correctPin && pinVal === correctPin) {
             dealerMerchant = merchant;
             sessionStorage.setItem("bms_dealer_session", merchant.id);
             closeModal('dealer-auth-modal');
@@ -717,7 +717,7 @@
         const msg = `🔐 *BMS LOGIN OTP REQUEST*\n-----------------------------\n*Business:* ${m.name}\n*OTP Code:* *${otpCode}*\n(Valid for 10 minutes)`;
         const adminWA = (state.settings && state.settings.adminWA) ? state.settings.adminWA : "919876543210";
         window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
-        alert(`OTP request sent to Admin via WhatsApp!\nEnter code ${otpCode} once verified. (Or try test code 1234)`);
+        alert(`OTP request sent to Admin via WhatsApp!\nEnter code ${otpCode} once verified.`);
     }
 
     function dealerLoginViaOTP() {
@@ -731,7 +731,7 @@
         if (!m) { alert('Account not found!'); return; }
 
         const validOtp = (state.otpRequests || []).find(r => r.merchantId === m.id && r.code === enteredOtp && r.expiresAt > Date.now());
-        if (validOtp || enteredOtp === '123456' || enteredOtp === '1234') {
+        if (validOtp) {
             dealerMerchant = m;
             sessionStorage.setItem("bms_dealer_session", m.id);
             closeModal('dealer-auth-modal');
