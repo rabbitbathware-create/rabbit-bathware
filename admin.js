@@ -83,6 +83,19 @@ function onStockCategoryChange() {
     if (currentSubVal && subCats.includes(currentSubVal)) {
         subCatSelect.value = currentSubVal;
     }
+
+    // Auto-detect template and render specs fields if adding a new product
+    const modelInp = document.getElementById("stock-model");
+    const model = modelInp ? modelInp.value : "";
+    const tmplSelect = document.getElementById("stock-spec-template-select");
+    const editId = document.getElementById("edit-stock-id") ? document.getElementById("edit-stock-id").value : "";
+    if (tmplSelect && !editId && typeof detectSpecsTemplate === 'function') {
+        const detectedTmpl = detectSpecsTemplate(selectedCat, subCatSelect.value, model);
+        tmplSelect.value = detectedTmpl;
+        if (typeof renderStockSpecFields === 'function') {
+            renderStockSpecFields(detectedTmpl);
+        }
+    }
 }
 
 function getCategoryTree() {
@@ -1254,14 +1267,15 @@ function openAddProductModal() {
     }
     toggleBoxFields();
 
-    if (document.getElementById("stock-spec-dim-mm")) document.getElementById("stock-spec-dim-mm").value = "";
-    if (document.getElementById("stock-spec-dim-inch")) document.getElementById("stock-spec-dim-inch").value = "";
-    if (document.getElementById("stock-spec-flushing")) document.getElementById("stock-spec-flushing").value = "";
-    if (document.getElementById("stock-spec-installation")) document.getElementById("stock-spec-installation").value = "";
-    if (document.getElementById("stock-spec-seat")) document.getElementById("stock-spec-seat").value = "";
-    if (document.getElementById("stock-spec-vitrification")) document.getElementById("stock-spec-vitrification").value = "";
-    if (document.getElementById("stock-spec-color-finish")) document.getElementById("stock-spec-color-finish").value = "";
-    if (document.getElementById("stock-spec-warranty")) document.getElementById("stock-spec-warranty").value = "";
+    const tmplSelect = document.getElementById("stock-spec-template-select");
+    const defaultTmpl = "toilet";
+    if (tmplSelect) tmplSelect.value = defaultTmpl;
+    if (typeof renderStockSpecFields === 'function') {
+        renderStockSpecFields(defaultTmpl, {});
+    }
+    const customList = document.getElementById("stock-custom-specs-list");
+    if (customList) customList.innerHTML = "";
+
     if (document.getElementById("stock-spec-mrp")) document.getElementById("stock-spec-mrp").value = "";
     if (document.getElementById("stock-spec-features")) document.getElementById("stock-spec-features").value = "";
     if (document.getElementById("stock-spec-cad-base64")) document.getElementById("stock-spec-cad-base64").value = "";
@@ -1335,14 +1349,25 @@ function openEditProductModal(id) {
     }
 
     const specs = p.specs || {};
-    if (document.getElementById("stock-spec-dim-mm")) document.getElementById("stock-spec-dim-mm").value = specs.dimensionsMm || "";
-    if (document.getElementById("stock-spec-dim-inch")) document.getElementById("stock-spec-dim-inch").value = specs.dimensionsInches || "";
-    if (document.getElementById("stock-spec-flushing")) document.getElementById("stock-spec-flushing").value = specs.flushingSystem || "";
-    if (document.getElementById("stock-spec-installation")) document.getElementById("stock-spec-installation").value = specs.installation || "";
-    if (document.getElementById("stock-spec-seat")) document.getElementById("stock-spec-seat").value = specs.seatCover || "";
-    if (document.getElementById("stock-spec-vitrification")) document.getElementById("stock-spec-vitrification").value = specs.ceramicVitrification || "";
-    if (document.getElementById("stock-spec-color-finish")) document.getElementById("stock-spec-color-finish").value = specs.colorFinish || "";
-    if (document.getElementById("stock-spec-warranty")) document.getElementById("stock-spec-warranty").value = specs.warranty || "";
+    const templateId = specs.template || (typeof detectSpecsTemplate === 'function' ? detectSpecsTemplate(p.category, p.subcategory || p.subCategory, p.model) : 'toilet');
+    const tmplSelect = document.getElementById("stock-spec-template-select");
+    if (tmplSelect) tmplSelect.value = templateId;
+    if (typeof renderStockSpecFields === 'function') {
+        renderStockSpecFields(templateId, specs);
+    }
+
+    const customList = document.getElementById("stock-custom-specs-list");
+    if (customList) {
+        customList.innerHTML = "";
+        if (Array.isArray(specs.customSpecs)) {
+            specs.customSpecs.forEach(cs => {
+                if (cs && cs.label && typeof addStockCustomSpecRow === 'function') {
+                    addStockCustomSpecRow(cs.label, cs.value || "");
+                }
+            });
+        }
+    }
+
     if (document.getElementById("stock-spec-mrp")) document.getElementById("stock-spec-mrp").value = (specs.mrp !== undefined && specs.mrp !== null) ? specs.mrp : "";
     if (document.getElementById("stock-spec-features")) {
         document.getElementById("stock-spec-features").value = Array.isArray(specs.keyFeatures) ? specs.keyFeatures.join(", ") : (specs.keyFeatures || "");
@@ -1392,19 +1417,24 @@ function handleNewProduct(e) {
 
     const specFeaturesRaw = document.getElementById("stock-spec-features") ? document.getElementById("stock-spec-features").value.trim() : "";
     const specFeatures = specFeaturesRaw ? specFeaturesRaw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : [];
+    const tmplSelect = document.getElementById("stock-spec-template-select");
+    const chosenTemplate = (tmplSelect && tmplSelect.value) ? tmplSelect.value : "toilet";
     const specsObj = {
-        dimensionsMm: document.getElementById("stock-spec-dim-mm") ? document.getElementById("stock-spec-dim-mm").value.trim() : "",
-        dimensionsInches: document.getElementById("stock-spec-dim-inch") ? document.getElementById("stock-spec-dim-inch").value.trim() : "",
-        flushingSystem: document.getElementById("stock-spec-flushing") ? document.getElementById("stock-spec-flushing").value.trim() : "",
-        installation: document.getElementById("stock-spec-installation") ? document.getElementById("stock-spec-installation").value.trim() : "",
-        seatCover: document.getElementById("stock-spec-seat") ? document.getElementById("stock-spec-seat").value.trim() : "",
-        ceramicVitrification: document.getElementById("stock-spec-vitrification") ? document.getElementById("stock-spec-vitrification").value.trim() : "",
-        colorFinish: document.getElementById("stock-spec-color-finish") ? document.getElementById("stock-spec-color-finish").value.trim() : "",
-        warranty: document.getElementById("stock-spec-warranty") ? document.getElementById("stock-spec-warranty").value.trim() : "",
+        template: chosenTemplate,
+        isCustomConfigured: true,
         mrp: document.getElementById("stock-spec-mrp") && document.getElementById("stock-spec-mrp").value ? parseFloat(document.getElementById("stock-spec-mrp").value) : null,
         keyFeatures: specFeatures,
-        cadBlueprintUrl: document.getElementById("stock-spec-cad-base64") ? document.getElementById("stock-spec-cad-base64").value : null
+        cadBlueprintUrl: document.getElementById("stock-spec-cad-base64") ? document.getElementById("stock-spec-cad-base64").value : null,
+        customSpecs: typeof getStockCustomSpecs === 'function' ? getStockCustomSpecs() : []
     };
+
+    // Collect all dynamic category template field values
+    const dynamicInputs = document.querySelectorAll("#stock-specs-dynamic-fields input[data-spec-key]");
+    dynamicInputs.forEach(inp => {
+        if (inp.dataset && inp.dataset.specKey) {
+            specsObj[inp.dataset.specKey] = inp.value.trim();
+        }
+    });
 
     const saveProd = (imagesArr) => {
         const editId = document.getElementById("edit-stock-id") ? document.getElementById("edit-stock-id").value : "";
@@ -1490,7 +1520,94 @@ function handleNewProduct(e) {
     }
 }
 
-// Technical Specifications & CAD Blueprint Admin Handlers
+// ==========================================================================
+// DYNAMIC MULTI-CATEGORY SPECIFICATIONS & CAD BLUEPRINT HANDLERS
+// ==========================================================================
+function renderStockSpecFields(templateId, values = {}) {
+    const container = document.getElementById("stock-specs-dynamic-fields");
+    if (!container) return;
+    const tmpl = (window.SPECS_TEMPLATES && window.SPECS_TEMPLATES[templateId]) ? window.SPECS_TEMPLATES[templateId] : (window.SPECS_TEMPLATES?.general || null);
+    if (!tmpl) {
+        container.innerHTML = "";
+        return;
+    }
+
+    const fields = tmpl.fields || [];
+    let html = "";
+    for (let i = 0; i < fields.length; i += 2) {
+        const f1 = fields[i];
+        const f2 = fields[i + 1];
+        html += `<div class="form-row-two" style="margin-bottom:0.5rem;">`;
+        if (f1) {
+            const v1 = values[f1.key] !== undefined ? values[f1.key] : "";
+            html += `
+                <div class="form-group">
+                    <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">${f1.label}</label>
+                    <input type="text" data-spec-key="${f1.key}" id="stock-spec-${f1.key}" value="${escapeHtml(String(v1))}" placeholder="${escapeHtml(f1.placeholder)}" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px; width:100%; box-sizing:border-box;">
+                </div>
+            `;
+        }
+        if (f2) {
+            const v2 = values[f2.key] !== undefined ? values[f2.key] : "";
+            html += `
+                <div class="form-group">
+                    <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">${f2.label}</label>
+                    <input type="text" data-spec-key="${f2.key}" id="stock-spec-${f2.key}" value="${escapeHtml(String(v2))}" placeholder="${escapeHtml(f2.placeholder)}" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px; width:100%; box-sizing:border-box;">
+                </div>
+            `;
+        }
+        html += `</div>`;
+    }
+    container.innerHTML = html;
+}
+window.renderStockSpecFields = renderStockSpecFields;
+
+function onStockSpecTemplateSelected(templateId) {
+    const currentValues = {};
+    const inputs = document.querySelectorAll("#stock-specs-dynamic-fields input[data-spec-key]");
+    inputs.forEach(inp => {
+        if (inp.dataset && inp.dataset.specKey) {
+            currentValues[inp.dataset.specKey] = inp.value;
+        }
+    });
+    renderStockSpecFields(templateId, currentValues);
+}
+window.onStockSpecTemplateSelected = onStockSpecTemplateSelected;
+
+function addStockCustomSpecRow(label = "", value = "") {
+    const list = document.getElementById("stock-custom-specs-list");
+    if (!list) return;
+    const rowId = "cspec-row-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+    const div = document.createElement("div");
+    div.id = rowId;
+    div.style.cssText = "display:flex; gap:6px; align-items:center;";
+    div.innerHTML = `
+        <input type="text" class="custom-spec-label" placeholder="Detail Name (e.g. Steel Grade)" value="${escapeHtml(String(label))}" style="flex:1; background:#1e293b; color:#38bdf8; border:1px solid #334155; padding:0.35rem 0.5rem; border-radius:4px; font-size:0.75rem; font-weight:600;">
+        <input type="text" class="custom-spec-val" placeholder="Value (e.g. AISI-304 Heavy)" value="${escapeHtml(String(value))}" style="flex:1.4; background:#1e293b; color:#fff; border:1px solid #334155; padding:0.35rem 0.5rem; border-radius:4px; font-size:0.75rem;">
+        <button type="button" onclick="document.getElementById('${rowId}').remove()" style="background:#ef4444; color:#fff; border:none; border-radius:4px; padding:0.35rem 0.6rem; cursor:pointer; font-size:0.75rem;" title="Remove Detail">&times;</button>
+    `;
+    list.appendChild(div);
+}
+window.addStockCustomSpecRow = addStockCustomSpecRow;
+
+function getStockCustomSpecs() {
+    const list = document.getElementById("stock-custom-specs-list");
+    if (!list) return [];
+    const rows = list.querySelectorAll("div[id^='cspec-row-']");
+    const result = [];
+    rows.forEach(r => {
+        const lblInp = r.querySelector(".custom-spec-label");
+        const valInp = r.querySelector(".custom-spec-val");
+        const lbl = lblInp ? lblInp.value.trim() : "";
+        const val = valInp ? valInp.value.trim() : "";
+        if (lbl && val) {
+            result.push({ label: lbl, value: val });
+        }
+    });
+    return result;
+}
+window.getStockCustomSpecs = getStockCustomSpecs;
+
 function autoFillStockSpecsFromCategory() {
     const cat = document.getElementById("stock-category") ? document.getElementById("stock-category").value : "";
     const subcat = document.getElementById("stock-subcategory") ? document.getElementById("stock-subcategory").value : "";
@@ -1498,21 +1615,33 @@ function autoFillStockSpecsFromCategory() {
     const colour = document.getElementById("stock-colour") ? document.getElementById("stock-colour").value : "";
     const price = parseFloat(document.getElementById("stock-price") ? document.getElementById("stock-price").value : 0) || 0;
 
-    const dummyProd = { category: cat, subcategory: subcat, subCategory: subcat, model, colour, price };
-    const specs = typeof getProductSpecs === 'function' ? getProductSpecs(dummyProd) : null;
-    if (!specs) return;
+    const detected = typeof detectSpecsTemplate === 'function' ? detectSpecsTemplate(cat, subcat, model) : 'toilet';
+    const sel = document.getElementById("stock-spec-template-select");
+    const templateId = (sel && sel.value) ? sel.value : detected;
+    if (sel) sel.value = templateId;
 
-    if (document.getElementById("stock-spec-dim-mm")) document.getElementById("stock-spec-dim-mm").value = specs.dimensionsMm || "";
-    if (document.getElementById("stock-spec-dim-inch")) document.getElementById("stock-spec-dim-inch").value = specs.dimensionsInches || "";
-    if (document.getElementById("stock-spec-flushing")) document.getElementById("stock-spec-flushing").value = specs.flushingSystem || "";
-    if (document.getElementById("stock-spec-installation")) document.getElementById("stock-spec-installation").value = specs.installation || "";
-    if (document.getElementById("stock-spec-seat")) document.getElementById("stock-spec-seat").value = specs.seatCover || "";
-    if (document.getElementById("stock-spec-vitrification")) document.getElementById("stock-spec-vitrification").value = specs.ceramicVitrification || "";
-    if (document.getElementById("stock-spec-color-finish")) document.getElementById("stock-spec-color-finish").value = specs.colorFinish || "";
-    if (document.getElementById("stock-spec-warranty")) document.getElementById("stock-spec-warranty").value = specs.warranty || "";
-    if (document.getElementById("stock-spec-mrp")) document.getElementById("stock-spec-mrp").value = specs.mrp || "";
-    if (document.getElementById("stock-spec-features")) {
-        document.getElementById("stock-spec-features").value = Array.isArray(specs.keyFeatures) ? specs.keyFeatures.join(", ") : (specs.keyFeatures || "");
+    const tmpl = (window.SPECS_TEMPLATES && window.SPECS_TEMPLATES[templateId]) ? window.SPECS_TEMPLATES[templateId] : null;
+    if (!tmpl) return;
+
+    const defaultValues = {};
+    tmpl.fields.forEach(f => {
+        let val = f.default || "";
+        if (f.key === 'colorFinish' && colour) {
+            val = `${colour} (UltraClean Gloss)`;
+        }
+        defaultValues[f.key] = val;
+    });
+
+    renderStockSpecFields(templateId, defaultValues);
+
+    const mrpEl = document.getElementById("stock-spec-mrp");
+    if (mrpEl) {
+        mrpEl.value = price ? Math.round(price * 1.55) : (templateId === 'sink' ? 5500 : (templateId === 'basin' ? 3800 : 10400));
+    }
+
+    const featEl = document.getElementById("stock-spec-features");
+    if (featEl) {
+        featEl.value = (tmpl.defaultFeatures || []).join(", ");
     }
 }
 window.autoFillStockSpecsFromCategory = autoFillStockSpecsFromCategory;

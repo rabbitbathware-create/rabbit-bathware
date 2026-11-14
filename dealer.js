@@ -2735,24 +2735,67 @@ function openProductSpecsModal(prodId) {
     // Reset View to Ceramic
     switchSpecsView('ceramic');
 
-    // Specifications Table Rows
+    // Specifications Table Rows (Option 1 Template + Option 2 Auto-Hide Blanks + Option 3 Custom Specs)
     const tableEl = document.getElementById('specs-table-rows');
     if (tableEl) {
-        const rows = [
-            { label: 'Dimensions (Millimeters)', value: specs.dimensionsMm },
-            { label: 'Dimensions (Inches)', value: specs.dimensionsInches },
-            { label: 'Flushing System', value: specs.flushingSystem },
-            { label: 'Installation / Mounting', value: specs.installation },
-            { label: 'Seat Cover Specification', value: specs.seatCover },
-            { label: 'Ceramic Vitrification', value: specs.ceramicVitrification },
-            { label: 'Color & Finish', value: specs.colorFinish },
-            { label: 'Warranty Coverage', value: specs.warranty }
-        ];
+        const templateId = specs.template || (typeof detectSpecsTemplate === 'function' ? detectSpecsTemplate(p.category, p.subcategory || p.subCategory, p.model) : 'toilet');
+        const tmpl = (window.SPECS_TEMPLATES && window.SPECS_TEMPLATES[templateId]) ? window.SPECS_TEMPLATES[templateId] : null;
 
+        const rows = [];
+
+        // 1. Template-defined fields (Auto-Hide blank or N/A fields)
+        if (tmpl && Array.isArray(tmpl.fields)) {
+            tmpl.fields.forEach(f => {
+                const val = specs[f.key];
+                if (val && typeof val === 'string' && val.trim() !== '' && val.trim().toLowerCase() !== 'n/a' && val.trim().toLowerCase() !== 'standard') {
+                    rows.push({ label: f.label, value: val.trim() });
+                }
+            });
+        }
+
+        // Fallback if no template fields matched
+        if (rows.length === 0) {
+            const standardKeys = [
+                { key: 'dimensionsMm', label: 'Dimensions (Millimeters)' },
+                { key: 'dimensionsInches', label: 'Dimensions (Inches)' },
+                { key: 'materialGrade', label: 'Material & Grade' },
+                { key: 'bowlType', label: 'Bowl Configuration' },
+                { key: 'thickness', label: 'Thickness / Gauge' },
+                { key: 'soundDeadening', label: 'Sound Dampening' },
+                { key: 'mountingType', label: 'Mounting / Vessel Type' },
+                { key: 'overflowType', label: 'Overflow & Waste Specification' },
+                { key: 'flushingSystem', label: 'Flushing System' },
+                { key: 'installation', label: 'Installation / Mounting' },
+                { key: 'seatCover', label: 'Seat Cover Specification' },
+                { key: 'ceramicVitrification', label: 'Ceramic Vitrification' },
+                { key: 'bodyMaterial', label: 'Body Material' },
+                { key: 'cartridge', label: 'Cartridge Specification' },
+                { key: 'flowType', label: 'Flow & Aerator Type' },
+                { key: 'colorFinish', label: 'Color & Finish' },
+                { key: 'warranty', label: 'Warranty Coverage' }
+            ];
+            standardKeys.forEach(item => {
+                const val = specs[item.key];
+                if (val && typeof val === 'string' && val.trim() !== '' && val.trim().toLowerCase() !== 'n/a' && val.trim().toLowerCase() !== 'standard') {
+                    rows.push({ label: item.label, value: val.trim() });
+                }
+            });
+        }
+
+        // 2. Custom Specifications (Option 3)
+        if (Array.isArray(specs.customSpecs)) {
+            specs.customSpecs.forEach(cs => {
+                if (cs && cs.label && cs.value && String(cs.value).trim() !== '') {
+                    rows.push({ label: String(cs.label).trim(), value: String(cs.value).trim() });
+                }
+            });
+        }
+
+        // Render rows - Blank fields are completely hidden!
         let tableHtml = rows.map(r => `
             <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 0.55rem 0.9rem; color: #64748b; font-weight: 600; font-size: 0.81rem; width: 44%;">${r.label}</td>
-                <td style="padding: 0.55rem 0.9rem; color: #0e254f; font-weight: 700; font-size: 0.82rem; text-align: right;">${r.value || 'Standard'}</td>
+                <td style="padding: 0.55rem 0.9rem; color: #0e254f; font-weight: 700; font-size: 0.82rem; text-align: right;">${r.value}</td>
             </tr>
         `).join('');
 
@@ -2765,7 +2808,7 @@ function openProductSpecsModal(prodId) {
             `;
         }
 
-        tableEl.innerHTML = tableHtml;
+        tableEl.innerHTML = tableHtml || `<tr><td colspan="2" style="padding:0.75rem; text-align:center; color:#64748b; font-size:0.8rem;">Standard Rabbit Engineered Quality</td></tr>`;
     }
 
     // Features Badges

@@ -2492,131 +2492,323 @@ function cancelImageCrop() {
 window.cancelImageCrop = cancelImageCrop;
 
 // ==========================================================================
-// PRODUCT TECHNICAL SPECIFICATIONS & CAD BLUEPRINT HELPERS
+// MULTI-CATEGORY SPECIFICATIONS & CAD BLUEPRINT ENGINE
 // ==========================================================================
-function getProductSpecs(p) {
-    if (!p) return null;
-    const cat = (p.category || '').toLowerCase();
-    const sub = (p.subcategory || p.subCategory || '').toLowerCase();
-    const model = (p.model || '').toLowerCase();
-    
-    // Existing custom specs if configured
-    const userSpecs = p.specs || {};
-
-    // Standard ceramic sanitary ware defaults
-    let defaultDimMm = "695 x 385 x 690 mm";
-    let defaultDimInch = '27.4" x 15.2" x 27.2"';
-    let defaultFlushing = "4D Tornado Whirlpool / 100% Rimless Siphonic";
-    let defaultInstall = "Floor Mounted (S-Trap 300mm / 12\")";
-    let defaultSeat = "Slim Duroplast (UF) Soft-Close Seat with Quick Release";
-    let defaultCeramic = "Triple-Glazed 1280°C High Density Vitreous China";
-    let defaultFinish = p.colour ? `${p.colour} (UltraClean Gloss)` : "Glacier Pure White (UltraClean Gloss)";
-    let defaultWarranty = "10 Years Ceramic Glaze Warranty";
-    let defaultMrp = p.price ? Math.round(p.price * 1.55) : 10400;
-    let defaultFeatures = [
-        "360° Tornado Whirlpool Hydro-Cleansing",
-        "100% Rimless Flushing Hygiene",
-        "UltraClean Nano Anti-Bacterial Glaze",
-        "Dual Flush 3/6 L (Eco-Efficiency)",
-        "UF Soft-Close Heavy Slim Seat",
-        "10-Year Ceramic Glaze Warranty"
-    ];
-
-    if (cat.includes('basin') || sub.includes('basin') || cat.includes('table top') || sub.includes('table top') || cat.includes('art')) {
-        defaultDimMm = "480 x 370 x 135 mm";
-        defaultDimInch = '18.9" x 14.6" x 5.3"';
-        defaultFlushing = "Integrated Overflow Channel Protection";
-        defaultInstall = "Countertop / Table Top Vessel Mount";
-        defaultSeat = "N/A (Designer Table Top Basin)";
-        defaultCeramic = "1280°C Vitrified Architectural Ceramic";
-        defaultFinish = p.colour ? `${p.colour} (Stain-Resistant Gloss)` : "Pure White / Ceramic Glaze";
-        defaultWarranty = "10 Years Ceramic Glaze Warranty";
-        defaultMrp = p.price ? Math.round(p.price * 1.6) : 3800;
-        defaultFeatures = [
+const SPECS_TEMPLATES = {
+    toilet: {
+        id: 'toilet',
+        label: 'Toilets & Sanitary Ware',
+        fields: [
+            { key: 'dimensionsMm', label: 'Dimensions (Millimeters)', placeholder: 'e.g. 695 x 385 x 690 mm', default: '695 x 385 x 690 mm' },
+            { key: 'dimensionsInches', label: 'Dimensions (Inches)', placeholder: 'e.g. 27.4" x 15.2" x 27.2"', default: '27.4" x 15.2" x 27.2"' },
+            { key: 'flushingSystem', label: 'Flushing System', placeholder: 'e.g. 4D Tornado Whirlpool / 100% Rimless', default: '4D Tornado Whirlpool / 100% Rimless Siphonic' },
+            { key: 'installation', label: 'Installation / Mounting', placeholder: 'e.g. Floor Mounted (S-Trap 300mm / 12")', default: 'Floor Mounted (S-Trap 300mm / 12")' },
+            { key: 'seatCover', label: 'Seat Cover Specification', placeholder: 'e.g. Slim Duroplast (UF) Soft-Close Seat with Quick Release', default: 'Slim Duroplast (UF) Soft-Close Seat with Quick Release' },
+            { key: 'ceramicVitrification', label: 'Ceramic Vitrification', placeholder: 'e.g. Triple-Glazed 1280°C High Density Vitreous China', default: 'Triple-Glazed 1280°C High Density Vitreous China' },
+            { key: 'colorFinish', label: 'Color & Finish', placeholder: 'e.g. Glacier Pure White (UltraClean Gloss)', default: 'Glacier Pure White (UltraClean Gloss)' },
+            { key: 'warranty', label: 'Warranty Coverage', placeholder: 'e.g. 10 Years Ceramic Glaze Warranty', default: '10 Years Ceramic Glaze Warranty' }
+        ],
+        defaultFeatures: [
+            "360° Tornado Whirlpool Hydro-Cleansing",
+            "100% Rimless Flushing Hygiene",
+            "UltraClean Nano Anti-Bacterial Glaze",
+            "Dual Flush 3/6 L (Eco-Efficiency)",
+            "UF Soft-Close Heavy Slim Seat",
+            "10-Year Ceramic Glaze Warranty"
+        ]
+    },
+    basin: {
+        id: 'basin',
+        label: 'Wash Basins & Table Tops',
+        fields: [
+            { key: 'dimensionsMm', label: 'Dimensions (Millimeters)', placeholder: 'e.g. 480 x 370 x 135 mm', default: '480 x 370 x 135 mm' },
+            { key: 'dimensionsInches', label: 'Dimensions (Inches)', placeholder: 'e.g. 18.9" x 14.6" x 5.3"', default: '18.9" x 14.6" x 5.3"' },
+            { key: 'mountingType', label: 'Mounting / Vessel Type', placeholder: 'e.g. Countertop / Table Top Vessel Mount', default: 'Countertop / Table Top Vessel Mount' },
+            { key: 'overflowType', label: 'Overflow & Waste Specification', placeholder: 'e.g. Integrated Overflow Channel / Standard 32mm Waste', default: 'Integrated Overflow Channel / Standard 32mm Waste' },
+            { key: 'ceramicVitrification', label: 'Ceramic Vitrification', placeholder: 'e.g. 1280°C Vitrified Architectural Ceramic', default: '1280°C Vitrified Architectural Ceramic' },
+            { key: 'colorFinish', label: 'Color & Finish', placeholder: 'e.g. Pure White (UltraClean Gloss)', default: 'Pure White (UltraClean Gloss)' },
+            { key: 'warranty', label: 'Warranty Coverage', placeholder: 'e.g. 10 Years Ceramic Glaze Warranty', default: '10 Years Ceramic Glaze Warranty' }
+        ],
+        defaultFeatures: [
             "Vitrified High-Density Fine Ceramic",
             "Stain & Acid Resistant Ultra-Smooth Glaze",
             "Precision Thin-Edge Architectural Crafting",
             "Zero Water Absorption Rate (<0.2%)",
             "Easy Clean Anti-Limescale Nano-Coat",
             "10-Year Ceramic Glaze Warranty"
-        ];
-    } else if (cat.includes('sink') || sub.includes('sink') || cat.includes('kitchen') || model.includes('sink')) {
-        defaultDimMm = '610 x 457 x 230 mm (24" x 18" x 9")';
-        defaultDimInch = '24.0" x 18.0" x 9.0"';
-        defaultFlushing = "High-Flow Anti-Clog Vortex Waste Drain";
-        defaultInstall = "Universal Topmount / Undermount Installation";
-        defaultSeat = "Heavy-Duty SS304 Coupling & Waste Pipe Included";
-        defaultCeramic = (p.material && p.material.toLowerCase().includes('steel')) ? "AISI 304 High-Grade Stainless Steel" : "80% Natural Quartz Composite Granite Core";
-        defaultFinish = p.colour ? `${p.colour} (Anti-Scratch Hydrophobic)` : "Metallic Black Granite Matt";
-        defaultWarranty = "5 Years Rabbit Engineered Warranty";
-        defaultMrp = p.price ? Math.round(p.price * 1.5) : 5500;
-        defaultFeatures = [
-            "80% Natural Granite Quartz Composite",
-            "Heat Resistant up to 280°C Thermal Shock Proof",
-            "Scratch, Dent & Impact Resistant Matrix",
-            "Non-Porous Antibacterial Hydrophobic Shield",
-            "Sound-Deadening Deep Bowl Construction",
+        ]
+    },
+    sink: {
+        id: 'sink',
+        label: 'Kitchen Sinks (Steel & Quartz)',
+        fields: [
+            { key: 'dimensionsMm', label: 'Dimensions (Millimeters)', placeholder: 'e.g. 610 x 457 x 230 mm (24" x 18" x 9")', default: '610 x 457 x 230 mm (24" x 18" x 9")' },
+            { key: 'dimensionsInches', label: 'Dimensions (Inches)', placeholder: 'e.g. 24.0" x 18.0" x 9.0"', default: '24.0" x 18.0" x 9.0"' },
+            { key: 'materialGrade', label: 'Material & Grade', placeholder: 'e.g. AISI-304 Food-Grade Stainless Steel / 80% Quartz Granite', default: 'AISI-304 Food-Grade Heavy Stainless Steel' },
+            { key: 'bowlType', label: 'Bowl Configuration', placeholder: 'e.g. Single Deep Bowl with R10 Easy-Clean Radius Corners', default: 'Single Deep Bowl with R10 Easy-Clean Radius Corners' },
+            { key: 'thickness', label: 'Sheet Thickness / Gauge', placeholder: 'e.g. 1.2 mm (18 Gauge) Heavy-Duty Sheet', default: '1.2 mm (18 Gauge) Heavy-Duty Sheet' },
+            { key: 'soundDeadening', label: 'Sound Dampening & Coating', placeholder: 'e.g. Full Under-Body Anti-Condensation Coating & 3mm Acoustic Pads', default: 'Full Under-Body Anti-Condensation Coating & 3mm Acoustic Pads' },
+            { key: 'colorFinish', label: 'Color & Finish', placeholder: 'e.g. Brushed Satin Hydrophobic Finish / Metallic Black', default: 'Brushed Satin Hydrophobic Finish' },
+            { key: 'warranty', label: 'Warranty Coverage', placeholder: 'e.g. 5 Years Rabbit Engineered Warranty', default: '5 Years Rabbit Engineered Warranty' }
+        ],
+        defaultFeatures: [
+            "AISI-304 Heavy Duty Food-Grade Steel",
+            "1.2mm Sheet Thickness Heavy-Duty Build",
+            "Acoustic Sound-Deadening Rubber Dampener Pads",
+            "Anti-Condensation Protective Under-Body Shield",
+            "R10 Radius Easy-Clean Curved Corners",
             "5-Year Manufacturer Warranty Coverage"
-        ];
-    } else if (sub.includes('wall hung') || model.includes('wall hung') || model.includes('wallhung')) {
-        defaultDimMm = "520 x 360 x 350 mm";
-        defaultDimInch = '20.5" x 14.2" x 13.8"';
-        defaultFlushing = "Dual Whirlpool Vortex Wash / Rimless";
-        defaultInstall = "Wall Mounted (P-Trap 180mm Concealed)";
-        defaultSeat = "Slim UF (Urea-Formaldehyde) Soft-Close Detachable";
-        defaultCeramic = "Triple-Glazed 1280°C Vitreous China";
-        defaultFinish = p.colour ? `${p.colour} (UltraClean Gloss)` : "Glacier Pure White";
-        defaultWarranty = "10 Years Ceramic Glaze Warranty";
-        defaultMrp = p.price ? Math.round(p.price * 1.55) : 8900;
-        defaultFeatures = [
-            "Space-Saving Concealed Wall-Hung Mount",
-            "100% Rimless Direct Flush Cleanliness",
-            "Certified 400kg Heavy Load Test Rating",
-            "UltraClean Anti-Stain Ceramic Nano-Glaze",
-            "UF Heavy-Duty Soft-Close Quick Release Seat",
-            "10-Year Ceramic Glaze Warranty"
-        ];
-    } else if (sub.includes('p-trap') || model.includes('p-trap') || model.includes('p trap')) {
-        defaultInstall = "Floor Mounted (P-Trap 180mm)";
-    } else if (sub.includes('s-trap') || model.includes('s-trap') || model.includes('s trap')) {
-        if (model.includes('s-9') || model.includes('s9') || model.includes('225')) {
-            defaultInstall = "Floor Mounted (S-Trap 225mm / 9\")";
-        } else if (model.includes('s-4') || model.includes('s4') || model.includes('100')) {
-            defaultInstall = "Floor Mounted (S-Trap 100mm / 4\")";
-        } else {
-            defaultInstall = "Floor Mounted (S-Trap 300mm / 12\")";
-        }
+        ]
+    },
+    faucet: {
+        id: 'faucet',
+        label: 'Bath Fittings & Faucets',
+        fields: [
+            { key: 'dimensionsMm', label: 'Dimensions / Spout Reach', placeholder: 'e.g. Height 180mm x Spout Reach 140mm', default: 'Height 180mm x Spout Reach 140mm' },
+            { key: 'bodyMaterial', label: 'Body Material', placeholder: 'e.g. High-Grade Virgin Brass Ingot', default: 'High-Grade Virgin Brass Ingot' },
+            { key: 'cartridge', label: 'Cartridge Specification', placeholder: 'e.g. 35mm Ceramic Disc Cartridge (500k Cycles Tested)', default: '35mm Ceramic Disc Cartridge (500k Cycles Tested)' },
+            { key: 'flowType', label: 'Flow & Aerator Type', placeholder: 'e.g. Neoperl Honeycomb Splash-Free Aerator Flow', default: 'Neoperl Honeycomb Splash-Free Aerator Flow' },
+            { key: 'colorFinish', label: 'Surface Finish', placeholder: 'e.g. Multi-Layer Mirror Chrome Finish', default: 'Multi-Layer Mirror Chrome Finish' },
+            { key: 'warranty', label: 'Warranty Coverage', placeholder: 'e.g. 7 Years Comprehensive Warranty', default: '7 Years Comprehensive Warranty' }
+        ],
+        defaultFeatures: [
+            "Forged Virgin Brass Core Construction",
+            "Smooth 1/4-Turn High-Life Ceramic Disc Valve",
+            "Splash-Free Water-Saving Aerated Flow",
+            "Corrosion-Resistant Salt-Spray Tested Coating",
+            "Standard 1/2-Inch BSP Connection",
+            "7-Year Manufacturer Warranty"
+        ]
+    },
+    general: {
+        id: 'general',
+        label: 'General & Other Products',
+        fields: [
+            { key: 'dimensionsMm', label: 'Dimensions (Millimeters)', placeholder: 'e.g. Standard Dimensions', default: 'Standard Dimensions' },
+            { key: 'materialGrade', label: 'Material & Construction', placeholder: 'e.g. Premium High-Density Material', default: 'Premium High-Density Material' },
+            { key: 'installation', label: 'Installation / Usage', placeholder: 'e.g. Standard Surface Mount', default: 'Standard Surface Mount' },
+            { key: 'colorFinish', label: 'Color & Finish', placeholder: 'e.g. Standard Finish', default: 'Standard Finish' },
+            { key: 'warranty', label: 'Warranty Coverage', placeholder: 'e.g. 1 Year Warranty', default: '1 Year Warranty' }
+        ],
+        defaultFeatures: [
+            "High Quality Construction Material",
+            "Precision Engineered Architecture",
+            "Stain & Wear Resistant Protective Coating",
+            "Manufacturer Warranty Included"
+        ]
     }
+};
+window.SPECS_TEMPLATES = SPECS_TEMPLATES;
 
-    return {
-        dimensionsMm: userSpecs.dimensionsMm || defaultDimMm,
-        dimensionsInches: userSpecs.dimensionsInches || defaultDimInch,
-        flushingSystem: userSpecs.flushingSystem || defaultFlushing,
-        installation: userSpecs.installation || defaultInstall,
-        seatCover: userSpecs.seatCover || defaultSeat,
-        ceramicVitrification: userSpecs.ceramicVitrification || defaultCeramic,
-        colorFinish: userSpecs.colorFinish || defaultFinish,
-        warranty: userSpecs.warranty || defaultWarranty,
-        mrp: (userSpecs.mrp !== undefined && userSpecs.mrp !== null && userSpecs.mrp !== '') ? Number(userSpecs.mrp) : defaultMrp,
+function detectSpecsTemplate(category, subcategory, model) {
+    const text = `${category || ''} ${subcategory || ''} ${model || ''}`.toLowerCase();
+    if (text.includes('sink') || text.includes('kitchen')) return 'sink';
+    if (text.includes('basin') || text.includes('table top') || text.includes('tabletop') || text.includes('vanity') || text.includes('art')) return 'basin';
+    if (text.includes('faucet') || text.includes('tap') || text.includes('fitting') || text.includes('shower') || text.includes('valve') || text.includes('cock') || text.includes('cp')) return 'faucet';
+    if (text.includes('closet') || text.includes('one piece') || text.includes('wall hung') || text.includes('toilet') || text.includes('pan') || text.includes('sanitary') || text.includes('urinal')) return 'toilet';
+    return 'general';
+}
+window.detectSpecsTemplate = detectSpecsTemplate;
+
+function getProductSpecs(p) {
+    if (!p) return null;
+    const cat = (p.category || '').toLowerCase();
+    const sub = (p.subcategory || p.subCategory || '').toLowerCase();
+    const model = (p.model || '').toLowerCase();
+    
+    // Existing user-saved specs
+    const userSpecs = p.specs || {};
+    const templateId = userSpecs.template || detectSpecsTemplate(p.category, p.subcategory, p.model);
+    const tmpl = SPECS_TEMPLATES[templateId] || SPECS_TEMPLATES.general;
+
+    // Build specs object with backward compatibility
+    const specs = {
+        template: templateId,
+        dimensionsMm: userSpecs.dimensionsMm || tmpl.fields.find(f => f.key === 'dimensionsMm')?.default || "695 x 385 x 690 mm",
+        dimensionsInches: userSpecs.dimensionsInches || tmpl.fields.find(f => f.key === 'dimensionsInches')?.default || '27.4" x 15.2" x 27.2"',
+        colorFinish: userSpecs.colorFinish || (p.colour ? `${p.colour} (UltraClean Gloss)` : (tmpl.fields.find(f => f.key === 'colorFinish')?.default || 'Pure White')),
+        warranty: userSpecs.warranty || tmpl.fields.find(f => f.key === 'warranty')?.default || '10 Years Warranty',
+        mrp: (userSpecs.mrp !== undefined && userSpecs.mrp !== null && userSpecs.mrp !== '') ? Number(userSpecs.mrp) : (p.price ? Math.round(p.price * 1.55) : 10400),
         cadBlueprintUrl: userSpecs.cadBlueprintUrl || null,
-        keyFeatures: (Array.isArray(userSpecs.keyFeatures) && userSpecs.keyFeatures.length > 0) 
-            ? userSpecs.keyFeatures 
+        keyFeatures: (Array.isArray(userSpecs.keyFeatures) && userSpecs.keyFeatures.length > 0)
+            ? userSpecs.keyFeatures
             : (typeof userSpecs.keyFeatures === 'string' && userSpecs.keyFeatures.trim())
                 ? userSpecs.keyFeatures.split(',').map(s => s.trim()).filter(Boolean)
-                : defaultFeatures
+                : tmpl.defaultFeatures,
+        customSpecs: Array.isArray(userSpecs.customSpecs) ? userSpecs.customSpecs : []
     };
+
+    // Category-specific fields copied from userSpecs or template default
+    tmpl.fields.forEach(f => {
+        if (!specs[f.key]) {
+            specs[f.key] = userSpecs[f.key] !== undefined ? userSpecs[f.key] : (userSpecs.isCustomConfigured ? '' : f.default);
+        }
+    });
+
+    // Toilet specifics fallback
+    if (templateId === 'toilet') {
+        if (!specs.flushingSystem) specs.flushingSystem = userSpecs.flushingSystem || "4D Tornado Whirlpool / 100% Rimless Siphonic";
+        if (!specs.installation) {
+            if (sub.includes('p-trap') || model.includes('p-trap') || model.includes('p trap')) {
+                specs.installation = "Floor Mounted (P-Trap 180mm)";
+            } else if (model.includes('s-9') || model.includes('s9') || model.includes('225')) {
+                specs.installation = "Floor Mounted (S-Trap 225mm / 9\")";
+            } else if (model.includes('s-4') || model.includes('s4') || model.includes('100')) {
+                specs.installation = "Floor Mounted (S-Trap 100mm / 4\")";
+            } else {
+                specs.installation = "Floor Mounted (S-Trap 300mm / 12\")";
+            }
+        }
+        if (!specs.seatCover) specs.seatCover = userSpecs.seatCover || "Slim Duroplast (UF) Soft-Close Seat with Quick Release";
+        if (!specs.ceramicVitrification) specs.ceramicVitrification = userSpecs.ceramicVitrification || "Triple-Glazed 1280°C High Density Vitreous China";
+    }
+
+    return specs;
 }
 window.getProductSpecs = getProductSpecs;
 
 function getSpecsCADBlueprintSVG(p, specs) {
+    const templateId = (specs && specs.template) ? specs.template : detectSpecsTemplate(p?.category, p?.subcategory, p?.model);
     const dim = (specs && specs.dimensionsMm) ? specs.dimensionsMm : "695 x 385 x 690 mm";
     const parts = dim.split('x').map(s => s.trim().replace('mm',''));
     const len = parts[0] || '695';
     const wid = parts[1] || '385';
     const ht = parts[2] || '690';
-    const model = (p && p.model) ? p.model : "RABBIT CERAMICS";
-    const trap = (specs && specs.installation) ? specs.installation : "S-Trap 300mm";
+    const model = (p && p.model) ? p.model : "RABBIT BATHWARE";
     const finish = (specs && specs.colorFinish) ? specs.colorFinish : "Pure White";
+
+    if (templateId === 'sink') {
+        const mat = (specs && specs.materialGrade) ? specs.materialGrade : "AISI-304 SS";
+        const bowl = (specs && specs.bowlType) ? specs.bowlType : "Single Bowl";
+        return `
+        <svg viewBox="0 0 500 500" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="background:#091428; border-radius:8px; font-family:monospace;">
+            <defs>
+                <pattern id="cadGridSink" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e3a8a" stroke-width="0.5" stroke-opacity="0.45"/>
+                </pattern>
+                <marker id="cadArrowSink" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"/>
+                </marker>
+            </defs>
+            <rect width="100%" height="100%" fill="#070f20"/>
+            <rect width="100%" height="100%" fill="url(#cadGridSink)"/>
+            <rect x="15" y="15" width="470" height="470" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.75"/>
+            <rect x="19" y="19" width="462" height="462" fill="none" stroke="#1e3a8a" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+            <text x="30" y="42" fill="#38bdf8" font-size="11" font-weight="bold" letter-spacing="1.5">TECHNICAL CAD BLUEPRINT — SINK ARCHITECTURE</text>
+            <text x="30" y="58" fill="#94a3b8" font-size="9">SCALE 1:10 • ALL DIMENSIONS IN MM</text>
+
+            <g transform="translate(60, 90)">
+                <!-- Outer Rim -->
+                <rect x="20" y="20" width="260" height="200" rx="12" fill="none" stroke="#e2e8f0" stroke-width="2.5"/>
+                <!-- Inner Bowl -->
+                <rect x="40" y="40" width="220" height="160" rx="10" fill="none" stroke="#38bdf8" stroke-width="2"/>
+                <!-- Drain Hole -->
+                <circle cx="150" cy="120" r="26" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="3,3"/>
+                <circle cx="150" cy="120" r="14" fill="#38bdf8" fill-opacity="0.25" stroke="#38bdf8" stroke-width="1.2"/>
+                <circle cx="150" cy="120" r="3" fill="#f59e0b"/>
+
+                <!-- Dimension Lines -->
+                <line x1="20" y1="235" x2="280" y2="235" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#cadArrowSink)" marker-end="url(#cadArrowSink)"/>
+                <text x="150" y="250" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">${len} mm (Length)</text>
+
+                <line x1="295" y1="20" x2="295" y2="220" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#cadArrowSink)" marker-end="url(#cadArrowSink)"/>
+                <text x="308" y="125" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle" transform="rotate(90, 308, 125)">${wid} mm (Width)</text>
+
+                <!-- Drain Callout -->
+                <line x1="150" y1="120" x2="200" y2="60" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2"/>
+                <text x="205" y="58" fill="#fbbf24" font-size="8" font-weight="bold">DRAIN CENTER Ø90mm</text>
+            </g>
+
+            <!-- Side Depth Profile -->
+            <g transform="translate(365, 80)">
+                <rect x="0" y="0" width="105" height="130" rx="4" fill="#0f172a" fill-opacity="0.8" stroke="#1e3a8a" stroke-width="1"/>
+                <text x="52" y="16" fill="#94a3b8" font-size="7.5" text-anchor="middle" font-weight="bold">DEPTH PROFILE</text>
+                <path d="M 15,30 L 25,30 L 25,100 L 80,100 L 80,30 L 90,30" fill="none" stroke="#38bdf8" stroke-width="1.8"/>
+                <line x1="10" y1="30" x2="10" y2="100" stroke="#38bdf8" stroke-width="1" marker-start="url(#cadArrowSink)" marker-end="url(#cadArrowSink)"/>
+                <text x="-65" y="7" transform="rotate(-90)" fill="#38bdf8" font-size="8" font-weight="bold" text-anchor="middle">${ht} mm</text>
+            </g>
+
+            <g transform="translate(210, 410)">
+                <rect x="0" y="0" width="260" height="60" fill="#070d19" stroke="#38bdf8" stroke-width="1"/>
+                <line x1="0" y1="20" x2="260" y2="20" stroke="#1e3a8a" stroke-width="0.8"/>
+                <line x1="0" y1="40" x2="260" y2="40" stroke="#1e3a8a" stroke-width="0.8"/>
+                <line x1="130" y1="20" x2="130" y2="60" stroke="#1e3a8a" stroke-width="0.8"/>
+
+                <text x="8" y="14" fill="#38bdf8" font-size="8.5" font-weight="bold">${model.substring(0, 32)}</text>
+                <text x="8" y="32" fill="#94a3b8" font-size="7.5">MATERIAL: <tspan fill="#f8fafc">${mat.substring(0,14)}</tspan></text>
+                <text x="138" y="32" fill="#94a3b8" font-size="7.5">BOWL: <tspan fill="#f8fafc">${bowl.substring(0,14)}</tspan></text>
+                <text x="8" y="52" fill="#94a3b8" font-size="7.5">FINISH: <tspan fill="#f8fafc">${finish.substring(0,16)}</tspan></text>
+                <text x="138" y="52" fill="#fbbf24" font-size="7.5" font-weight="bold">RABBIT QA PASSED</text>
+            </g>
+        </svg>
+        `;
+    }
+
+    if (templateId === 'basin') {
+        const mount = (specs && specs.mountingType) ? specs.mountingType : "Table Top";
+        return `
+        <svg viewBox="0 0 500 500" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="background:#091428; border-radius:8px; font-family:monospace;">
+            <defs>
+                <pattern id="cadGridBasin" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e3a8a" stroke-width="0.5" stroke-opacity="0.45"/>
+                </pattern>
+                <marker id="cadArrowBasin" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                    <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"/>
+                </marker>
+            </defs>
+            <rect width="100%" height="100%" fill="#070f20"/>
+            <rect width="100%" height="100%" fill="url(#cadGridBasin)"/>
+            <rect x="15" y="15" width="470" height="470" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.75"/>
+            <rect x="19" y="19" width="462" height="462" fill="none" stroke="#1e3a8a" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+            <text x="30" y="42" fill="#38bdf8" font-size="11" font-weight="bold" letter-spacing="1.5">TECHNICAL CAD BLUEPRINT — ART BASIN</text>
+            <text x="30" y="58" fill="#94a3b8" font-size="9">SCALE 1:10 • ALL DIMENSIONS IN MM</text>
+
+            <g transform="translate(60, 95)">
+                <!-- Basin Outer Rim -->
+                <ellipse cx="140" cy="110" rx="120" ry="85" fill="none" stroke="#e2e8f0" stroke-width="2.5"/>
+                <!-- Basin Inner Wall -->
+                <ellipse cx="140" cy="110" rx="105" ry="72" fill="none" stroke="#38bdf8" stroke-width="1.8"/>
+                <!-- Tap Hole / Waste Hole -->
+                <circle cx="140" cy="110" r="16" fill="#38bdf8" fill-opacity="0.25" stroke="#38bdf8" stroke-width="1.5"/>
+                <circle cx="140" cy="110" r="3" fill="#f59e0b"/>
+
+                <!-- Dimensions -->
+                <line x1="20" y1="210" x2="260" y2="210" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#cadArrowBasin)" marker-end="url(#cadArrowBasin)"/>
+                <text x="140" y="225" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">${len} mm (Length)</text>
+
+                <line x1="275" y1="25" x2="275" y2="195" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#cadArrowBasin)" marker-end="url(#cadArrowBasin)"/>
+                <text x="288" y="110" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle" transform="rotate(90, 288, 110)">${wid} mm (Width)</text>
+            </g>
+
+            <!-- Elevation Profile -->
+            <g transform="translate(365, 80)">
+                <rect x="0" y="0" width="105" height="130" rx="4" fill="#0f172a" fill-opacity="0.8" stroke="#1e3a8a" stroke-width="1"/>
+                <text x="52" y="16" fill="#94a3b8" font-size="7.5" text-anchor="middle" font-weight="bold">HEIGHT PROFILE</text>
+                <path d="M 15,35 C 15,95 90,95 90,35 Z" fill="none" stroke="#38bdf8" stroke-width="2"/>
+                <line x1="10" y1="35" x2="10" y2="95" stroke="#38bdf8" stroke-width="1" marker-start="url(#cadArrowBasin)" marker-end="url(#cadArrowBasin)"/>
+                <text x="-65" y="7" transform="rotate(-90)" fill="#38bdf8" font-size="8" font-weight="bold" text-anchor="middle">${ht} mm</text>
+            </g>
+
+            <g transform="translate(210, 410)">
+                <rect x="0" y="0" width="260" height="60" fill="#070d19" stroke="#38bdf8" stroke-width="1"/>
+                <line x1="0" y1="20" x2="260" y2="20" stroke="#1e3a8a" stroke-width="0.8"/>
+                <line x1="0" y1="40" x2="260" y2="40" stroke="#1e3a8a" stroke-width="0.8"/>
+                <line x1="130" y1="20" x2="130" y2="60" stroke="#1e3a8a" stroke-width="0.8"/>
+
+                <text x="8" y="14" fill="#38bdf8" font-size="8.5" font-weight="bold">${model.substring(0, 32)}</text>
+                <text x="8" y="32" fill="#94a3b8" font-size="7.5">MOUNT: <tspan fill="#f8fafc">${mount.substring(0,14)}</tspan></text>
+                <text x="138" y="32" fill="#94a3b8" font-size="7.5">GLAZE: <tspan fill="#f8fafc">1280°C Vitrified</tspan></text>
+                <text x="8" y="52" fill="#94a3b8" font-size="7.5">FINISH: <tspan fill="#f8fafc">${finish.substring(0,16)}</tspan></text>
+                <text x="138" y="52" fill="#fbbf24" font-size="7.5" font-weight="bold">RABBIT QA PASSED</text>
+            </g>
+        </svg>
+        `;
+    }
+
+    // Default Toilet WC CAD Blueprint
+    const trap = (specs && specs.installation) ? specs.installation : "S-Trap 300mm";
     const flush = (specs && specs.flushingSystem) ? specs.flushingSystem : "Tornado Flush";
 
     return `
@@ -2663,7 +2855,7 @@ function getSpecsCADBlueprintSVG(p, specs) {
 
         <g transform="translate(350, 60)">
             <rect x="0" y="0" width="115" height="150" rx="4" fill="#0f172a" fill-opacity="0.8" stroke="#1e3a8a" stroke-width="1"/>
-            <text x="57" y="16" fill="#94a3b8" font-size="7.5" text-anchor="middle" font-weight="bold">TOP PROFILE</text>
+            <text x="52" y="16" fill="#94a3b8" font-size="7.5" text-anchor="middle" font-weight="bold">TOP PROFILE</text>
             <rect x="15" y="24" width="85" height="32" rx="2" fill="none" stroke="#38bdf8" stroke-width="1.2"/>
             <path d="M 20,56 C 20,130 95,130 95,56 Z" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
             <ellipse cx="57" cy="85" rx="22" ry="30" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2"/>
