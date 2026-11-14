@@ -652,7 +652,7 @@
                 msg += `- ${i.model} (${i.grade}/${i.colour}) × ${i.qty} pcs\n`;
             });
         }
-        msg += `-----------------------------\n_Sent via Rabbit Bathware Portal_`;
+        msg += `-----------------------------\n_Sent via Rabbit World Portal_`;
 
         const adminWA = (state.settings && state.settings.adminWA) ? state.settings.adminWA : "919876543210";
         window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
@@ -2706,7 +2706,7 @@ function openProductSpecsModal(prodId) {
     const titleEl = document.getElementById('specs-modal-title');
     const subTitleEl = document.getElementById('specs-modal-subtitle');
     if (titleEl) titleEl.textContent = p.model || 'Product Specifications';
-    if (subTitleEl) subTitleEl.textContent = `${p.category || 'Rabbit Bathware'}${p.subcategory ? ' • ' + p.subcategory : ''} • ${specs.ceramicVitrification || 'Vitreous China'}`;
+    if (subTitleEl) subTitleEl.textContent = `${p.category || 'Rabbit World'}${p.subcategory ? ' • ' + p.subcategory : ''} • ${specs.ceramicVitrification || 'Architecture'}`;
 
     // Visual Showcase
     const imgList = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageBase64 ? [p.imageBase64] : []);

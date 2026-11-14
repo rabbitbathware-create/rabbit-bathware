@@ -19,7 +19,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rabbit Bathware — Luxury Ceramic Sanitary Ware & Bath Fittings</title>
+    <title>Rabbit World — Luxury Bath, Kitchen & Home Solutions</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Cinzel:wght@600;700;800&family=Syncopate:wght@700&family=Syne:wght@700;800&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -149,20 +149,31 @@
         }
         .kowf-brand-title {
             font-family: 'Syncopate', sans-serif;
-            font-size: 1.65rem;
-            font-weight: 700;
-            letter-spacing: 0.22em;
-            color: #183587;
             display: inline-flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-transform: uppercase;
-            line-height: 1;
+            line-height: 1.1;
             margin: 0;
             padding: 0;
             user-select: none;
             cursor: pointer;
             transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .kowf-brand-main {
+            font-size: 1.42rem;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            color: #183587;
+        }
+        .kowf-brand-sub {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.52rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            color: #64748b;
+            margin-top: 2px;
         }
         .kowf-brand-title:hover {
             transform: scale(1.02);
@@ -758,13 +769,20 @@
                 width: 38px;
             }
             .kowf-brand-title { 
-                font-size: 1.22rem !important; 
-                letter-spacing: 0.16em !important; 
                 color: #183587 !important;
                 display: inline-flex;
+                flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                line-height: 1;
+                line-height: 1.1;
+            }
+            .kowf-brand-main {
+                font-size: 1.02rem !important;
+                letter-spacing: 0.12em !important;
+            }
+            .kowf-brand-sub {
+                font-size: 0.42rem !important;
+                letter-spacing: 0.08em !important;
             }
             .kowf-brand-logo-img { display: none !important; }
             .kowf-hero-slider-wrap { height: 550px !important; }
@@ -1102,7 +1120,8 @@
         <!-- Center Brand Logo -->
         <div class="kowf-nav-center" onclick="switchDealerView('home')">
             <div class="kowf-brand-title">
-                <span>RABBIT</span>
+                <span class="kowf-brand-main">RABBIT WORLD</span>
+                <span class="kowf-brand-sub">Luxury Bath, Kitchen & Home</span>
             </div>
         </div>
 
@@ -1125,9 +1144,12 @@
     <div id="mobile-nav-drawer" class="mobile-drawer-overlay" onclick="closeMobileDrawer(event)">
         <div class="mobile-drawer-content" onclick="event.stopPropagation()">
             <div class="mobile-drawer-header">
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <img src="logo.png" style="height:28px; width:auto;">
-                    <strong style="font-family:'Cinzel', serif; font-size:1.1rem;">RABBIT BATHWARE</strong>
+                <div style="display:flex; align-items:center; gap:0.6rem;">
+                    <img src="logo.png" style="height:30px; width:auto; border-radius:4px;">
+                    <div style="display:flex; flex-direction:column; text-align:left;">
+                        <strong style="font-family:'Cinzel', serif; font-size:1.05rem; letter-spacing:0.05em; color:#ffffff; line-height:1.2;">RABBIT WORLD</strong>
+                        <small style="font-size:0.52rem; color:#38bdf8; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">Luxury Bath, Kitchen & Home</small>
+                    </div>
                 </div>
                 <button onclick="closeMobileDrawer()" style="background:none; border:none; color:#fff; font-size:1.4rem; cursor:pointer;">&times;</button>
             </div>
@@ -1138,7 +1160,7 @@
                 <a class="mobile-menu-link" onclick="closeMobileDrawer(); switchDealerView('home');"><i class="fa-solid fa-house"></i> Home</a>
                 <a class="mobile-menu-link" onclick="closeMobileDrawer(); switchDealerView('products');"><i class="fa-solid fa-bath"></i> Products Catalog</a>
                 <a class="mobile-menu-link" id="mobile-nav-btn-offers" style="display:none; color:#dc2626; font-weight:700;" onclick="closeMobileDrawer(); switchDealerView('offers');"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> Special Offers</a>
-                <a class="mobile-menu-link" onclick="closeMobileDrawer(); switchDealerView('about');"><i class="fa-solid fa-circle-info"></i> About Rabbit Bathware</a>
+                <a class="mobile-menu-link" onclick="closeMobileDrawer(); switchDealerView('about');"><i class="fa-solid fa-circle-info"></i> About Rabbit World</a>
                 <a class="mobile-menu-link" id="drawer-my-orders-link" style="display:none;" onclick="closeMobileDrawer(); openDealerOrdersModal();"><i class="fa-solid fa-box-archive"></i> My Past Orders</a>
                 <a class="mobile-menu-link" onclick="closeMobileDrawer(); openModal('new-dealer-modal');"><i class="fa-solid fa-handshake"></i> New Dealer Registration</a>
                 <div style="border-top:1px solid #e2e8f0; margin-top:0.5rem; padding-top:0.5rem;" id="drawer-auth-action">
@@ -1302,13 +1324,13 @@
     <div id="view-about" style="display:none;">
         <div class="kowf-about-wrap">
             <div class="kowf-section-title">
-                <h2>About Rabbit Bathware</h2>
-                <p>EXCELLENCE IN CERAMIC SANITARY WARE CRAFTSMANSHIP</p>
+                <h2>About Rabbit World</h2>
+                <p>LUXURY BATH, KITCHEN & ARCHITECTURAL HOME SOLUTIONS</p>
             </div>
             
             <div class="kowf-about-card">
                 <h3 style="font-family:'Cinzel', serif; font-size:1.4rem; color:#0e254f; margin-top:0;">Our Heritage & Manufacturing Excellence</h3>
-                <p>Based in Morbi, Gujarat — the ceramic capital of India — <b>Rabbit Bathware</b> is a premier manufacturer and exporter of high-grade vitreous china ceramic sanitary ware, designer art basins, luxury vanity sets, and granite quartz sinks.</p>
+                <p>Based in Morbi, Gujarat — the ceramic capital of India — <b>Rabbit World</b> is a premier manufacturer and exporter of luxury ceramic sanitary ware, designer art basins, quartz kitchen sinks, vanity units, bathroom fittings, and comprehensive architectural home solutions.</p>
                 <p>Every piece is fired at 1250&deg;C in advanced tunnel kilns, guaranteeing superior structural density, non-porous hygiene, and long-lasting glossy brilliance.</p>
                 
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1.5rem; margin-top:2rem; border-top:1px solid #e2e8f0; padding-top:1.5rem;">
@@ -1750,8 +1772,8 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="core.js?v=4.8.3"></script>
-    <script src="dealer.js?v=4.8.3"></script>
+    <script src="core.js?v=4.8.4"></script>
+    <script src="dealer.js?v=4.8.4"></script>
 
     <!-- PWA Registration -->
     <script>

@@ -2685,7 +2685,7 @@ function getSpecsCADBlueprintSVG(p, specs) {
     const len = parts[0] || '695';
     const wid = parts[1] || '385';
     const ht = parts[2] || '690';
-    const model = (p && p.model) ? p.model : "RABBIT BATHWARE";
+    const model = (p && p.model) ? p.model : "RABBIT WORLD";
     const finish = (specs && specs.colorFinish) ? specs.colorFinish : "Pure White";
 
     if (templateId === 'sink') {
