@@ -149,31 +149,20 @@
         }
         .kowf-brand-title {
             font-family: 'Syncopate', sans-serif;
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            color: #183587;
             display: inline-flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-transform: uppercase;
-            line-height: 1.1;
+            line-height: 1;
             margin: 0;
             padding: 0;
             user-select: none;
             cursor: pointer;
             transition: transform 0.2s ease, opacity 0.2s ease;
-        }
-        .kowf-brand-main {
-            font-size: 1.42rem;
-            font-weight: 800;
-            letter-spacing: 0.18em;
-            color: #183587;
-        }
-        .kowf-brand-sub {
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.52rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            color: #64748b;
-            margin-top: 2px;
         }
         .kowf-brand-title:hover {
             transform: scale(1.02);
@@ -769,20 +758,13 @@
                 width: 38px;
             }
             .kowf-brand-title { 
+                font-size: 1.22rem !important; 
+                letter-spacing: 0.16em !important; 
                 color: #183587 !important;
                 display: inline-flex;
-                flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                line-height: 1.1;
-            }
-            .kowf-brand-main {
-                font-size: 1.02rem !important;
-                letter-spacing: 0.12em !important;
-            }
-            .kowf-brand-sub {
-                font-size: 0.42rem !important;
-                letter-spacing: 0.08em !important;
+                line-height: 1;
             }
             .kowf-brand-logo-img { display: none !important; }
             .kowf-hero-slider-wrap { height: 550px !important; }
@@ -1120,8 +1102,7 @@
         <!-- Center Brand Logo -->
         <div class="kowf-nav-center" onclick="switchDealerView('home')">
             <div class="kowf-brand-title">
-                <span class="kowf-brand-main">RABBIT WORLD</span>
-                <span class="kowf-brand-sub">Luxury Bath, Kitchen & Home</span>
+                <span>RABBIT</span>
             </div>
         </div>
 
@@ -1144,12 +1125,9 @@
     <div id="mobile-nav-drawer" class="mobile-drawer-overlay" onclick="closeMobileDrawer(event)">
         <div class="mobile-drawer-content" onclick="event.stopPropagation()">
             <div class="mobile-drawer-header">
-                <div style="display:flex; align-items:center; gap:0.6rem;">
-                    <img src="logo.png" style="height:30px; width:auto; border-radius:4px;">
-                    <div style="display:flex; flex-direction:column; text-align:left;">
-                        <strong style="font-family:'Cinzel', serif; font-size:1.05rem; letter-spacing:0.05em; color:#ffffff; line-height:1.2;">RABBIT WORLD</strong>
-                        <small style="font-size:0.52rem; color:#38bdf8; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">Luxury Bath, Kitchen & Home</small>
-                    </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <img src="logo.png" style="height:28px; width:auto;">
+                    <strong style="font-family:'Cinzel', serif; font-size:1.1rem; letter-spacing:0.05em; color:#ffffff;">RABBIT WORLD</strong>
                 </div>
                 <button onclick="closeMobileDrawer()" style="background:none; border:none; color:#fff; font-size:1.4rem; cursor:pointer;">&times;</button>
             </div>
@@ -1772,8 +1750,8 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="core.js?v=4.8.4"></script>
-    <script src="dealer.js?v=4.8.4"></script>
+    <script src="core.js?v=4.8.5"></script>
+    <script src="dealer.js?v=4.8.5"></script>
 
     <!-- PWA Registration -->
     <script>
