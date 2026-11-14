@@ -28,7 +28,7 @@
         if (window.location.protocol.startsWith('http')) {
             const mLink = document.createElement('link');
             mLink.rel = 'manifest';
-            mLink.href = 'manifest.json?v=4.8.7';
+            mLink.href = 'manifest.json?v=4.8.8';
             document.head.appendChild(mLink);
         }
     </script>
@@ -84,7 +84,6 @@
             box-sizing: border-box;
         }
         .dealer-prod-image svg { width: 55%; height: 55%; color: #94a3b8; }
-        }
 
         /* Left Navigation Links */
         .kowf-nav-left {
@@ -94,11 +93,12 @@
             flex: 1;
             justify-content: flex-start;
             height: 100%;
+            z-index: 2;
         }
         .kowf-desktop-links {
             display: flex;
             align-items: center;
-            gap: 2rem;
+            gap: 1.35rem;
             height: 100%;
         }
         .kowf-mobile-toggle {
@@ -113,7 +113,7 @@
         .kowf-nav-link {
             font-size: 0.85rem;
             font-weight: 700;
-            letter-spacing: 1.5px;
+            letter-spacing: 1.2px;
             text-transform: uppercase;
             color: #334155;
             text-decoration: none;
@@ -123,6 +123,7 @@
             display: inline-flex;
             align-items: center;
             transition: color 0.2s ease;
+            white-space: nowrap;
         }
         .kowf-nav-link:hover, .kowf-nav-link.active {
             color: var(--kowf-dark);
@@ -138,15 +139,19 @@
             border-radius: 2px;
         }
 
-        /* Center Brand Logo */
+        /* Center Brand Logo - Pinned Dead Center */
         .kowf-nav-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            flex: 1;
-            height: 100%;
             text-align: center;
+            z-index: 5;
+            pointer-events: auto;
         }
         .kowf-brand-title {
             font-family: 'Syncopate', sans-serif;
@@ -179,6 +184,7 @@
             gap: 1.25rem;
             flex: 1;
             height: 100%;
+            z-index: 2;
         }
         .kowf-icon-btn {
             background: none;
@@ -739,12 +745,15 @@
                 vertical-align: middle;
             }
             .kowf-nav-center { 
+                position: absolute !important;
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) !important;
                 display: flex !important; 
                 align-items: center;
                 justify-content: center;
-                flex: 1.5; 
-                height: 100%;
-                text-align: center; 
+                text-align: center;
+                z-index: 5;
             }
             .kowf-nav-right { 
                 display: flex !important; 
@@ -1750,8 +1759,8 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="core.js?v=4.8.7"></script>
-    <script src="dealer.js?v=4.8.7"></script>
+    <script src="core.js?v=4.8.8"></script>
+    <script src="dealer.js?v=4.8.8"></script>
 
     <!-- PWA Registration -->
     <script>
