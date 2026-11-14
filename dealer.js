@@ -2760,7 +2760,7 @@ function openProductSpecsModal(prodId) {
             tableHtml += `
                 <tr style="border-bottom: none; background: rgba(14, 37, 79, 0.7); border: 1px solid #1e3a8a;">
                     <td style="padding: 0.65rem 0.85rem; color: #ffffff; font-weight: 700; font-size: 0.85rem;">Maximum Retail Price (MRP)</td>
-                    <td style="padding: 0.65rem 0.85rem; color: #ffffff; font-weight: 800; font-size: 1.15rem; text-align: right;">₹${Number(specs.mrp).toLocaleString('en-IN')}</td>
+                    <td style="padding: 0.65rem 0.85rem; color: #10b981; font-weight: 800; font-size: 1.15rem; text-align: right;">₹${Number(specs.mrp).toLocaleString('en-IN')}</td>
                 </tr>
             `;
         }
@@ -2792,7 +2792,7 @@ function openProductSpecsModal(prodId) {
 
     const priceEl = document.getElementById('specs-dealer-price');
     if (priceEl) {
-        priceEl.innerHTML = `₹${pricing.price.toLocaleString('en-IN')}${activeUnit === 'box' ? '<span style="font-size:0.75rem; font-weight:normal; color:#cbd5e1;">/pc</span>' : ''}`;
+        priceEl.innerHTML = `₹${pricing.price.toLocaleString('en-IN')}${activeUnit === 'box' ? '<span style="font-size:0.75rem; font-weight:bold; color:#059669;">/pc</span>' : ''}`;
     }
 
     const qtyInput = document.getElementById('specs-order-qty');
@@ -2885,13 +2885,13 @@ function addSpecsToCart() {
     if (addBtn) {
         const origText = addBtn.innerHTML;
         addBtn.innerHTML = `<i class="fa-solid fa-check"></i> Added! (${qty} ${activeUnit})`;
-        addBtn.style.background = '#10b981';
+        addBtn.style.background = '#059669';
         addBtn.style.color = '#ffffff';
         setTimeout(() => {
             if (addBtn) {
-                addBtn.innerHTML = `<i class="fa-solid fa-cart-plus" style="color: #0e254f;"></i> Add to Order`;
-                addBtn.style.background = '#ffffff';
-                addBtn.style.color = '#0e254f';
+                addBtn.innerHTML = `<i class="fa-solid fa-cart-plus" style="color: #ffffff;"></i> Add to Order`;
+                addBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                addBtn.style.color = '#ffffff';
             }
         }, 1200);
     }

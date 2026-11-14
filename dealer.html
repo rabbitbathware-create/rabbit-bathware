@@ -1681,19 +1681,19 @@
                     </div>
 
                     <!-- Direct Order & Add to Cart Bar -->
-                    <div id="specs-order-bar" style="margin-top: auto; padding: 0.85rem; background: #0e254f; border: 1px solid #1e3a8a; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-sizing: border-box;">
+                    <div id="specs-order-bar" style="margin-top: auto; padding: 0.85rem 1rem; background: #ffffff; border: 2px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-sizing: border-box; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
                         <div>
-                            <div style="font-size: 0.7rem; color: #cbd5e1; font-weight: 600;">Dealer Rate</div>
-                            <div id="specs-dealer-price" style="font-size: 1.15rem; font-weight: 800; color: #ffffff;">₹0</div>
+                            <div style="font-size: 0.72rem; color: #0e254f; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Dealer Rate</div>
+                            <div id="specs-dealer-price" style="font-size: 1.25rem; font-weight: 900; color: #10b981;">₹0</div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <div class="qty-adjuster-group" style="margin: 0; background: #081225; border-color: #1e3a8a;">
-                                <button type="button" class="qty-adj-btn" style="background:#0e254f; color:#ffffff;" onclick="specsQtyAdjust(-1)">−</button>
-                                <input type="number" id="specs-order-qty" value="1" min="1" style="width: 48px; background: transparent; color: #ffffff; font-weight: 800; text-align: center; border: none;" onchange="validateSpecsQty(this)">
-                                <button type="button" class="qty-adj-btn" style="background:#0e254f; color:#ffffff;" onclick="specsQtyAdjust(+1)">+</button>
+                            <div class="qty-adjuster-group" style="margin: 0; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px;">
+                                <button type="button" class="qty-adj-btn" style="background:#ffffff; color:#0e254f; font-weight:800; border:none;" onclick="specsQtyAdjust(-1)">−</button>
+                                <input type="number" id="specs-order-qty" value="1" min="1" style="width: 44px; background: transparent; color: #0e254f; font-weight: 800; text-align: center; border: none;" onchange="validateSpecsQty(this)">
+                                <button type="button" class="qty-adj-btn" style="background:#ffffff; color:#0e254f; font-weight:800; border:none;" onclick="specsQtyAdjust(+1)">+</button>
                             </div>
-                            <button type="button" id="specs-add-cart-btn" onclick="addSpecsToCart()" style="background: #ffffff; color: #0e254f; border: 1px solid #ffffff; border-radius: 6px; padding: 0.55rem 1.1rem; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
-                                <i class="fa-solid fa-cart-plus" style="color: #0e254f;"></i> Add to Order
+                            <button type="button" id="specs-add-cart-btn" onclick="addSpecsToCart()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: 1px solid #059669; border-radius: 6px; padding: 0.6rem 1.15rem; font-weight: 800; font-size: 0.86rem; cursor: pointer; display: flex; align-items: center; gap: 7px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); transition: all 0.2s ease;">
+                                <i class="fa-solid fa-cart-plus" style="color: #ffffff;"></i> Add to Order
                             </button>
                         </div>
                     </div>
@@ -1714,8 +1714,8 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="core.js?v=4.7.1"></script>
-    <script src="dealer.js?v=4.7.1"></script>
+    <script src="core.js?v=4.7.2"></script>
+    <script src="dealer.js?v=4.7.2"></script>
 
     <!-- PWA Registration -->
     <script>
