@@ -1,6 +1,6 @@
 {
-  "name": "Rabbit Bathware",
-  "short_name": "Rabbit Bathware",
+  "name": "Rabbit World",
+  "short_name": "Rabbit World",
   "start_url": "./dealer.html",
   "display": "standalone",
   "background_color": "#ffffff",

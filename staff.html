@@ -15,11 +15,12 @@
         if (window.location.protocol.startsWith('http')) {
             const mLink = document.createElement('link');
             mLink.rel = 'manifest';
-            mLink.href = 'manifest.json';
+            mLink.href = 'manifest.json?v=4.8.7';
             document.head.appendChild(mLink);
         }
     </script>
     <meta name="theme-color" content="#0e254f">
+    <meta name="apple-mobile-web-app-title" content="Rabbit World">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
     <link rel="apple-touch-icon" href="icon-512.png">
@@ -1427,8 +1428,8 @@
         <button class="nav-item" data-tab="orders-tab"><i class="fa-solid fa-truck-ramp-box"></i><span>Orders</span></button>
     </nav>
 
-<script src="core.js?v=4.8.6"></script>
-<script src="admin.js?v=4.8.6"></script>
+<script src="core.js?v=4.8.7"></script>
+<script src="admin.js?v=4.8.7"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
