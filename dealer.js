@@ -1395,7 +1395,7 @@
                     ${specBadgesRow}
                     <div class="dealer-prod-spec">${subSpecText}${p.colour}${finishSpecText}</div>
                     <button type="button" class="dealer-specs-btn" onclick="event.stopPropagation(); openProductSpecsModal('${p.id}')">
-                        <i class="fa-solid fa-circle-info"></i> View Details / વિગતો
+                        <i class="fa-solid fa-circle-info"></i> View Details
                     </button>
                     ${(isDual && (boxCount > 0 || looseQty > 0)) ? `
                         <div style="font-size:0.68rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:4px; padding:2px 6px; margin:3px 0; font-weight:700;">
@@ -2567,7 +2567,7 @@ card.innerHTML = `
             </div>
             ${prod.id ? `
                 <button type="button" class="dealer-specs-btn" onclick="event.stopPropagation(); openProductSpecsModal('${prod.id}')">
-                    <i class="fa-solid fa-circle-info"></i> View Details / વિગતો
+                    <i class="fa-solid fa-circle-info"></i> View Details
                 </button>
             ` : ''}
             ${isInCart ? `
@@ -2758,9 +2758,9 @@ function openProductSpecsModal(prodId) {
 
         if (specs.mrp) {
             tableHtml += `
-                <tr style="border-bottom: none; background: rgba(245, 158, 11, 0.08);">
-                    <td style="padding: 0.65rem 0.85rem; color: #fbbf24; font-weight: 600; font-size: 0.85rem;">Maximum Retail Price (MRP)</td>
-                    <td style="padding: 0.65rem 0.85rem; color: #fbbf24; font-weight: 800; font-size: 1.15rem; text-align: right;">₹${Number(specs.mrp).toLocaleString('en-IN')}</td>
+                <tr style="border-bottom: none; background: rgba(14, 37, 79, 0.7); border: 1px solid #1e3a8a;">
+                    <td style="padding: 0.65rem 0.85rem; color: #ffffff; font-weight: 700; font-size: 0.85rem;">Maximum Retail Price (MRP)</td>
+                    <td style="padding: 0.65rem 0.85rem; color: #ffffff; font-weight: 800; font-size: 1.15rem; text-align: right;">₹${Number(specs.mrp).toLocaleString('en-IN')}</td>
                 </tr>
             `;
         }
@@ -2773,9 +2773,9 @@ function openProductSpecsModal(prodId) {
     if (featEl) {
         const feats = Array.isArray(specs.keyFeatures) ? specs.keyFeatures : [];
         featEl.innerHTML = feats.map(f => `
-            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.42rem 0.65rem; font-size: 0.74rem; color: #cbd5e1; display: flex; align-items: center; gap: 7px;">
-                <span style="color: #38bdf8; font-weight: 800; font-size: 0.82rem;">✓</span>
-                <span style="font-weight: 600;">${f}</span>
+            <div style="background: #0e254f; border: 1px solid #1e3a8a; border-radius: 6px; padding: 0.45rem 0.7rem; font-size: 0.75rem; color: #ffffff; display: flex; align-items: center; gap: 7px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+                <span style="color: #60a5fa; font-weight: 800; font-size: 0.85rem;">✓</span>
+                <span style="font-weight: 600; color: #ffffff;">${f}</span>
             </div>
         `).join('');
     }
@@ -2792,7 +2792,7 @@ function openProductSpecsModal(prodId) {
 
     const priceEl = document.getElementById('specs-dealer-price');
     if (priceEl) {
-        priceEl.innerHTML = `₹${pricing.price.toLocaleString('en-IN')}${activeUnit === 'box' ? '<span style="font-size:0.75rem; font-weight:normal; color:#94a3b8;">/pc</span>' : ''}`;
+        priceEl.innerHTML = `₹${pricing.price.toLocaleString('en-IN')}${activeUnit === 'box' ? '<span style="font-size:0.75rem; font-weight:normal; color:#cbd5e1;">/pc</span>' : ''}`;
     }
 
     const qtyInput = document.getElementById('specs-order-qty');
@@ -2822,27 +2822,31 @@ function switchSpecsView(mode) {
         if (imgEl) imgEl.style.display = 'none';
         if (cadViewEl) cadViewEl.style.display = 'flex';
         if (btnCeramic) {
-            btnCeramic.style.background = '#0f172a';
-            btnCeramic.style.color = '#94a3b8';
-            btnCeramic.style.borderColor = '#334155';
+            btnCeramic.style.background = '#081329';
+            btnCeramic.style.color = '#cbd5e1';
+            btnCeramic.style.borderColor = '#1e3a8a';
+            btnCeramic.style.boxShadow = 'none';
         }
         if (btnCad) {
-            btnCad.style.background = '#38bdf8';
-            btnCad.style.color = '#000000';
-            btnCad.style.borderColor = '#38bdf8';
+            btnCad.style.background = '#0e254f';
+            btnCad.style.color = '#ffffff';
+            btnCad.style.borderColor = '#3b82f6';
+            btnCad.style.boxShadow = '0 0 14px rgba(59, 130, 246, 0.4)';
         }
     } else {
         if (imgEl) imgEl.style.display = 'block';
         if (cadViewEl) cadViewEl.style.display = 'none';
         if (btnCeramic) {
-            btnCeramic.style.background = '#eab308';
-            btnCeramic.style.color = '#000000';
-            btnCeramic.style.borderColor = '#eab308';
+            btnCeramic.style.background = '#0e254f';
+            btnCeramic.style.color = '#ffffff';
+            btnCeramic.style.borderColor = '#3b82f6';
+            btnCeramic.style.boxShadow = '0 0 14px rgba(59, 130, 246, 0.4)';
         }
         if (btnCad) {
-            btnCad.style.background = '#0f172a';
-            btnCad.style.color = '#94a3b8';
-            btnCad.style.borderColor = '#334155';
+            btnCad.style.background = '#081329';
+            btnCad.style.color = '#cbd5e1';
+            btnCad.style.borderColor = '#1e3a8a';
+            btnCad.style.boxShadow = 'none';
         }
     }
 }
@@ -2881,11 +2885,13 @@ function addSpecsToCart() {
     if (addBtn) {
         const origText = addBtn.innerHTML;
         addBtn.innerHTML = `<i class="fa-solid fa-check"></i> Added! (${qty} ${activeUnit})`;
-        addBtn.style.background = '#0284c7';
+        addBtn.style.background = '#10b981';
+        addBtn.style.color = '#ffffff';
         setTimeout(() => {
             if (addBtn) {
-                addBtn.innerHTML = origText;
-                addBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                addBtn.innerHTML = `<i class="fa-solid fa-cart-plus" style="color: #0e254f;"></i> Add to Order`;
+                addBtn.style.background = '#ffffff';
+                addBtn.style.color = '#0e254f';
             }
         }, 1200);
     }
