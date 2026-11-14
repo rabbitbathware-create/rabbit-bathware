@@ -2750,17 +2750,17 @@ function openProductSpecsModal(prodId) {
         ];
 
         let tableHtml = rows.map(r => `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-                <td style="padding: 0.52rem 0.85rem; color: #94a3b8; font-weight: 500; font-size: 0.82rem; width: 44%;">${r.label}</td>
-                <td style="padding: 0.52rem 0.85rem; color: #f8fafc; font-weight: 700; font-size: 0.82rem; text-align: right;">${r.value || 'Standard'}</td>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 0.55rem 0.9rem; color: #64748b; font-weight: 600; font-size: 0.81rem; width: 44%;">${r.label}</td>
+                <td style="padding: 0.55rem 0.9rem; color: #0e254f; font-weight: 700; font-size: 0.82rem; text-align: right;">${r.value || 'Standard'}</td>
             </tr>
         `).join('');
 
         if (specs.mrp) {
             tableHtml += `
-                <tr style="border-bottom: none; background: rgba(14, 37, 79, 0.7); border: 1px solid #1e3a8a;">
-                    <td style="padding: 0.65rem 0.85rem; color: #ffffff; font-weight: 700; font-size: 0.85rem;">Maximum Retail Price (MRP)</td>
-                    <td style="padding: 0.65rem 0.85rem; color: #10b981; font-weight: 800; font-size: 1.15rem; text-align: right;">₹${Number(specs.mrp).toLocaleString('en-IN')}</td>
+                <tr style="border-bottom: none; background: #f0fdf4; border-top: 1.5px solid #bbf7d0;">
+                    <td style="padding: 0.65rem 0.9rem; color: #0e254f; font-weight: 800; font-size: 0.86rem;">Maximum Retail Price (MRP)</td>
+                    <td style="padding: 0.65rem 0.9rem; color: #10b981; font-weight: 900; font-size: 1.22rem; text-align: right;">₹${Number(specs.mrp).toLocaleString('en-IN')}</td>
                 </tr>
             `;
         }
@@ -2773,9 +2773,9 @@ function openProductSpecsModal(prodId) {
     if (featEl) {
         const feats = Array.isArray(specs.keyFeatures) ? specs.keyFeatures : [];
         featEl.innerHTML = feats.map(f => `
-            <div style="background: #0e254f; border: 1px solid #1e3a8a; border-radius: 6px; padding: 0.45rem 0.7rem; font-size: 0.75rem; color: #ffffff; display: flex; align-items: center; gap: 7px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-                <span style="color: #60a5fa; font-weight: 800; font-size: 0.85rem;">✓</span>
-                <span style="font-weight: 600; color: #ffffff;">${f}</span>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.48rem 0.75rem; font-size: 0.75rem; color: #0e254f; display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                <span style="color: #10b981; font-weight: 900; font-size: 0.88rem;">✓</span>
+                <span style="font-weight: 600; color: #0e254f;">${f}</span>
             </div>
         `).join('');
     }
@@ -2822,16 +2822,16 @@ function switchSpecsView(mode) {
         if (imgEl) imgEl.style.display = 'none';
         if (cadViewEl) cadViewEl.style.display = 'flex';
         if (btnCeramic) {
-            btnCeramic.style.background = '#081329';
-            btnCeramic.style.color = '#cbd5e1';
-            btnCeramic.style.borderColor = '#1e3a8a';
+            btnCeramic.style.background = '#ffffff';
+            btnCeramic.style.color = '#0e254f';
+            btnCeramic.style.borderColor = '#cbd5e1';
             btnCeramic.style.boxShadow = 'none';
         }
         if (btnCad) {
             btnCad.style.background = '#0e254f';
             btnCad.style.color = '#ffffff';
-            btnCad.style.borderColor = '#3b82f6';
-            btnCad.style.boxShadow = '0 0 14px rgba(59, 130, 246, 0.4)';
+            btnCad.style.borderColor = '#0e254f';
+            btnCad.style.boxShadow = '0 4px 12px rgba(14, 37, 79, 0.25)';
         }
     } else {
         if (imgEl) imgEl.style.display = 'block';
@@ -2839,13 +2839,13 @@ function switchSpecsView(mode) {
         if (btnCeramic) {
             btnCeramic.style.background = '#0e254f';
             btnCeramic.style.color = '#ffffff';
-            btnCeramic.style.borderColor = '#3b82f6';
-            btnCeramic.style.boxShadow = '0 0 14px rgba(59, 130, 246, 0.4)';
+            btnCeramic.style.borderColor = '#0e254f';
+            btnCeramic.style.boxShadow = '0 4px 12px rgba(14, 37, 79, 0.25)';
         }
         if (btnCad) {
-            btnCad.style.background = '#081329';
-            btnCad.style.color = '#cbd5e1';
-            btnCad.style.borderColor = '#1e3a8a';
+            btnCad.style.background = '#ffffff';
+            btnCad.style.color = '#0e254f';
+            btnCad.style.borderColor = '#cbd5e1';
             btnCad.style.boxShadow = 'none';
         }
     }

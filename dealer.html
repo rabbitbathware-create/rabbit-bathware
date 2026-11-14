@@ -1003,9 +1003,9 @@
             color: #ffffff;
         }
         .specs-toggle-btn {
-            border: 1px solid #1e3a8a;
-            background: #081329;
-            color: #cbd5e1;
+            border: 1.5px solid #cbd5e1;
+            background: #ffffff;
+            color: #0e254f;
             border-radius: 9999px;
             font-size: 0.78rem;
             font-weight: 700;
@@ -1020,8 +1020,8 @@
         .specs-toggle-btn.active {
             background: #0e254f !important;
             color: #ffffff !important;
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 14px rgba(59, 130, 246, 0.4) !important;
+            border-color: #0e254f !important;
+            box-shadow: 0 4px 12px rgba(14, 37, 79, 0.25) !important;
         }
         @media (max-width: 768px) {
             .dealer-specs-btn {
@@ -1622,28 +1622,30 @@
     </div>
 
     <!-- LUXURY PRODUCT SPECIFICATIONS & CAD BLUEPRINT MODAL -->
-    <div id="product-specs-modal" class="modal-overlay" style="z-index: 2200; background: rgba(5, 10, 20, 0.88); backdrop-filter: blur(8px);">
-        <div class="luxury-specs-content" style="max-width: 960px; width: 95%; max-height: 92vh; overflow-y: auto; background: #081225; border: 2px solid #0e254f; box-shadow: 0 25px 60px rgba(0,0,0,0.85), 0 0 35px rgba(14, 37, 79, 0.7); border-radius: 12px; padding: 0; color: #ffffff; display: flex; flex-direction: column;">
+    <div id="product-specs-modal" class="modal-overlay" style="z-index: 2200; background: rgba(5, 10, 20, 0.7); backdrop-filter: blur(8px);">
+        <div class="luxury-specs-content" style="max-width: 960px; width: 95%; max-height: 92vh; overflow-y: auto; background: #ffffff; border: 2px solid #0e254f; box-shadow: 0 25px 70px rgba(0,0,0,0.4), 0 0 35px rgba(14, 37, 79, 0.15); border-radius: 14px; padding: 0; color: #0e254f; display: flex; flex-direction: column;">
             
             <!-- Modal Top Bar -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.12); background: linear-gradient(180deg, #0e254f 0%, #081225 100%);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.15rem; color: #ffffff;"><i class="fa-solid fa-gem"></i></span>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.4rem; border-bottom: 1.5px solid #e2e8f0; background: #ffffff;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: #eef4ff; color: #0e254f; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                        <i class="fa-solid fa-gem"></i>
+                    </div>
                     <div>
-                        <h2 id="specs-modal-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em;">Product Specifications</h2>
-                        <span id="specs-modal-subtitle" style="font-size: 0.75rem; color: #cbd5e1; font-weight: 500;">Rabbit Luxury Vitreous China Architecture</span>
+                        <h2 id="specs-modal-title" style="margin: 0; font-size: 1.18rem; font-weight: 800; color: #0e254f; letter-spacing: -0.01em;">Product Specifications</h2>
+                        <span id="specs-modal-subtitle" style="font-size: 0.76rem; color: #64748b; font-weight: 600;">Rabbit Luxury Vitreous China Architecture</span>
                     </div>
                 </div>
-                <button class="close-btn" onclick="closeProductSpecsModal()" style="color: #ffffff; font-size: 1.7rem; background: transparent; border: none; cursor: pointer; line-height: 1; padding: 0.2rem 0.5rem;">&times;</button>
+                <button class="close-btn" onclick="closeProductSpecsModal()" style="color: #64748b; font-size: 1.8rem; background: transparent; border: none; cursor: pointer; line-height: 1; padding: 0.2rem 0.5rem; transition: color 0.2s;">&times;</button>
             </div>
 
             <!-- Main Body: Two Columns on Desktop, Single on Mobile -->
-            <div class="luxury-specs-body" style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 1.5rem; padding: 1.25rem 1.5rem;">
+            <div class="luxury-specs-body" style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 1.5rem; padding: 1.4rem 1.5rem; background: #ffffff;">
                 
                 <!-- Left Column: Visual Showcase -->
                 <div style="display: flex; flex-direction: column; align-items: center;">
-                    <div id="specs-visual-container" style="position: relative; width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle at center, #10264d 0%, #060e1d 85%); border: 1px solid #1e3a8a; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 1rem; box-sizing: border-box;">
-                        <img id="specs-ceramic-img" src="" alt="Product" style="max-width: 90%; max-height: 90%; object-fit: contain; filter: drop-shadow(0 10px 25px rgba(0,0,0,0.6)); transition: all 0.3s ease;">
+                    <div id="specs-visual-container" style="position: relative; width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle at center, #f8fafc 0%, #edf2f7 85%); border: 1.5px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 1rem; box-sizing: border-box;">
+                        <img id="specs-ceramic-img" src="" alt="Product" style="max-width: 90%; max-height: 90%; object-fit: contain; filter: drop-shadow(0 12px 24px rgba(14, 37, 79, 0.12)); transition: all 0.3s ease;">
                         <div id="specs-cad-view" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center;"></div>
                     </div>
 
@@ -1662,7 +1664,7 @@
                 <div style="display: flex; flex-direction: column;">
                     
                     <!-- Specs Table -->
-                    <div class="specs-table-container" style="border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(14, 37, 79, 0.25); overflow: hidden; margin-bottom: 1.25rem;">
+                    <div class="specs-table-container" style="border: 1.5px solid #e2e8f0; border-radius: 10px; background: #ffffff; overflow: hidden; margin-bottom: 1.1rem;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
                             <tbody id="specs-table-rows">
                                 <!-- Injected dynamically -->
@@ -1672,8 +1674,8 @@
 
                     <!-- Key Engineered Features Badges -->
                     <div style="margin-bottom: 1.25rem;">
-                        <div style="font-size: 0.72rem; font-weight: 800; color: #ffffff; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.65rem;">
-                            <i class="fa-solid fa-shield-halved" style="color:#60a5fa; margin-right:4px;"></i> Key Engineered Features
+                        <div style="font-size: 0.72rem; font-weight: 800; color: #0e254f; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.65rem;">
+                            <i class="fa-solid fa-shield-halved" style="color:#0e254f; margin-right:4px;"></i> Key Engineered Features
                         </div>
                         <div id="specs-features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px;">
                             <!-- Chips injected dynamically -->
@@ -1681,19 +1683,19 @@
                     </div>
 
                     <!-- Direct Order & Add to Cart Bar -->
-                    <div id="specs-order-bar" style="margin-top: auto; padding: 0.85rem 1rem; background: #ffffff; border: 2px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-sizing: border-box; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                    <div id="specs-order-bar" style="margin-top: auto; padding: 0.9rem 1.15rem; background: #ffffff; border: 2px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-sizing: border-box; box-shadow: 0 4px 20px rgba(14, 37, 79, 0.08);">
                         <div>
                             <div style="font-size: 0.72rem; color: #0e254f; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Dealer Rate</div>
-                            <div id="specs-dealer-price" style="font-size: 1.25rem; font-weight: 900; color: #10b981;">₹0</div>
+                            <div id="specs-dealer-price" style="font-size: 1.3rem; font-weight: 900; color: #10b981;">₹0</div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div class="qty-adjuster-group" style="margin: 0; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px;">
-                                <button type="button" class="qty-adj-btn" style="background:#ffffff; color:#0e254f; font-weight:800; border:none;" onclick="specsQtyAdjust(-1)">−</button>
-                                <input type="number" id="specs-order-qty" value="1" min="1" style="width: 44px; background: transparent; color: #0e254f; font-weight: 800; text-align: center; border: none;" onchange="validateSpecsQty(this)">
-                                <button type="button" class="qty-adj-btn" style="background:#ffffff; color:#0e254f; font-weight:800; border:none;" onclick="specsQtyAdjust(+1)">+</button>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="qty-adjuster-group" style="margin: 0; display: inline-flex; align-items: center; border: 1.5px solid #cbd5e1; border-radius: 8px; background: #f8fafc; overflow: hidden; height: 38px; width: 116px;">
+                                <button type="button" class="qty-adj-btn" style="width: 36px; height: 100%; background: #ffffff; color: #0e254f; font-weight: 800; font-size: 1.15rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;" onclick="specsQtyAdjust(-1)">−</button>
+                                <input type="number" id="specs-order-qty" value="1" min="1" style="width: 44px; height: 100%; background: transparent; color: #0e254f; font-weight: 800; font-size: 0.96rem; text-align: center; border: none; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; outline: none;" onchange="validateSpecsQty(this)">
+                                <button type="button" class="qty-adj-btn" style="width: 36px; height: 100%; background: #ffffff; color: #0e254f; font-weight: 800; font-size: 1.15rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;" onclick="specsQtyAdjust(+1)">+</button>
                             </div>
-                            <button type="button" id="specs-add-cart-btn" onclick="addSpecsToCart()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: 1px solid #059669; border-radius: 6px; padding: 0.6rem 1.15rem; font-weight: 800; font-size: 0.86rem; cursor: pointer; display: flex; align-items: center; gap: 7px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); transition: all 0.2s ease;">
-                                <i class="fa-solid fa-cart-plus" style="color: #ffffff;"></i> Add to Order
+                            <button type="button" id="specs-add-cart-btn" onclick="addSpecsToCart()" style="height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: 1px solid #059669; border-radius: 8px; padding: 0 1.35rem; font-weight: 800; font-size: 0.88rem; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); white-space: nowrap; transition: all 0.2s ease;">
+                                <i class="fa-solid fa-cart-plus" style="color: #ffffff; font-size: 0.95rem;"></i> Add to Order
                             </button>
                         </div>
                     </div>
@@ -1714,8 +1716,8 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="core.js?v=4.7.2"></script>
-    <script src="dealer.js?v=4.7.2"></script>
+    <script src="core.js?v=4.7.3"></script>
+    <script src="dealer.js?v=4.7.3"></script>
 
     <!-- PWA Registration -->
     <script>
