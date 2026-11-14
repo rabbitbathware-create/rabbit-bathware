@@ -972,6 +972,77 @@
                 letter-spacing: 0.5px !important;
             }
         }
+
+        /* Luxury Specs & Blueprint Modal Styles */
+        .dealer-specs-btn {
+            width: 100%;
+            margin: 0.35rem 0;
+            padding: 0.4rem 0.5rem;
+            background: #0f172a;
+            color: #38bdf8;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .dealer-specs-btn:hover {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #0284c7;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+        }
+        .specs-toggle-btn {
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #94a3b8;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.55rem 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .specs-toggle-btn.active {
+            background: #eab308 !important;
+            color: #000000 !important;
+            border-color: #eab308 !important;
+        }
+        @media (max-width: 768px) {
+            .dealer-specs-btn {
+                padding: 0.32rem 0.4rem !important;
+                font-size: 0.7rem !important;
+                margin: 0.25rem 0 !important;
+            }
+            .luxury-specs-body {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+                padding: 0.85rem !important;
+            }
+            .specs-table-container td {
+                padding: 0.45rem 0.55rem !important;
+                font-size: 0.75rem !important;
+            }
+            #specs-features-grid {
+                grid-template-columns: 1fr !important;
+            }
+            #specs-order-bar {
+                position: sticky;
+                bottom: 0;
+                z-index: 10;
+                box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1545,6 +1616,89 @@
         </div>
     </div>
 
+    <!-- LUXURY PRODUCT SPECIFICATIONS & CAD BLUEPRINT MODAL -->
+    <div id="product-specs-modal" class="modal-overlay" style="z-index: 2200; background: rgba(5, 10, 20, 0.88); backdrop-filter: blur(8px);">
+        <div class="luxury-specs-content" style="max-width: 960px; width: 95%; max-height: 92vh; overflow-y: auto; background: #070e1e; border: 1px solid rgba(212, 175, 55, 0.45); box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(14, 37, 79, 0.6); border-radius: 12px; padding: 0; color: #f8fafc; display: flex; flex-direction: column;">
+            
+            <!-- Modal Top Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.08); background: linear-gradient(180deg, #0d172e 0%, #070e1e 100%);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.1rem; color: #f59e0b;"><i class="fa-solid fa-gem"></i></span>
+                    <div>
+                        <h2 id="specs-modal-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em;">Product Specifications</h2>
+                        <span id="specs-modal-subtitle" style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Rabbit Luxury Vitreous China Architecture</span>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeProductSpecsModal()" style="color: #cbd5e1; font-size: 1.7rem; background: transparent; border: none; cursor: pointer; line-height: 1; padding: 0.2rem 0.5rem;">&times;</button>
+            </div>
+
+            <!-- Main Body: Two Columns on Desktop, Single on Mobile -->
+            <div class="luxury-specs-body" style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 1.5rem; padding: 1.25rem 1.5rem;">
+                
+                <!-- Left Column: Visual Showcase -->
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div id="specs-visual-container" style="position: relative; width: 100%; aspect-ratio: 1/1; background: radial-gradient(circle at center, #152238 0%, #080d1a 80%); border: 1px solid #1e293b; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 1rem; box-sizing: border-box;">
+                        <img id="specs-ceramic-img" src="" alt="Product" style="max-width: 90%; max-height: 90%; object-fit: contain; filter: drop-shadow(0 10px 25px rgba(0,0,0,0.6)); transition: all 0.3s ease;">
+                        <div id="specs-cad-view" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center;"></div>
+                    </div>
+
+                    <!-- Toggles matching the photo: Ceramic View / Technical CAD Blueprint -->
+                    <div style="display: flex; gap: 8px; margin-top: 1rem; width: 100%; justify-content: center;">
+                        <button type="button" id="btn-view-ceramic" onclick="switchSpecsView('ceramic')" class="specs-toggle-btn active" style="flex: 1;">
+                            <i class="fa-solid fa-sparkles"></i> Ceramic View
+                        </button>
+                        <button type="button" id="btn-view-cad" onclick="switchSpecsView('cad')" class="specs-toggle-btn" style="flex: 1;">
+                            <i class="fa-solid fa-drafting-compass"></i> Technical CAD Blueprint
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Specifications Table & Features -->
+                <div style="display: flex; flex-direction: column;">
+                    
+                    <!-- Specs Table matching the photo -->
+                    <div class="specs-table-container" style="border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; background: rgba(15, 23, 42, 0.4); overflow: hidden; margin-bottom: 1.25rem;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                            <tbody id="specs-table-rows">
+                                <!-- Injected dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Key Engineered Features Badges -->
+                    <div style="margin-bottom: 1.25rem;">
+                        <div style="font-size: 0.72rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.65rem;">
+                            <i class="fa-solid fa-shield-halved" style="color:#38bdf8; margin-right:4px;"></i> Key Engineered Features
+                        </div>
+                        <div id="specs-features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px;">
+                            <!-- Chips injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Direct Order & Add to Cart Bar -->
+                    <div id="specs-order-bar" style="margin-top: auto; padding: 0.85rem; background: #0d172e; border: 1px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-sizing: border-box;">
+                        <div>
+                            <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600;">Dealer Rate / ભાવ</div>
+                            <div id="specs-dealer-price" style="font-size: 1.15rem; font-weight: 800; color: #38bdf8;">₹0</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="qty-adjuster-group" style="margin: 0; background: #1e293b; border-color: #334155;">
+                                <button type="button" class="qty-adj-btn" style="background:#0f172a; color:#fff;" onclick="specsQtyAdjust(-1)">−</button>
+                                <input type="number" id="specs-order-qty" value="1" min="1" style="width: 48px; background: transparent; color: #fff; font-weight: 800; text-align: center; border: none;" onchange="validateSpecsQty(this)">
+                                <button type="button" class="qty-adj-btn" style="background:#0f172a; color:#fff;" onclick="specsQtyAdjust(+1)">+</button>
+                            </div>
+                            <button type="button" id="specs-add-cart-btn" onclick="addSpecsToCart()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; border-radius: 6px; padding: 0.55rem 1.1rem; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                                <i class="fa-solid fa-cart-plus"></i> Add to Order
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <!-- LIGHTBOX MULTI-IMAGE GALLERY OVERLAY -->
     <div id="lightbox-modal" class="lightbox-overlay" onclick="closeLightbox(event)">
         <div class="lightbox-box lightbox-gallery-box" onclick="event.stopPropagation()">
@@ -1555,8 +1709,8 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="core.js?v=4.6.9"></script>
-    <script src="dealer.js?v=4.6.9"></script>
+    <script src="core.js?v=4.7.0"></script>
+    <script src="dealer.js?v=4.7.0"></script>
 
     <!-- PWA Registration -->
     <script>

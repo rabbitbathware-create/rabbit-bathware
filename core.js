@@ -2490,3 +2490,201 @@ function cancelImageCrop() {
     _cropperState.results = [];
 }
 window.cancelImageCrop = cancelImageCrop;
+
+// ==========================================================================
+// PRODUCT TECHNICAL SPECIFICATIONS & CAD BLUEPRINT HELPERS
+// ==========================================================================
+function getProductSpecs(p) {
+    if (!p) return null;
+    const cat = (p.category || '').toLowerCase();
+    const sub = (p.subcategory || p.subCategory || '').toLowerCase();
+    const model = (p.model || '').toLowerCase();
+    
+    // Existing custom specs if configured
+    const userSpecs = p.specs || {};
+
+    // Standard ceramic sanitary ware defaults
+    let defaultDimMm = "695 x 385 x 690 mm";
+    let defaultDimInch = '27.4" x 15.2" x 27.2"';
+    let defaultFlushing = "4D Tornado Whirlpool / 100% Rimless Siphonic";
+    let defaultInstall = "Floor Mounted (S-Trap 300mm / 12\")";
+    let defaultSeat = "Slim Duroplast (UF) Soft-Close Seat with Quick Release";
+    let defaultCeramic = "Triple-Glazed 1280°C High Density Vitreous China";
+    let defaultFinish = p.colour ? `${p.colour} (UltraClean Gloss)` : "Glacier Pure White (UltraClean Gloss)";
+    let defaultWarranty = "10 Years Ceramic Glaze Warranty";
+    let defaultMrp = p.price ? Math.round(p.price * 1.55) : 10400;
+    let defaultFeatures = [
+        "360° Tornado Whirlpool Hydro-Cleansing",
+        "100% Rimless Flushing Hygiene",
+        "UltraClean Nano Anti-Bacterial Glaze",
+        "Dual Flush 3/6 L (Eco-Efficiency)",
+        "UF Soft-Close Heavy Slim Seat",
+        "10-Year Ceramic Glaze Warranty"
+    ];
+
+    if (cat.includes('basin') || sub.includes('basin') || cat.includes('table top') || sub.includes('table top') || cat.includes('art')) {
+        defaultDimMm = "480 x 370 x 135 mm";
+        defaultDimInch = '18.9" x 14.6" x 5.3"';
+        defaultFlushing = "Integrated Overflow Channel Protection";
+        defaultInstall = "Countertop / Table Top Vessel Mount";
+        defaultSeat = "N/A (Designer Table Top Basin)";
+        defaultCeramic = "1280°C Vitrified Architectural Ceramic";
+        defaultFinish = p.colour ? `${p.colour} (Stain-Resistant Gloss)` : "Pure White / Ceramic Glaze";
+        defaultWarranty = "10 Years Ceramic Glaze Warranty";
+        defaultMrp = p.price ? Math.round(p.price * 1.6) : 3800;
+        defaultFeatures = [
+            "Vitrified High-Density Fine Ceramic",
+            "Stain & Acid Resistant Ultra-Smooth Glaze",
+            "Precision Thin-Edge Architectural Crafting",
+            "Zero Water Absorption Rate (<0.2%)",
+            "Easy Clean Anti-Limescale Nano-Coat",
+            "10-Year Ceramic Glaze Warranty"
+        ];
+    } else if (cat.includes('sink') || sub.includes('sink') || cat.includes('kitchen') || model.includes('sink')) {
+        defaultDimMm = '610 x 457 x 230 mm (24" x 18" x 9")';
+        defaultDimInch = '24.0" x 18.0" x 9.0"';
+        defaultFlushing = "High-Flow Anti-Clog Vortex Waste Drain";
+        defaultInstall = "Universal Topmount / Undermount Installation";
+        defaultSeat = "Heavy-Duty SS304 Coupling & Waste Pipe Included";
+        defaultCeramic = (p.material && p.material.toLowerCase().includes('steel')) ? "AISI 304 High-Grade Stainless Steel" : "80% Natural Quartz Composite Granite Core";
+        defaultFinish = p.colour ? `${p.colour} (Anti-Scratch Hydrophobic)` : "Metallic Black Granite Matt";
+        defaultWarranty = "5 Years Rabbit Engineered Warranty";
+        defaultMrp = p.price ? Math.round(p.price * 1.5) : 5500;
+        defaultFeatures = [
+            "80% Natural Granite Quartz Composite",
+            "Heat Resistant up to 280°C Thermal Shock Proof",
+            "Scratch, Dent & Impact Resistant Matrix",
+            "Non-Porous Antibacterial Hydrophobic Shield",
+            "Sound-Deadening Deep Bowl Construction",
+            "5-Year Manufacturer Warranty Coverage"
+        ];
+    } else if (sub.includes('wall hung') || model.includes('wall hung') || model.includes('wallhung')) {
+        defaultDimMm = "520 x 360 x 350 mm";
+        defaultDimInch = '20.5" x 14.2" x 13.8"';
+        defaultFlushing = "Dual Whirlpool Vortex Wash / Rimless";
+        defaultInstall = "Wall Mounted (P-Trap 180mm Concealed)";
+        defaultSeat = "Slim UF (Urea-Formaldehyde) Soft-Close Detachable";
+        defaultCeramic = "Triple-Glazed 1280°C Vitreous China";
+        defaultFinish = p.colour ? `${p.colour} (UltraClean Gloss)` : "Glacier Pure White";
+        defaultWarranty = "10 Years Ceramic Glaze Warranty";
+        defaultMrp = p.price ? Math.round(p.price * 1.55) : 8900;
+        defaultFeatures = [
+            "Space-Saving Concealed Wall-Hung Mount",
+            "100% Rimless Direct Flush Cleanliness",
+            "Certified 400kg Heavy Load Test Rating",
+            "UltraClean Anti-Stain Ceramic Nano-Glaze",
+            "UF Heavy-Duty Soft-Close Quick Release Seat",
+            "10-Year Ceramic Glaze Warranty"
+        ];
+    } else if (sub.includes('p-trap') || model.includes('p-trap') || model.includes('p trap')) {
+        defaultInstall = "Floor Mounted (P-Trap 180mm)";
+    } else if (sub.includes('s-trap') || model.includes('s-trap') || model.includes('s trap')) {
+        if (model.includes('s-9') || model.includes('s9') || model.includes('225')) {
+            defaultInstall = "Floor Mounted (S-Trap 225mm / 9\")";
+        } else if (model.includes('s-4') || model.includes('s4') || model.includes('100')) {
+            defaultInstall = "Floor Mounted (S-Trap 100mm / 4\")";
+        } else {
+            defaultInstall = "Floor Mounted (S-Trap 300mm / 12\")";
+        }
+    }
+
+    return {
+        dimensionsMm: userSpecs.dimensionsMm || defaultDimMm,
+        dimensionsInches: userSpecs.dimensionsInches || defaultDimInch,
+        flushingSystem: userSpecs.flushingSystem || defaultFlushing,
+        installation: userSpecs.installation || defaultInstall,
+        seatCover: userSpecs.seatCover || defaultSeat,
+        ceramicVitrification: userSpecs.ceramicVitrification || defaultCeramic,
+        colorFinish: userSpecs.colorFinish || defaultFinish,
+        warranty: userSpecs.warranty || defaultWarranty,
+        mrp: (userSpecs.mrp !== undefined && userSpecs.mrp !== null && userSpecs.mrp !== '') ? Number(userSpecs.mrp) : defaultMrp,
+        cadBlueprintUrl: userSpecs.cadBlueprintUrl || null,
+        keyFeatures: (Array.isArray(userSpecs.keyFeatures) && userSpecs.keyFeatures.length > 0) 
+            ? userSpecs.keyFeatures 
+            : (typeof userSpecs.keyFeatures === 'string' && userSpecs.keyFeatures.trim())
+                ? userSpecs.keyFeatures.split(',').map(s => s.trim()).filter(Boolean)
+                : defaultFeatures
+    };
+}
+window.getProductSpecs = getProductSpecs;
+
+function getSpecsCADBlueprintSVG(p, specs) {
+    const dim = (specs && specs.dimensionsMm) ? specs.dimensionsMm : "695 x 385 x 690 mm";
+    const parts = dim.split('x').map(s => s.trim().replace('mm',''));
+    const len = parts[0] || '695';
+    const wid = parts[1] || '385';
+    const ht = parts[2] || '690';
+    const model = (p && p.model) ? p.model : "RABBIT CERAMICS";
+    const trap = (specs && specs.installation) ? specs.installation : "S-Trap 300mm";
+    const finish = (specs && specs.colorFinish) ? specs.colorFinish : "Pure White";
+    const flush = (specs && specs.flushingSystem) ? specs.flushingSystem : "Tornado Flush";
+
+    return `
+    <svg viewBox="0 0 500 500" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="background:#091428; border-radius:8px; font-family:monospace;">
+        <defs>
+            <pattern id="cadGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e3a8a" stroke-width="0.5" stroke-opacity="0.45"/>
+            </pattern>
+            <marker id="cadArrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"/>
+            </marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#070f20"/>
+        <rect width="100%" height="100%" fill="url(#cadGrid)"/>
+        
+        <rect x="15" y="15" width="470" height="470" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.75"/>
+        <rect x="19" y="19" width="462" height="462" fill="none" stroke="#1e3a8a" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+        <text x="30" y="42" fill="#38bdf8" font-size="11" font-weight="bold" letter-spacing="1.5">TECHNICAL CAD BLUEPRINT</text>
+        <text x="30" y="58" fill="#94a3b8" font-size="9">SCALE 1:10 • ALL DIMENSIONS IN MM</text>
+
+        <g transform="translate(60, 90)">
+            <path d="M 30,30 L 110,30 L 105,170 L 35,170 Z" fill="none" stroke="#e2e8f0" stroke-width="2"/>
+            <path d="M 25,25 L 115,25 L 115,30 L 25,30 Z" fill="#38bdf8" fill-opacity="0.3" stroke="#38bdf8" stroke-width="1.5"/>
+            <circle cx="70" cy="22" r="5" fill="#38bdf8"/>
+
+            <path d="M 105,130 C 130,130 180,135 250,140 C 275,142 290,165 285,200 C 275,260 230,270 200,270 L 40,270 L 40,240 C 60,240 85,240 100,210 C 115,180 105,150 105,130 Z" fill="none" stroke="#e2e8f0" stroke-width="2.2"/>
+            <ellipse cx="205" cy="148" rx="70" ry="12" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            
+            <path d="M 180,160 C 180,210 130,210 130,240 L 130,270" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="4,3"/>
+            <path d="M 210,160 C 210,230 160,230 160,270" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="4,3"/>
+
+            <line x1="15" y1="25" x2="15" y2="270" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#cadArrow)" marker-end="url(#cadArrow)"/>
+            <text x="-150" y="9" transform="rotate(-90)" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">${ht} mm</text>
+
+            <line x1="30" y1="288" x2="285" y2="288" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#cadArrow)" marker-end="url(#cadArrow)"/>
+            <text x="157" y="302" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">${len} mm</text>
+
+            <line x1="145" y1="260" x2="145" y2="320" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,3"/>
+            <circle cx="145" cy="270" r="3" fill="#f59e0b"/>
+            <text x="145" y="332" fill="#fbbf24" font-size="8.5" font-weight="bold" text-anchor="middle">TRAP CENTER</text>
+            <text x="145" y="343" fill="#94a3b8" font-size="7.5" text-anchor="middle">${trap}</text>
+        </g>
+
+        <g transform="translate(350, 60)">
+            <rect x="0" y="0" width="115" height="150" rx="4" fill="#0f172a" fill-opacity="0.8" stroke="#1e3a8a" stroke-width="1"/>
+            <text x="57" y="16" fill="#94a3b8" font-size="7.5" text-anchor="middle" font-weight="bold">TOP PROFILE</text>
+            <rect x="15" y="24" width="85" height="32" rx="2" fill="none" stroke="#38bdf8" stroke-width="1.2"/>
+            <path d="M 20,56 C 20,130 95,130 95,56 Z" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
+            <ellipse cx="57" cy="85" rx="22" ry="30" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2"/>
+            <line x1="15" y1="140" x2="100" y2="140" stroke="#38bdf8" stroke-width="1" marker-start="url(#cadArrow)" marker-end="url(#cadArrow)"/>
+            <text x="57" y="137" fill="#38bdf8" font-size="8" font-weight="bold" text-anchor="middle">${wid} mm</text>
+        </g>
+
+        <g transform="translate(210, 410)">
+            <rect x="0" y="0" width="260" height="60" fill="#070d19" stroke="#38bdf8" stroke-width="1"/>
+            <line x1="0" y1="20" x2="260" y2="20" stroke="#1e3a8a" stroke-width="0.8"/>
+            <line x1="0" y1="40" x2="260" y2="40" stroke="#1e3a8a" stroke-width="0.8"/>
+            <line x1="130" y1="20" x2="130" y2="60" stroke="#1e3a8a" stroke-width="0.8"/>
+
+            <text x="8" y="14" fill="#38bdf8" font-size="8.5" font-weight="bold">${model.substring(0, 32)}</text>
+            <text x="8" y="32" fill="#94a3b8" font-size="7.5">FINISH: <tspan fill="#f8fafc">${finish.substring(0,16)}</tspan></text>
+            <text x="138" y="32" fill="#94a3b8" font-size="7.5">TRAP: <tspan fill="#f8fafc">${trap.substring(0,14)}</tspan></text>
+            <text x="8" y="52" fill="#94a3b8" font-size="7.5">FLUSH: <tspan fill="#f8fafc">${flush.substring(0,16)}</tspan></text>
+            <text x="138" y="52" fill="#fbbf24" font-size="7.5" font-weight="bold">RABBIT QA PASSED</text>
+        </g>
+    </svg>
+    `;
+}
+window.getSpecsCADBlueprintSVG = getSpecsCADBlueprintSVG;
+

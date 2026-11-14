@@ -1054,7 +1054,7 @@
 
 <!-- MODAL: ADD / EDIT PRODUCT STOCK -->
 <div id="add-stock-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 620px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-content" style="max-width: 680px; max-height: 92vh; overflow-y: auto;">
         <div class="modal-header" style="border-bottom: 2px solid #0e254f; padding-bottom: 0.5rem; margin-bottom: 1rem;">
             <h2 id="add-stock-modal-title" style="font-size:1.15rem; color:#0e254f; margin:0;"><i class="fa-solid fa-box"></i> Add New Product</h2>
             <button class="close-btn" onclick="closeModal('add-stock-modal')">&times;</button>
@@ -1176,6 +1176,72 @@
                     <option value="order">📦 As Per Order (ઓર્ડર મુજબ તૈયાર થશે)</option>
                 </select>
                 <small style="font-size:0.7rem; color:#64748b;">'As Per Order' સેટ કરવાથી ડીલર 0 સ્ટોક હોય તો પણ ઓર્ડર આપી શકશે.</small>
+            </div>
+
+            <!-- LUXURY PRODUCT TECHNICAL SPECIFICATIONS & CAD BLUEPRINT SECTION -->
+            <div class="spec-section-card" style="background:#0b1329; border:1px solid #1e293b; border-radius:8px; padding:0.85rem; margin-bottom:1rem; color:#f8fafc;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; border-bottom:1px solid #334155; padding-bottom:0.4rem; flex-wrap:wrap; gap:0.5rem;">
+                    <span style="font-weight:700; font-size:0.9rem; color:#f59e0b;"><i class="fa-solid fa-ruler-combined"></i> Technical Specifications & CAD (ટેકનિકલ સ્પેસિફિકેશન)</span>
+                    <button type="button" class="btn btn-outline" onclick="autoFillStockSpecsFromCategory()" style="border-color:#38bdf8; color:#38bdf8; font-size:0.72rem; padding:0.25rem 0.6rem; font-weight:700; background:rgba(56,189,248,0.1); border-radius:4px; cursor:pointer;">
+                        <i class="fa-solid fa-bolt"></i> ⚡ Auto-Fill from Category
+                    </button>
+                </div>
+                <div class="form-row-two" style="margin-bottom:0.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Dimensions (Millimeters)</label>
+                        <input type="text" id="stock-spec-dim-mm" placeholder="e.g. 695 x 385 x 690 mm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Dimensions (Inches)</label>
+                        <input type="text" id="stock-spec-dim-inch" placeholder="e.g. 27.4&quot; x 15.2&quot; x 27.2&quot;" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px;">
+                    </div>
+                </div>
+                <div class="form-row-two" style="margin-bottom:0.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Flushing System</label>
+                        <input type="text" id="stock-spec-flushing" placeholder="e.g. 4D Tornado Whirlpool / 100% Rimless" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Installation / Mounting</label>
+                        <input type="text" id="stock-spec-installation" placeholder="e.g. Floor Mounted (S-Trap 300mm / 12&quot;)" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px;">
+                    </div>
+                </div>
+                <div class="form-row-two" style="margin-bottom:0.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Seat Cover Specification</label>
+                        <input type="text" id="stock-spec-seat" placeholder="e.g. Slim Duroplast (UF) Soft-Close Seat with Quick Release" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Ceramic Vitrification</label>
+                        <input type="text" id="stock-spec-vitrification" placeholder="e.g. Triple-Glazed 1280°C High Density China" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px;">
+                    </div>
+                </div>
+                <div class="form-row-two" style="margin-bottom:0.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Color & Finish</label>
+                        <input type="text" id="stock-spec-color-finish" placeholder="e.g. Glacier Pure White (UltraClean Gloss)" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Warranty Coverage</label>
+                        <input type="text" id="stock-spec-warranty" placeholder="e.g. 10 Years Ceramic Glaze Warranty" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px;">
+                    </div>
+                </div>
+                <div class="form-row-two" style="margin-bottom:0.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#fbbf24;">Maximum Retail Price (MRP ₹)</label>
+                        <input type="number" id="stock-spec-mrp" placeholder="e.g. 10400" min="0" step="1" style="background:#1e293b; color:#fbbf24; border:1px solid #f59e0b; font-weight:700; padding:0.4rem; border-radius:4px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Technical CAD Blueprint Image</label>
+                        <input type="file" id="stock-spec-cad-input" accept="image/*" onchange="handleStockCadSelected(this)" style="background:#1e293b; color:#cbd5e1; border:1px solid #334155; padding:0.3rem; font-size:0.75rem; width:100%; border-radius:4px;">
+                        <input type="hidden" id="stock-spec-cad-base64">
+                        <div id="stock-spec-cad-preview" style="margin-top:0.35rem; display:none;"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">Key Engineered Features (અલ્પવિરામ (comma) અથવા નવી લાઇનથી અલગ કરો)</label>
+                    <textarea id="stock-spec-features" rows="2" placeholder="e.g. 360° Tornado Whirlpool Hydro-Cleansing, 100% Rimless Flushing, UltraClean Nano-Glaze, Dual Flush 3/6 L (Eco-Efficiency), UF Soft-Close Heavy Slim Seat, 10-Year Ceramic Warranty" style="background:#1e293b; color:#fff; border:1px solid #334155; width:100%; border-radius:4px; padding:0.4rem; font-size:0.8rem; box-sizing:border-box;"></textarea>
+                </div>
             </div>
 
             <div class="form-group" style="margin-bottom:1rem;">
@@ -1944,8 +2010,8 @@
         <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i><span>Ledger</span></button>
     </nav>
 
-<script src="core.js?v=4.6.9"></script>
-<script src="admin.js?v=4.6.9"></script>
+<script src="core.js?v=4.7.0"></script>
+<script src="admin.js?v=4.7.0"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {

@@ -1253,6 +1253,22 @@ function openAddProductModal() {
         document.getElementById("stock-box-bill-rate").value = "";
     }
     toggleBoxFields();
+
+    if (document.getElementById("stock-spec-dim-mm")) document.getElementById("stock-spec-dim-mm").value = "";
+    if (document.getElementById("stock-spec-dim-inch")) document.getElementById("stock-spec-dim-inch").value = "";
+    if (document.getElementById("stock-spec-flushing")) document.getElementById("stock-spec-flushing").value = "";
+    if (document.getElementById("stock-spec-installation")) document.getElementById("stock-spec-installation").value = "";
+    if (document.getElementById("stock-spec-seat")) document.getElementById("stock-spec-seat").value = "";
+    if (document.getElementById("stock-spec-vitrification")) document.getElementById("stock-spec-vitrification").value = "";
+    if (document.getElementById("stock-spec-color-finish")) document.getElementById("stock-spec-color-finish").value = "";
+    if (document.getElementById("stock-spec-warranty")) document.getElementById("stock-spec-warranty").value = "";
+    if (document.getElementById("stock-spec-mrp")) document.getElementById("stock-spec-mrp").value = "";
+    if (document.getElementById("stock-spec-features")) document.getElementById("stock-spec-features").value = "";
+    if (document.getElementById("stock-spec-cad-base64")) document.getElementById("stock-spec-cad-base64").value = "";
+    if (document.getElementById("stock-spec-cad-input")) document.getElementById("stock-spec-cad-input").value = "";
+    const cadPrev = document.getElementById("stock-spec-cad-preview");
+    if (cadPrev) { cadPrev.innerHTML = ""; cadPrev.style.display = "none"; }
+
     window._pendingProductImages = [];
     renderStockModalPhotoPreviews();
     openModal("add-stock-modal");
@@ -1318,6 +1334,37 @@ function openEditProductModal(id) {
         document.getElementById("stock-is-hot").checked = !!p.isHot;
     }
 
+    const specs = p.specs || {};
+    if (document.getElementById("stock-spec-dim-mm")) document.getElementById("stock-spec-dim-mm").value = specs.dimensionsMm || "";
+    if (document.getElementById("stock-spec-dim-inch")) document.getElementById("stock-spec-dim-inch").value = specs.dimensionsInches || "";
+    if (document.getElementById("stock-spec-flushing")) document.getElementById("stock-spec-flushing").value = specs.flushingSystem || "";
+    if (document.getElementById("stock-spec-installation")) document.getElementById("stock-spec-installation").value = specs.installation || "";
+    if (document.getElementById("stock-spec-seat")) document.getElementById("stock-spec-seat").value = specs.seatCover || "";
+    if (document.getElementById("stock-spec-vitrification")) document.getElementById("stock-spec-vitrification").value = specs.ceramicVitrification || "";
+    if (document.getElementById("stock-spec-color-finish")) document.getElementById("stock-spec-color-finish").value = specs.colorFinish || "";
+    if (document.getElementById("stock-spec-warranty")) document.getElementById("stock-spec-warranty").value = specs.warranty || "";
+    if (document.getElementById("stock-spec-mrp")) document.getElementById("stock-spec-mrp").value = (specs.mrp !== undefined && specs.mrp !== null) ? specs.mrp : "";
+    if (document.getElementById("stock-spec-features")) {
+        document.getElementById("stock-spec-features").value = Array.isArray(specs.keyFeatures) ? specs.keyFeatures.join(", ") : (specs.keyFeatures || "");
+    }
+    if (document.getElementById("stock-spec-cad-base64")) document.getElementById("stock-spec-cad-base64").value = specs.cadBlueprintUrl || "";
+    if (document.getElementById("stock-spec-cad-input")) document.getElementById("stock-spec-cad-input").value = "";
+    const cadPrevEdit = document.getElementById("stock-spec-cad-preview");
+    if (cadPrevEdit) {
+        if (specs.cadBlueprintUrl) {
+            cadPrevEdit.style.display = "flex";
+            cadPrevEdit.style.alignItems = "center";
+            cadPrevEdit.innerHTML = `
+                <img src="${specs.cadBlueprintUrl}" style="height:48px; border-radius:4px; border:1px solid #38bdf8; object-fit:contain; background:#0f172a; padding:2px;">
+                <span style="font-size:0.75rem; color:#38bdf8; margin-left:8px; font-weight:600;">CAD Blueprint Attached</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeStockCadBlueprint()" style="padding:2px 6px; font-size:0.7rem; margin-left:8px;">Remove</button>
+            `;
+        } else {
+            cadPrevEdit.innerHTML = "";
+            cadPrevEdit.style.display = "none";
+        }
+    }
+
     window._pendingProductImages = (p.imagesBase64 && p.imagesBase64.length > 0) ? [...p.imagesBase64] : (p.imageBase64 ? [p.imageBase64] : []);
     renderStockModalPhotoPreviews();
     // preview initialized
@@ -1342,6 +1389,22 @@ function handleNewProduct(e) {
     const boxQtyVal = (pkgType === 'dual') ? (parseInt(document.getElementById("stock-box-qty").value, 10) || 20) : null;
     const boxPriceVal = (pkgType === 'dual' && document.getElementById("stock-box-price").value !== '') ? parseFloat(document.getElementById("stock-box-price").value) : null;
     const boxBillRateVal = (pkgType === 'dual' && document.getElementById("stock-box-bill-rate").value !== '') ? parseFloat(document.getElementById("stock-box-bill-rate").value) : null;
+
+    const specFeaturesRaw = document.getElementById("stock-spec-features") ? document.getElementById("stock-spec-features").value.trim() : "";
+    const specFeatures = specFeaturesRaw ? specFeaturesRaw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : [];
+    const specsObj = {
+        dimensionsMm: document.getElementById("stock-spec-dim-mm") ? document.getElementById("stock-spec-dim-mm").value.trim() : "",
+        dimensionsInches: document.getElementById("stock-spec-dim-inch") ? document.getElementById("stock-spec-dim-inch").value.trim() : "",
+        flushingSystem: document.getElementById("stock-spec-flushing") ? document.getElementById("stock-spec-flushing").value.trim() : "",
+        installation: document.getElementById("stock-spec-installation") ? document.getElementById("stock-spec-installation").value.trim() : "",
+        seatCover: document.getElementById("stock-spec-seat") ? document.getElementById("stock-spec-seat").value.trim() : "",
+        ceramicVitrification: document.getElementById("stock-spec-vitrification") ? document.getElementById("stock-spec-vitrification").value.trim() : "",
+        colorFinish: document.getElementById("stock-spec-color-finish") ? document.getElementById("stock-spec-color-finish").value.trim() : "",
+        warranty: document.getElementById("stock-spec-warranty") ? document.getElementById("stock-spec-warranty").value.trim() : "",
+        mrp: document.getElementById("stock-spec-mrp") && document.getElementById("stock-spec-mrp").value ? parseFloat(document.getElementById("stock-spec-mrp").value) : null,
+        keyFeatures: specFeatures,
+        cadBlueprintUrl: document.getElementById("stock-spec-cad-base64") ? document.getElementById("stock-spec-cad-base64").value : null
+    };
 
     const saveProd = (imagesArr) => {
         const editId = document.getElementById("edit-stock-id") ? document.getElementById("edit-stock-id").value : "";
@@ -1368,6 +1431,7 @@ function handleNewProduct(e) {
                 p.boxBillRate = boxBillRateVal;
                 p.displayOrder = displayOrderVal;
                 p.isHot = isHotVal;
+                p.specs = specsObj;
                 if (imagesArr && imagesArr.length > 0) {
                     p.imageBase64 = imagesArr[0];
                     p.imagesBase64 = imagesArr;
@@ -1396,6 +1460,7 @@ function handleNewProduct(e) {
                 boxBillRate: boxBillRateVal,
                 displayOrder: displayOrderVal,
                 isHot: isHotVal,
+                specs: specsObj,
                 imageBase64: (imagesArr && imagesArr.length > 0) ? imagesArr[0] : null,
                 imagesBase64: imagesArr || []
             });
@@ -1424,6 +1489,69 @@ function handleNewProduct(e) {
         saveProd([]);
     }
 }
+
+// Technical Specifications & CAD Blueprint Admin Handlers
+function autoFillStockSpecsFromCategory() {
+    const cat = document.getElementById("stock-category") ? document.getElementById("stock-category").value : "";
+    const subcat = document.getElementById("stock-subcategory") ? document.getElementById("stock-subcategory").value : "";
+    const model = document.getElementById("stock-model") ? document.getElementById("stock-model").value : "";
+    const colour = document.getElementById("stock-colour") ? document.getElementById("stock-colour").value : "";
+    const price = parseFloat(document.getElementById("stock-price") ? document.getElementById("stock-price").value : 0) || 0;
+
+    const dummyProd = { category: cat, subcategory: subcat, subCategory: subcat, model, colour, price };
+    const specs = typeof getProductSpecs === 'function' ? getProductSpecs(dummyProd) : null;
+    if (!specs) return;
+
+    if (document.getElementById("stock-spec-dim-mm")) document.getElementById("stock-spec-dim-mm").value = specs.dimensionsMm || "";
+    if (document.getElementById("stock-spec-dim-inch")) document.getElementById("stock-spec-dim-inch").value = specs.dimensionsInches || "";
+    if (document.getElementById("stock-spec-flushing")) document.getElementById("stock-spec-flushing").value = specs.flushingSystem || "";
+    if (document.getElementById("stock-spec-installation")) document.getElementById("stock-spec-installation").value = specs.installation || "";
+    if (document.getElementById("stock-spec-seat")) document.getElementById("stock-spec-seat").value = specs.seatCover || "";
+    if (document.getElementById("stock-spec-vitrification")) document.getElementById("stock-spec-vitrification").value = specs.ceramicVitrification || "";
+    if (document.getElementById("stock-spec-color-finish")) document.getElementById("stock-spec-color-finish").value = specs.colorFinish || "";
+    if (document.getElementById("stock-spec-warranty")) document.getElementById("stock-spec-warranty").value = specs.warranty || "";
+    if (document.getElementById("stock-spec-mrp")) document.getElementById("stock-spec-mrp").value = specs.mrp || "";
+    if (document.getElementById("stock-spec-features")) {
+        document.getElementById("stock-spec-features").value = Array.isArray(specs.keyFeatures) ? specs.keyFeatures.join(", ") : (specs.keyFeatures || "");
+    }
+}
+window.autoFillStockSpecsFromCategory = autoFillStockSpecsFromCategory;
+
+async function handleStockCadSelected(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    try {
+        const compressed = await compressImage(file, 1200, 1200, 0.82);
+        document.getElementById("stock-spec-cad-base64").value = compressed;
+        const cadPrev = document.getElementById("stock-spec-cad-preview");
+        if (cadPrev) {
+            cadPrev.style.display = "flex";
+            cadPrev.style.alignItems = "center";
+            cadPrev.innerHTML = `
+                <img src="${compressed}" style="height:48px; border-radius:4px; border:1px solid #38bdf8; object-fit:contain; background:#0f172a; padding:2px;">
+                <span style="font-size:0.75rem; color:#38bdf8; margin-left:8px; font-weight:600;">CAD Blueprint Attached</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeStockCadBlueprint()" style="padding:2px 6px; font-size:0.7rem; margin-left:8px;">Remove</button>
+            `;
+        }
+    } catch (err) {
+        console.error("Failed to process CAD image:", err);
+        alert("Failed to process CAD image: " + err.message);
+    }
+}
+window.handleStockCadSelected = handleStockCadSelected;
+
+function removeStockCadBlueprint() {
+    const hidden = document.getElementById("stock-spec-cad-base64");
+    if (hidden) hidden.value = "";
+    const cadInput = document.getElementById("stock-spec-cad-input");
+    if (cadInput) cadInput.value = "";
+    const cadPrev = document.getElementById("stock-spec-cad-preview");
+    if (cadPrev) {
+        cadPrev.innerHTML = "";
+        cadPrev.style.display = "none";
+    }
+}
+window.removeStockCadBlueprint = removeStockCadBlueprint;
 
 // One-time catalog migration to unified Kitchen Sinks and Sanitary Ware categories
 

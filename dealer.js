@@ -1394,6 +1394,9 @@
                     <div class="dealer-prod-name">${p.model}</div>
                     ${specBadgesRow}
                     <div class="dealer-prod-spec">${subSpecText}${p.colour}${finishSpecText}</div>
+                    <button type="button" class="dealer-specs-btn" onclick="event.stopPropagation(); openProductSpecsModal('${p.id}')">
+                        <i class="fa-solid fa-circle-info"></i> View Details / વિગતો
+                    </button>
                     ${(isDual && (boxCount > 0 || looseQty > 0)) ? `
                         <div style="font-size:0.68rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:4px; padding:2px 6px; margin:3px 0; font-weight:700;">
                             Cart: ${[boxCount > 0 ? `📦 ${boxCount} Box (${boxCount * p.boxQty} pcs)` : '', looseQty > 0 ? `${looseQty} Pcs` : ''].filter(Boolean).join(' + ')}
@@ -2562,6 +2565,11 @@ card.innerHTML = `
                 </span>
                 ${offer.category ? `<span style="display:inline-block; font-size:0.68rem; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:1px 6px;">${offer.category}</span>` : ''}
             </div>
+            ${prod.id ? `
+                <button type="button" class="dealer-specs-btn" onclick="event.stopPropagation(); openProductSpecsModal('${prod.id}')">
+                    <i class="fa-solid fa-circle-info"></i> View Details / વિગતો
+                </button>
+            ` : ''}
             ${isInCart ? `
                 <div style="font-size:0.68rem; color:#16a34a; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:4px; padding:2px 6px; margin:2px 0; font-weight:700;">
                     <i class="fa-solid fa-circle-check"></i> In Cart: ${offerCartQty} pcs
@@ -2679,3 +2687,207 @@ window.addEventListener('bms_remote_sync', function() {
         console.warn("Dealer remote sync UI update error:", err);
     }
 });
+
+// ==========================================================================
+// LUXURY PRODUCT TECHNICAL SPECIFICATIONS & CAD BLUEPRINT MODAL CONTROLLER
+// ==========================================================================
+let currentSpecsProdId = null;
+let currentSpecsViewMode = 'ceramic';
+
+function openProductSpecsModal(prodId) {
+    const p = (state.products || []).find(x => x.id === prodId);
+    if (!p) return;
+    currentSpecsProdId = prodId;
+    currentSpecsViewMode = 'ceramic';
+
+    const specs = typeof getProductSpecs === 'function' ? getProductSpecs(p) : (p.specs || {});
+    
+    // Header
+    const titleEl = document.getElementById('specs-modal-title');
+    const subTitleEl = document.getElementById('specs-modal-subtitle');
+    if (titleEl) titleEl.textContent = p.model || 'Product Specifications';
+    if (subTitleEl) subTitleEl.textContent = `${p.category || 'Rabbit Bathware'}${p.subcategory ? ' • ' + p.subcategory : ''} • ${specs.ceramicVitrification || 'Vitreous China'}`;
+
+    // Visual Showcase
+    const imgList = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageBase64 ? [p.imageBase64] : []);
+    const imgEl = document.getElementById('specs-ceramic-img');
+    const cadViewEl = document.getElementById('specs-cad-view');
+    
+    if (imgEl) {
+        if (imgList.length > 0) {
+            imgEl.src = imgList[0];
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+    }
+
+    if (cadViewEl) {
+        if (specs.cadBlueprintUrl) {
+            cadViewEl.innerHTML = `<img src="${specs.cadBlueprintUrl}" alt="CAD Blueprint" style="max-width:96%; max-height:96%; object-fit:contain; border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.5);">`;
+        } else if (typeof getSpecsCADBlueprintSVG === 'function') {
+            cadViewEl.innerHTML = getSpecsCADBlueprintSVG(p, specs);
+        } else {
+            cadViewEl.innerHTML = `<div style="color:#94a3b8; font-size:0.85rem; padding:1.5rem; text-align:center;">CAD Blueprint diagram will appear here.</div>`;
+        }
+    }
+
+    // Reset View to Ceramic
+    switchSpecsView('ceramic');
+
+    // Specifications Table Rows
+    const tableEl = document.getElementById('specs-table-rows');
+    if (tableEl) {
+        const rows = [
+            { label: 'Dimensions (Millimeters)', value: specs.dimensionsMm },
+            { label: 'Dimensions (Inches)', value: specs.dimensionsInches },
+            { label: 'Flushing System', value: specs.flushingSystem },
+            { label: 'Installation / Mounting', value: specs.installation },
+            { label: 'Seat Cover Specification', value: specs.seatCover },
+            { label: 'Ceramic Vitrification', value: specs.ceramicVitrification },
+            { label: 'Color & Finish', value: specs.colorFinish },
+            { label: 'Warranty Coverage', value: specs.warranty }
+        ];
+
+        let tableHtml = rows.map(r => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <td style="padding: 0.52rem 0.85rem; color: #94a3b8; font-weight: 500; font-size: 0.82rem; width: 44%;">${r.label}</td>
+                <td style="padding: 0.52rem 0.85rem; color: #f8fafc; font-weight: 700; font-size: 0.82rem; text-align: right;">${r.value || 'Standard'}</td>
+            </tr>
+        `).join('');
+
+        if (specs.mrp) {
+            tableHtml += `
+                <tr style="border-bottom: none; background: rgba(245, 158, 11, 0.08);">
+                    <td style="padding: 0.65rem 0.85rem; color: #fbbf24; font-weight: 600; font-size: 0.85rem;">Maximum Retail Price (MRP)</td>
+                    <td style="padding: 0.65rem 0.85rem; color: #fbbf24; font-weight: 800; font-size: 1.15rem; text-align: right;">₹${Number(specs.mrp).toLocaleString('en-IN')}</td>
+                </tr>
+            `;
+        }
+
+        tableEl.innerHTML = tableHtml;
+    }
+
+    // Features Badges
+    const featEl = document.getElementById('specs-features-grid');
+    if (featEl) {
+        const feats = Array.isArray(specs.keyFeatures) ? specs.keyFeatures : [];
+        featEl.innerHTML = feats.map(f => `
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.42rem 0.65rem; font-size: 0.74rem; color: #cbd5e1; display: flex; align-items: center; gap: 7px;">
+                <span style="color: #38bdf8; font-weight: 800; font-size: 0.82rem;">✓</span>
+                <span style="font-weight: 600;">${f}</span>
+            </div>
+        `).join('');
+    }
+
+    // Pricing & Cart
+    const isDual = (p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1));
+    const activeUnit = isDual ? ((window.dealerCardUnits && window.dealerCardUnits[p.id]) || 'box') : 'pcs';
+    const pricing = dealerMerchant 
+        ? getMerchantPricing(dealerMerchant, p, activeUnit) 
+        : { 
+            price: (isDual && activeUnit === 'box') ? (p.boxPrice !== undefined ? p.boxPrice : p.price) : (p.price !== undefined ? p.price : (p.basePrice || 0)), 
+            billRate: (isDual && activeUnit === 'box') ? (p.boxBillRate !== undefined ? p.boxBillRate : p.billRate) : (p.billRate || 0) 
+        };
+
+    const priceEl = document.getElementById('specs-dealer-price');
+    if (priceEl) {
+        priceEl.innerHTML = `₹${pricing.price.toLocaleString('en-IN')}${activeUnit === 'box' ? '<span style="font-size:0.75rem; font-weight:normal; color:#94a3b8;">/pc</span>' : ''}`;
+    }
+
+    const qtyInput = document.getElementById('specs-order-qty');
+    if (qtyInput) {
+        const cartKey = isDual ? `${p.id}:${activeUnit}` : p.id;
+        const inCartQty = dealerCart[cartKey] || 0;
+        qtyInput.value = inCartQty > 0 ? inCartQty : 1;
+    }
+
+    openModal('product-specs-modal');
+}
+window.openProductSpecsModal = openProductSpecsModal;
+
+function closeProductSpecsModal() {
+    closeModal('product-specs-modal');
+}
+window.closeProductSpecsModal = closeProductSpecsModal;
+
+function switchSpecsView(mode) {
+    currentSpecsViewMode = mode;
+    const imgEl = document.getElementById('specs-ceramic-img');
+    const cadViewEl = document.getElementById('specs-cad-view');
+    const btnCeramic = document.getElementById('btn-view-ceramic');
+    const btnCad = document.getElementById('btn-view-cad');
+
+    if (mode === 'cad') {
+        if (imgEl) imgEl.style.display = 'none';
+        if (cadViewEl) cadViewEl.style.display = 'flex';
+        if (btnCeramic) {
+            btnCeramic.style.background = '#0f172a';
+            btnCeramic.style.color = '#94a3b8';
+            btnCeramic.style.borderColor = '#334155';
+        }
+        if (btnCad) {
+            btnCad.style.background = '#38bdf8';
+            btnCad.style.color = '#000000';
+            btnCad.style.borderColor = '#38bdf8';
+        }
+    } else {
+        if (imgEl) imgEl.style.display = 'block';
+        if (cadViewEl) cadViewEl.style.display = 'none';
+        if (btnCeramic) {
+            btnCeramic.style.background = '#eab308';
+            btnCeramic.style.color = '#000000';
+            btnCeramic.style.borderColor = '#eab308';
+        }
+        if (btnCad) {
+            btnCad.style.background = '#0f172a';
+            btnCad.style.color = '#94a3b8';
+            btnCad.style.borderColor = '#334155';
+        }
+    }
+}
+window.switchSpecsView = switchSpecsView;
+
+function specsQtyAdjust(delta) {
+    const qtyInput = document.getElementById('specs-order-qty');
+    if (!qtyInput) return;
+    let val = parseInt(qtyInput.value, 10) || 1;
+    val += delta;
+    if (val < 1) val = 1;
+    qtyInput.value = val;
+}
+window.specsQtyAdjust = specsQtyAdjust;
+
+function validateSpecsQty(input) {
+    let val = parseInt(input.value, 10);
+    if (isNaN(val) || val < 1) input.value = 1;
+}
+window.validateSpecsQty = validateSpecsQty;
+
+function addSpecsToCart() {
+    if (!currentSpecsProdId) return;
+    const p = (state.products || []).find(x => x.id === currentSpecsProdId);
+    if (!p) return;
+    const isDual = (p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1));
+    const activeUnit = isDual ? ((window.dealerCardUnits && window.dealerCardUnits[p.id]) || 'box') : 'pcs';
+    const activeCartKey = isDual ? `${p.id}:${activeUnit}` : p.id;
+    
+    const qtyInput = document.getElementById('specs-order-qty');
+    const qty = parseInt(qtyInput ? qtyInput.value : 1, 10) || 1;
+    
+    dealerQtySet(activeCartKey, qty);
+    
+    const addBtn = document.getElementById('specs-add-cart-btn');
+    if (addBtn) {
+        const origText = addBtn.innerHTML;
+        addBtn.innerHTML = `<i class="fa-solid fa-check"></i> Added! (${qty} ${activeUnit})`;
+        addBtn.style.background = '#0284c7';
+        setTimeout(() => {
+            if (addBtn) {
+                addBtn.innerHTML = origText;
+                addBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            }
+        }, 1200);
+    }
+}
+window.addSpecsToCart = addSpecsToCart;
