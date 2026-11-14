@@ -2703,8 +2703,8 @@ function getSpecsCADBlueprintSVG(p, specs) {
             </defs>
             <rect width="100%" height="100%" fill="#070f20"/>
             <rect width="100%" height="100%" fill="url(#cadGridSink)"/>
-            <rect x="15" y="15" width="470" height="470" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.75"/>
-            <rect x="19" y="19" width="462" height="462" fill="none" stroke="#1e3a8a" stroke-width="0.8" stroke-dasharray="4,4"/>
+            <rect x="4" y="4" width="492" height="492" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.6"/>
+            <rect x="7" y="7" width="486" height="486" fill="none" stroke="#1e3a8a" stroke-width="0.75" stroke-dasharray="3,3"/>
 
             <text x="30" y="42" fill="#38bdf8" font-size="11" font-weight="bold" letter-spacing="1.5">TECHNICAL CAD BLUEPRINT — SINK ARCHITECTURE</text>
             <text x="30" y="58" fill="#94a3b8" font-size="9">SCALE 1:10 • ALL DIMENSIONS IN MM</text>
@@ -2770,8 +2770,8 @@ function getSpecsCADBlueprintSVG(p, specs) {
             </defs>
             <rect width="100%" height="100%" fill="#070f20"/>
             <rect width="100%" height="100%" fill="url(#cadGridBasin)"/>
-            <rect x="15" y="15" width="470" height="470" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.75"/>
-            <rect x="19" y="19" width="462" height="462" fill="none" stroke="#1e3a8a" stroke-width="0.8" stroke-dasharray="4,4"/>
+            <rect x="4" y="4" width="492" height="492" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.6"/>
+            <rect x="7" y="7" width="486" height="486" fill="none" stroke="#1e3a8a" stroke-width="0.75" stroke-dasharray="3,3"/>
 
             <text x="30" y="42" fill="#38bdf8" font-size="11" font-weight="bold" letter-spacing="1.5">TECHNICAL CAD BLUEPRINT — ART BASIN</text>
             <text x="30" y="58" fill="#94a3b8" font-size="9">SCALE 1:10 • ALL DIMENSIONS IN MM</text>
@@ -2835,8 +2835,8 @@ function getSpecsCADBlueprintSVG(p, specs) {
         <rect width="100%" height="100%" fill="#070f20"/>
         <rect width="100%" height="100%" fill="url(#cadGrid)"/>
         
-        <rect x="15" y="15" width="470" height="470" fill="none" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.75"/>
-        <rect x="19" y="19" width="462" height="462" fill="none" stroke="#1e3a8a" stroke-width="0.8" stroke-dasharray="4,4"/>
+        <rect x="4" y="4" width="492" height="492" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.6"/>
+        <rect x="7" y="7" width="486" height="486" fill="none" stroke="#1e3a8a" stroke-width="0.75" stroke-dasharray="3,3"/>
 
         <text x="30" y="42" fill="#38bdf8" font-size="11" font-weight="bold" letter-spacing="1.5">TECHNICAL CAD BLUEPRINT</text>
         <text x="30" y="58" fill="#94a3b8" font-size="9">SCALE 1:10 • ALL DIMENSIONS IN MM</text>
