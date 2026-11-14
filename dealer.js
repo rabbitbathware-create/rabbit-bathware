@@ -2711,14 +2711,20 @@ function openProductSpecsModal(prodId) {
     // Visual Showcase
     const imgList = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageBase64 ? [p.imageBase64] : []);
     const imgEl = document.getElementById('specs-ceramic-img');
+    const noImgEl = document.getElementById('specs-no-img-view');
     const cadViewEl = document.getElementById('specs-cad-view');
     
+    // Always reset image src and state immediately to prevent stale image bleeding
     if (imgEl) {
-        if (imgList.length > 0) {
+        if (imgList.length > 0 && imgList[0]) {
             imgEl.src = imgList[0];
             imgEl.style.display = 'block';
+            if (noImgEl) noImgEl.style.display = 'none';
         } else {
+            imgEl.src = '';
+            imgEl.removeAttribute('src');
             imgEl.style.display = 'none';
+            if (noImgEl) noImgEl.style.display = 'flex';
         }
     }
 
@@ -2851,18 +2857,34 @@ window.openProductSpecsModal = openProductSpecsModal;
 
 function closeProductSpecsModal() {
     closeModal('product-specs-modal');
+    currentSpecsProdId = null;
+    const imgEl = document.getElementById('specs-ceramic-img');
+    const noImgEl = document.getElementById('specs-no-img-view');
+    if (imgEl) {
+        imgEl.src = '';
+        imgEl.removeAttribute('src');
+        imgEl.style.display = 'none';
+    }
+    if (noImgEl) {
+        noImgEl.style.display = 'none';
+    }
 }
 window.closeProductSpecsModal = closeProductSpecsModal;
 
 function switchSpecsView(mode) {
     currentSpecsViewMode = mode;
     const imgEl = document.getElementById('specs-ceramic-img');
+    const noImgEl = document.getElementById('specs-no-img-view');
     const cadViewEl = document.getElementById('specs-cad-view');
     const btnCeramic = document.getElementById('btn-view-ceramic');
     const btnCad = document.getElementById('btn-view-cad');
 
+    const p = (state.products || []).find(x => x.id === currentSpecsProdId);
+    const hasImage = p && ((p.imagesBase64 && p.imagesBase64.length > 0 && p.imagesBase64[0]) || p.imageBase64);
+
     if (mode === 'cad') {
         if (imgEl) imgEl.style.display = 'none';
+        if (noImgEl) noImgEl.style.display = 'none';
         if (cadViewEl) cadViewEl.style.display = 'flex';
         if (btnCeramic) {
             btnCeramic.style.background = '#ffffff';
@@ -2877,8 +2899,18 @@ function switchSpecsView(mode) {
             btnCad.style.boxShadow = '0 4px 12px rgba(14, 37, 79, 0.25)';
         }
     } else {
-        if (imgEl) imgEl.style.display = 'block';
         if (cadViewEl) cadViewEl.style.display = 'none';
+        if (hasImage) {
+            if (imgEl) imgEl.style.display = 'block';
+            if (noImgEl) noImgEl.style.display = 'none';
+        } else {
+            if (imgEl) {
+                imgEl.src = '';
+                imgEl.removeAttribute('src');
+                imgEl.style.display = 'none';
+            }
+            if (noImgEl) noImgEl.style.display = 'flex';
+        }
         if (btnCeramic) {
             btnCeramic.style.background = '#0e254f';
             btnCeramic.style.color = '#ffffff';
