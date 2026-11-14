@@ -2494,6 +2494,17 @@ window.cancelImageCrop = cancelImageCrop;
 // ==========================================================================
 // MULTI-CATEGORY SPECIFICATIONS & CAD BLUEPRINT ENGINE
 // ==========================================================================
+function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 const SPECS_TEMPLATES = {
     toilet: {
         id: 'toilet',

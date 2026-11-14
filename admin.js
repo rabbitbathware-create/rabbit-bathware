@@ -1523,6 +1523,17 @@ function handleNewProduct(e) {
 // ==========================================================================
 // DYNAMIC MULTI-CATEGORY SPECIFICATIONS & CAD BLUEPRINT HANDLERS
 // ==========================================================================
+function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 function renderStockSpecFields(templateId, values = {}) {
     const container = document.getElementById("stock-specs-dynamic-fields");
     if (!container) return;
