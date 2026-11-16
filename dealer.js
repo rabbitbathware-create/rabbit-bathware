@@ -105,10 +105,10 @@
             const gradeBadge = (() => {
                 const g = p.grade || 'Premium';
                 if (!hasMultiGrades && g === 'Premium') return '';
-                if (g === 'Commercial') return `<span style="font-size:0.65rem; color:#dc2626; background:#fee2e2; border:1px solid #fca5a5; border-radius:3px; padding:1px 4px; font-weight:700;">ðŸ”» Commercial</span>`;
-                if (g === 'STD') return `<span style="font-size:0.65rem; color:#c2410c; background:#ffedd5; border:1px solid #fdba74; border-radius:3px; padding:1px 4px; font-weight:700;">ðŸ”¸ STD</span>`;
-                if (g === 'ROK') return `<span style="font-size:0.65rem; color:#16a34a; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:3px; padding:1px 4px; font-weight:700;">ðŸ”¹ ROK</span>`;
-                return `<span style="font-size:0.65rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; font-weight:700;">â­ Premium</span>`;
+                if (g === 'Commercial') return `<span style="font-size:0.65rem; color:#dc2626; background:#fee2e2; border:1px solid #fca5a5; border-radius:3px; padding:1px 4px; font-weight:700;">🔻 Commercial</span>`;
+                if (g === 'STD') return `<span style="font-size:0.65rem; color:#c2410c; background:#ffedd5; border:1px solid #fdba74; border-radius:3px; padding:1px 4px; font-weight:700;">🔸 STD</span>`;
+                if (g === 'ROK') return `<span style="font-size:0.65rem; color:#16a34a; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:3px; padding:1px 4px; font-weight:700;">🔹 ROK</span>`;
+                return `<span style="font-size:0.65rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; font-weight:700;">⭐ Premium</span>`;
             })();
             const materialText = p.material ? `${p.material} | ` : '';
 
@@ -120,7 +120,7 @@
                     <div class="search-result-meta" style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap; margin:2px 0;">
                         ${gradeBadge}
                         <span>${p.category} ${p.subcategory ? `> ${p.subcategory}` : ''} | ${materialText}${p.colour}</span>
-                        ${(typeof isProductAsPerOrder === 'function' && isProductAsPerOrder(p)) ? `<span style="display:inline-block; margin-left:4px; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; font-size:0.65rem; font-weight:700;">ðŸ“¦ As Per Order</span>` : ''}
+                        ${(typeof isProductAsPerOrder === 'function' && isProductAsPerOrder(p)) ? `<span style="display:inline-block; margin-left:4px; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; font-size:0.65rem; font-weight:700;">📦 As Per Order</span>` : ''}
                     </div>
                     <div class="search-result-price">₹${pricing.price.toLocaleString('en-IN')}</div>
                 </div>
@@ -635,7 +635,7 @@
             } catch (e) {}
         }
 
-        let msg = `*ðŸ†• NEW DEALER REGISTRATION & ORDER INQUIRY*\n`;
+        let msg = `*🆕 NEW DEALER REGISTRATION & ORDER INQUIRY*\n`;
         msg += `-----------------------------\n`;
         msg += `*Shop / Firm:* ${shopName}\n`;
         msg += `*Owner / Contact:* ${ownerName}\n`;
@@ -649,7 +649,7 @@
         if (inquiryItems.length > 0) {
             msg += `-----------------------------\n*Inquiry Products (${inquiryItems.reduce((s, i) => s + i.qty, 0)} pcs):*\n`;
             inquiryItems.forEach(i => {
-                msg += `- ${i.model} (${i.grade}/${i.colour}) Ã— ${i.qty} pcs\n`;
+                msg += `- ${i.model} (${i.grade}/${i.colour}) × ${i.qty} pcs\n`;
             });
         }
         msg += `-----------------------------\n_Sent via Rabbit World Portal_`;
@@ -658,7 +658,7 @@
         window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
 
         closeModal('new-dealer-modal');
-        alert(`ðŸŽ‰ Thank you, ${ownerName}!\nYour Dealer Registration Request has been sent via WhatsApp.\nOur team will review your area and contact you shortly.`);
+        alert(`🎉 Thank you, ${ownerName}!\nYour Dealer Registration Request has been sent via WhatsApp.\nOur team will review your area and contact you shortly.`);
     }
 
     function openDealerLoginModal() { openModal('dealer-auth-modal'); }
@@ -708,7 +708,7 @@
 
         const merchant = findDealerMerchant(idVal);
         if (!merchant) {
-            alert(`âŒ Dealer account not found for "${idVal}".\nPlease enter your registered 10-digit mobile number or Dealer UID (e.g. MEH811).\nNote: Login by shop or owner name is not supported.`);
+            alert(`❌ Dealer account not found for "${idVal}".\nPlease enter your registered 10-digit mobile number or Dealer UID (e.g. MEH811).\nNote: Login by shop or owner name is not supported.`);
             return;
         }
 
@@ -722,9 +722,9 @@
             renderDealerGradePills();
             renderDealerCatalog();
             renderDealerCart();
-            alert(`ðŸŽ‰ Welcome back, ${merchant.name}!\nYour custom wholesale rates and permitted quality tiers are now active.`);
+            alert(`🎉 Welcome back, ${merchant.name}!\nYour custom wholesale rates and permitted quality tiers are now active.`);
         } else {
-            alert('âŒ Incorrect Security PIN. Please enter your correct 6-digit PIN or log in using WhatsApp OTP.');
+            alert('❌ Incorrect Security PIN. Please enter your correct 6-digit PIN or log in using WhatsApp OTP.');
             if (pinInput) {
                 pinInput.value = '';
                 pinInput.focus();
@@ -751,7 +751,7 @@
         });
         saveState();
 
-        const msg = `ðŸ” *BMS LOGIN OTP REQUEST*\n-----------------------------\n*Business:* ${m.name}\n*OTP Code:* *${otpCode}*\n(Valid for 10 minutes)`;
+        const msg = `🔐 *BMS LOGIN OTP REQUEST*\n-----------------------------\n*Business:* ${m.name}\n*OTP Code:* *${otpCode}*\n(Valid for 10 minutes)`;
         const adminWA = (state.settings && state.settings.adminWA) ? state.settings.adminWA : "919876543210";
         window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
         alert(`OTP request sent to Admin via WhatsApp!\nEnter code ${otpCode} once verified.`);
@@ -777,7 +777,7 @@
             renderDealerGradePills();
             renderDealerCatalog();
             renderDealerCart();
-            alert(`ðŸŽ‰ Verified! Welcome, ${m.name}!`);
+            alert(`🎉 Verified! Welcome, ${m.name}!`);
         } else {
             alert('Invalid or expired OTP code. Please request a new one.');
         }
@@ -1197,10 +1197,10 @@
         });
 
         const gradeConfigs = {
-            'Premium': { icon: 'â­', label: 'Premium' },
-            'ROK': { icon: 'ðŸ”¹', label: 'ROK' },
-            'STD': { icon: 'ðŸ”¸', label: 'STD' },
-            'Commercial': { icon: 'ðŸ”»', label: 'Commercial' }
+            'Premium': { icon: '⭐', label: 'Premium' },
+            'ROK': { icon: '🔹', label: 'ROK' },
+            'STD': { icon: '🔸', label: 'STD' },
+            'Commercial': { icon: '🔻', label: 'Commercial' }
         };
 
         let pillsHtml = `
@@ -1210,7 +1210,7 @@
         `;
 
         allowedGrades.forEach(g => {
-            const cfg = gradeConfigs[g] || { icon: 'ðŸ·ï¸', label: g };
+            const cfg = gradeConfigs[g] || { icon: '🏷️', label: g };
             const count = prodsInScope.filter(p => (p.grade || 'Premium') === g).length;
             const isActive = (activeGradeFilter === g);
             pillsHtml += `
@@ -1371,10 +1371,10 @@
                 const gradeBadgeHtml = (() => {
                     const g = p.grade || 'Premium';
                     if (!hasMultiGrades && g === 'Premium') return '';
-                    if (g === 'Commercial') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:4px; padding:1px 6px;">ðŸ”» Commercial</span>`;
-                    if (g === 'STD') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#ffedd5; color:#c2410c; border:1px solid #fdba74; border-radius:4px; padding:1px 6px;">ðŸ”¸ STD</span>`;
-                    if (g === 'ROK') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:4px; padding:1px 6px;">ðŸ”¹ ROK</span>`;
-                    return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:4px; padding:1px 6px;">â­ Premium</span>`;
+                    if (g === 'Commercial') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:4px; padding:1px 6px;">🔻 Commercial</span>`;
+                    if (g === 'STD') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#ffedd5; color:#c2410c; border:1px solid #fdba74; border-radius:4px; padding:1px 6px;">🔸 STD</span>`;
+                    if (g === 'ROK') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:4px; padding:1px 6px;">🔹 ROK</span>`;
+                    return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:4px; padding:1px 6px;">⭐ Premium</span>`;
                 })();
 
                 const materialSpecBadge = p.material ? `<span style="display:inline-block; font-size:0.68rem; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:1px 6px;" title="Material Specification"><i class="fa-solid fa-shapes" style="font-size:0.6rem; color:#94a3b8;"></i> ${p.material}</span>` : '';
@@ -1402,12 +1402,12 @@
                     </button>
                     ${(isDual && (boxCount > 0 || looseQty > 0)) ? `
                         <div style="font-size:0.68rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:4px; padding:2px 6px; margin:3px 0; font-weight:700;">
-                            Cart: ${[boxCount > 0 ? `ðŸ“¦ ${boxCount} Box (${boxCount * p.boxQty} pcs)` : '', looseQty > 0 ? `${looseQty} Pcs` : ''].filter(Boolean).join(' + ')}
+                            Cart: ${[boxCount > 0 ? `📦 ${boxCount} Box (${boxCount * p.boxQty} pcs)` : '', looseQty > 0 ? `${looseQty} Pcs` : ''].filter(Boolean).join(' + ')}
                         </div>
                     ` : ''}
                     ${isDual ? `
                         <div style="display:flex; gap:4px; margin:0.35rem 0; background:#f1f5f9; padding:2px; border-radius:6px; box-sizing:border-box; width:100%;">
-                            <button type="button" onclick="setDealerCardUnit('${p.id}', 'box')" style="flex:1; border:none; padding:4px 4px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:700; ${activeUnit === 'box' ? 'background:#0e254f; color:#fff;' : 'background:transparent; color:#64748b;'}">ðŸ“¦ Box (${p.boxQty})</button>
+                            <button type="button" onclick="setDealerCardUnit('${p.id}', 'box')" style="flex:1; border:none; padding:4px 4px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:700; ${activeUnit === 'box' ? 'background:#0e254f; color:#fff;' : 'background:transparent; color:#64748b;'}">📦 Box (${p.boxQty})</button>
                             <button type="button" onclick="setDealerCardUnit('${p.id}', 'pcs')" style="flex:1; border:none; padding:4px 4px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:700; ${activeUnit === 'pcs' ? 'background:#0e254f; color:#fff;' : 'background:transparent; color:#64748b;'}">Loose Pcs</button>
                         </div>
                     ` : ''}
@@ -1422,7 +1422,7 @@
                         }
                     </div>
                     <div class="qty-adjuster-group">
-                        <button type="button" class="qty-adj-btn" onclick="event.stopPropagation(); dealerQtyChange('${activeCartKey}', -1)">âˆ’</button>
+                        <button type="button" class="qty-adj-btn" onclick="event.stopPropagation(); dealerQtyChange('${activeCartKey}', -1)">-</button>
                         <input type="number" class="qty-adj-val" id="dqty-${activeCartKey}" value="${activeQty}" onchange="dealerQtySet('${activeCartKey}', this.value)" onclick="event.stopPropagation()">
                         <button type="button" class="qty-adj-btn" onclick="event.stopPropagation(); dealerQtyChange('${activeCartKey}', +1)">+</button>
                     </div>
@@ -1451,7 +1451,7 @@
             } else {
                 const minQty = offer.minQty || 1;
                 if (newQty < minQty) {
-                    alert(`Ã¢Å¡Â Ã¯Â¸Â Minimum order quantity for "${offer.model}" is ${minQty} pcs.`);
+                    alert(`⚠️ Minimum order quantity for "${offer.model}" is ${minQty} pcs.`);
                     newQty = minQty;
                 }
                 dealerCart[normalizedKey] = newQty;
@@ -1669,7 +1669,7 @@
                             ${prod.model}
                             <span style="display:inline-block; font-size:0.68rem; font-weight:700; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 5px; margin-left:4px;">${prod.grade || 'Premium'}</span>
                             ${prod.material ? `<span style="display:inline-block; font-size:0.65rem; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; padding:1px 4px; margin-left:2px;">${prod.material}</span>` : ''}
-                            ${isBox ? `<span style="display:inline-block; font-size:0.7rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 6px; margin-left:4px; font-weight:700;">ðŸ“¦ ${qty} Box (${totalPcs} pcs)</span>` : ''}
+                            ${isBox ? `<span style="display:inline-block; font-size:0.7rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 6px; margin-left:4px; font-weight:700;">📦 ${qty} Box (${totalPcs} pcs)</span>` : ''}
                             ${(typeof isProductAsPerOrder === 'function' && isProductAsPerOrder(prod)) ? `<span style="display:inline-block; font-size:0.65rem; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; margin-left:4px; font-weight:700;">As Per Order</span>` : ''}
                         </div>
                         <div class="qty-adjuster-group" style="width: 100px; height: 26px; margin: 0.3rem 0;">
@@ -2006,13 +2006,13 @@
             let catTotal = 0;
             groupedOrderItems[cat].forEach((item, i) => {
                 catTotal += (item.qty * item.price);
-                const qtyWa = item.unit === 'box' ? `ðŸ“¦ ${item.orderQty} Box (${item.qty} pcs)` : `${item.qty} pcs`;
+                const qtyWa = item.unit === 'box' ? `📦 ${item.orderQty} Box (${item.qty} pcs)` : `${item.qty} pcs`;
                 const rateWa = item.unit === 'box' ? `₹${item.price.toLocaleString('en-IN')}/pc` : `₹${item.price.toLocaleString('en-IN')}`;
                 const matWa = item.material ? ` [${item.material}]` : '';
                 if (isHideTotals) {
-                    msg += `- ${item.model} (${item.grade || 'Premium'}${matWa}/${item.colour}) Ã— ${qtyWa} @ ${rateWa}\n`;
+                    msg += `- ${item.model} (${item.grade || 'Premium'}${matWa}/${item.colour}) × ${qtyWa} @ ${rateWa}\n`;
                 } else {
-                    msg += `- ${item.model} (${item.grade || 'Premium'}${matWa}/${item.colour}) Ã— ${qtyWa} = ₹${(item.qty * item.price).toLocaleString('en-IN')}\n`;
+                    msg += `- ${item.model} (${item.grade || 'Premium'}${matWa}/${item.colour}) × ${qtyWa} = ₹${(item.qty * item.price).toLocaleString('en-IN')}\n`;
                 }
             });
             if (!isHideTotals) {
@@ -2180,9 +2180,9 @@
             groupedOrderItems[cat].forEach((item, i) => {
                 catTotal += (item.qty * item.price);
                 if (isHideTotals) {
-                    msg += `- ${item.model} (${item.grade}/${item.colour}) Ã— ${item.qty} @ ₹${item.price.toLocaleString('en-IN')}\n`;
+                    msg += `- ${item.model} (${item.grade}/${item.colour}) × ${item.qty} @ ₹${item.price.toLocaleString('en-IN')}\n`;
                 } else {
-                    msg += `- ${item.model} (${item.grade}/${item.colour}) Ã— ${item.qty} = ₹${(item.qty * item.price).toLocaleString('en-IN')}\n`;
+                    msg += `- ${item.model} (${item.grade}/${item.colour}) × ${item.qty} = ₹${(item.qty * item.price).toLocaleString('en-IN')}\n`;
                 }
             });
             if (!isHideTotals) {
@@ -2637,7 +2637,7 @@ function addOfferToCart(offerId) {
     const qty = input ? (parseInt(input.value, 10) || o.minQty || 1) : (o.minQty || 1);
 
     if (qty < (o.minQty || 1)) {
-        alert(`âš ï¸ Minimum Order Quantity for this offer is ${o.minQty} pcs.`);
+        alert(`⚠️ Minimum Order Quantity for this offer is ${o.minQty} pcs.`);
         return;
     }
 
@@ -2648,7 +2648,7 @@ function addOfferToCart(offerId) {
     renderDealerCart();
     renderDealerOffers();
 
-    alert(`ðŸŽ‰ ${qty} pcs of "${o.model}" added to cart at Special Offer rate of ₹${o.offerPrice.toLocaleString('en-IN')}/pc!`);
+    alert(`🎉 ${qty} pcs of "${o.model}" added to cart at Special Offer rate of ₹${o.offerPrice.toLocaleString('en-IN')}/pc!`);
 }
 window.addOfferToCart = addOfferToCart;
 
@@ -3191,7 +3191,7 @@ function executeShareAction(action) {
         const url = catalogUrl + '?' + params.toString();
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(url).then(() => {
-                alert('âœ… Link Copied to Clipboard!\n\nYou can now paste and send this Customer Catalog link on WhatsApp.');
+                alert('✅ Link Copied to Clipboard!\n\nYou can now paste and send this Customer Catalog link on WhatsApp.');
             }).catch(() => {
                 prompt('Copy this Customer Catalog Link:', url);
             });

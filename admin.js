@@ -250,7 +250,7 @@ function deleteMainCategory(mainCat) {
     const prodCount = (state.products || []).filter(p => p.category === mainCat).length;
     let confirmMsg = `Are you sure you want to delete Main Category "${mainCat}"?`;
     if (prodCount > 0) {
-        confirmMsg = `âš ï¸ WARNING: Main Category "${mainCat}" contains ${prodCount} active product(s)!\n\nAre you sure you want to delete it?`;
+        confirmMsg = `⚠️ WARNING: Main Category "${mainCat}" contains ${prodCount} active product(s)!\n\nAre you sure you want to delete it?`;
     }
     if (!confirm(confirmMsg)) return;
 
@@ -271,7 +271,7 @@ function deleteSubCategory(mainCat, subCat) {
     const subCount = (state.products || []).filter(p => p.category === mainCat && (p.subcategory === subCat || p.subCategory === subCat)).length;
     let confirmMsg = `Remove sub-category "${subCat}" from "${mainCat}"?`;
     if (subCount > 0) {
-        confirmMsg = `âš ï¸ WARNING: Sub-Category "${subCat}" has ${subCount} active product(s)!\n\nAre you sure you want to remove it?`;
+        confirmMsg = `⚠️ WARNING: Sub-Category "${subCat}" has ${subCount} active product(s)!\n\nAre you sure you want to remove it?`;
     }
     if (!confirm(confirmMsg)) return;
 
@@ -1773,7 +1773,7 @@ function renderMerchantsGrid() {
                 <p class="merchant-address-text" style="margin-top:0.2rem;"><i class="fa-brands fa-whatsapp"></i> +${m.phone} | PIN: <span style="font-weight:700;">${pinDisplay}</span></p>
                 <div style="margin-top:0.35rem; display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap;">
                     <small style="font-size:0.7rem; color:#64748b; font-weight:600;">Grades:</small>
-                    ${allowedGradesHtml} ${(m.allowOffers === true) ? `<button type="button" class="btn" onclick="event.stopPropagation(); window.togglePartyOfferDirect('${m.id}')" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:4px; background:#fef2f2; color:#dc2626; font-weight:700; border:1px solid #fecaca; cursor:pointer;" title="àª•à«àª²àª¿àª• àª•àª°à«€àª¨à«‡ àª† àªªàª¾àª°à«àªŸà«€ àª®àª¾àªŸà«‡ àª‘àª«àª°à«àª¸ àª¬àª‚àª§ àª•àª°à«‹"><i class="fa-solid fa-fire"></i> Offers ON</button>` : `<button type="button" class="btn" onclick="event.stopPropagation(); window.togglePartyOfferDirect('${m.id}')" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:4px; background:#f1f5f9; color:#64748b; font-weight:600; border:1px solid #cbd5e1; cursor:pointer;" title="àª•à«àª²àª¿àª• àª•àª°à«€àª¨à«‡ àª† àªªàª¾àª°à«àªŸà«€ àª®àª¾àªŸà«‡ àª‘àª«àª°à«àª¸ àªšàª¾àª²à« àª•àª°à«‹"><i class="fa-solid fa-ban"></i> Offers OFF</button>`}
+                    ${allowedGradesHtml} ${(m.allowOffers === true) ? `<button type="button" class="btn" onclick="event.stopPropagation(); window.togglePartyOfferDirect('${m.id}')" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:4px; background:#fef2f2; color:#dc2626; font-weight:700; border:1px solid #fecaca; cursor:pointer;" title="Toggle Offers for this party"><i class="fa-solid fa-fire"></i> Offers ON</button>` : `<button type="button" class="btn" onclick="event.stopPropagation(); window.togglePartyOfferDirect('${m.id}')" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:4px; background:#f1f5f9; color:#64748b; font-weight:600; border:1px solid #cbd5e1; cursor:pointer;" title="Toggle Offers for this party"><i class="fa-solid fa-ban"></i> Offers OFF</button>`}
                 </div>
             </div>
             
@@ -2846,7 +2846,7 @@ function renderOrdersList() {
         const card = document.createElement("div");
         card.className = "order-list-item-card";
 
-        const itemsSummary = ord.items.slice(0, 3).map(i => `${i.model} Ã—${i.qty}`).join(", ");
+        const itemsSummary = ord.items.slice(0, 3).map(i => `${i.model} ×${i.qty}`).join(", ");
         const moreItems = ord.items.length > 3 ? ` + ${ord.items.length - 3} more` : '';
         const gstRate = (state.settings && state.settings.gstRate !== undefined) ? state.settings.gstRate : 18;
 
@@ -5375,7 +5375,7 @@ function renderPartyPrivateCategoryCheckboxes(m) {
         });
 
         if (privateCategories.length === 0) {
-            container.innerHTML = `<div style="font-size:0.75rem; color:#64748b; font-style:italic; padding:0.2rem 0;">àª¬àª§à«€ àª•à«‡àªŸà«‡àª—àª°à«€àª àª¹àª¾àª²àª®àª¾àª‚ àªœàª¾àª¹à«‡àª° (Public) àª›à«‡. Category Manager àª®àª¾àª‚àª¥à«€ àª•à«‡àªŸà«‡àª—àª°à«€àª¨à«‡ Private àª¸à«‡àªŸ àª•àª°à«€ àª¶àª•àª¶à«‹.</div>`;
+            container.innerHTML = `<div style="font-size:0.75rem; color:#64748b; font-style:italic; padding:0.2rem 0;">All categories are currently Public. You can set categories to Private in Category Manager.</div>`;
             return;
         }
 
