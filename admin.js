@@ -1,4 +1,4 @@
-
+﻿
 // Global Delegated Click Listener for Party Action Buttons
 if (typeof document !== 'undefined') {
     document.addEventListener('click', function(e) {
@@ -1781,7 +1781,7 @@ function renderMerchantsGrid() {
             <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.3rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.5rem; margin-bottom:0.75rem; font-size:0.78rem;">
                 <div>
                     <span style="color:#64748b; display:block; font-size:0.68rem;">Balance</span>
-                    <strong style="color:${balColor}; font-size:0.85rem;">${perf && typeof fmtCur === 'function' ? fmtCur(perf.balance) : 'â‚¹0'}</strong>
+                    <strong style="color:${balColor}; font-size:0.85rem;">${perf && typeof fmtCur === 'function' ? fmtCur(perf.balance) : '₹0'}</strong>
                 </div>
                 <div>
                     <span style="color:#64748b; display:block; font-size:0.68rem;">Last Order</span>

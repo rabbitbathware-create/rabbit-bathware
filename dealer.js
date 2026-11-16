@@ -1,4 +1,4 @@
-    let dealerMerchant = null;
+﻿    let dealerMerchant = null;
     let dealerCart = {};
     let activeAuthMode = 'pin';
     let lastSubmittedOrder = null;
@@ -105,10 +105,10 @@
             const gradeBadge = (() => {
                 const g = p.grade || 'Premium';
                 if (!hasMultiGrades && g === 'Premium') return '';
-                if (g === 'Commercial') return `<span style="font-size:0.65rem; color:#dc2626; background:#fee2e2; border:1px solid #fca5a5; border-radius:3px; padding:1px 4px; font-weight:700;">🔻 Commercial</span>`;
-                if (g === 'STD') return `<span style="font-size:0.65rem; color:#c2410c; background:#ffedd5; border:1px solid #fdba74; border-radius:3px; padding:1px 4px; font-weight:700;">🔸 STD</span>`;
-                if (g === 'ROK') return `<span style="font-size:0.65rem; color:#16a34a; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:3px; padding:1px 4px; font-weight:700;">🔹 ROK</span>`;
-                return `<span style="font-size:0.65rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; font-weight:700;">⭐ Premium</span>`;
+                if (g === 'Commercial') return `<span style="font-size:0.65rem; color:#dc2626; background:#fee2e2; border:1px solid #fca5a5; border-radius:3px; padding:1px 4px; font-weight:700;">ðŸ”» Commercial</span>`;
+                if (g === 'STD') return `<span style="font-size:0.65rem; color:#c2410c; background:#ffedd5; border:1px solid #fdba74; border-radius:3px; padding:1px 4px; font-weight:700;">ðŸ”¸ STD</span>`;
+                if (g === 'ROK') return `<span style="font-size:0.65rem; color:#16a34a; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:3px; padding:1px 4px; font-weight:700;">ðŸ”¹ ROK</span>`;
+                return `<span style="font-size:0.65rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; font-weight:700;">â­ Premium</span>`;
             })();
             const materialText = p.material ? `${p.material} | ` : '';
 
@@ -120,7 +120,7 @@
                     <div class="search-result-meta" style="display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap; margin:2px 0;">
                         ${gradeBadge}
                         <span>${p.category} ${p.subcategory ? `> ${p.subcategory}` : ''} | ${materialText}${p.colour}</span>
-                        ${(typeof isProductAsPerOrder === 'function' && isProductAsPerOrder(p)) ? `<span style="display:inline-block; margin-left:4px; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; font-size:0.65rem; font-weight:700;">📦 As Per Order</span>` : ''}
+                        ${(typeof isProductAsPerOrder === 'function' && isProductAsPerOrder(p)) ? `<span style="display:inline-block; margin-left:4px; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; font-size:0.65rem; font-weight:700;">ðŸ“¦ As Per Order</span>` : ''}
                     </div>
                     <div class="search-result-price">₹${pricing.price.toLocaleString('en-IN')}</div>
                 </div>
@@ -635,7 +635,7 @@
             } catch (e) {}
         }
 
-        let msg = `*🆕 NEW DEALER REGISTRATION & ORDER INQUIRY*\n`;
+        let msg = `*ðŸ†• NEW DEALER REGISTRATION & ORDER INQUIRY*\n`;
         msg += `-----------------------------\n`;
         msg += `*Shop / Firm:* ${shopName}\n`;
         msg += `*Owner / Contact:* ${ownerName}\n`;
@@ -649,7 +649,7 @@
         if (inquiryItems.length > 0) {
             msg += `-----------------------------\n*Inquiry Products (${inquiryItems.reduce((s, i) => s + i.qty, 0)} pcs):*\n`;
             inquiryItems.forEach(i => {
-                msg += `- ${i.model} (${i.grade}/${i.colour}) × ${i.qty} pcs\n`;
+                msg += `- ${i.model} (${i.grade}/${i.colour}) Ã— ${i.qty} pcs\n`;
             });
         }
         msg += `-----------------------------\n_Sent via Rabbit World Portal_`;
@@ -658,7 +658,7 @@
         window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
 
         closeModal('new-dealer-modal');
-        alert(`🎉 Thank you, ${ownerName}!\nYour Dealer Registration Request has been sent via WhatsApp.\nOur team will review your area and contact you shortly.`);
+        alert(`ðŸŽ‰ Thank you, ${ownerName}!\nYour Dealer Registration Request has been sent via WhatsApp.\nOur team will review your area and contact you shortly.`);
     }
 
     function openDealerLoginModal() { openModal('dealer-auth-modal'); }
@@ -708,7 +708,7 @@
 
         const merchant = findDealerMerchant(idVal);
         if (!merchant) {
-            alert(`❌ Dealer account not found for "${idVal}".\nPlease enter your registered 10-digit mobile number or Dealer UID (e.g. MEH811).\nNote: Login by shop or owner name is not supported.`);
+            alert(`âŒ Dealer account not found for "${idVal}".\nPlease enter your registered 10-digit mobile number or Dealer UID (e.g. MEH811).\nNote: Login by shop or owner name is not supported.`);
             return;
         }
 
@@ -722,9 +722,9 @@
             renderDealerGradePills();
             renderDealerCatalog();
             renderDealerCart();
-            alert(`🎉 Welcome back, ${merchant.name}!\nYour custom wholesale rates and permitted quality tiers are now active.`);
+            alert(`ðŸŽ‰ Welcome back, ${merchant.name}!\nYour custom wholesale rates and permitted quality tiers are now active.`);
         } else {
-            alert('❌ Incorrect Security PIN. Please enter your correct 6-digit PIN or log in using WhatsApp OTP.');
+            alert('âŒ Incorrect Security PIN. Please enter your correct 6-digit PIN or log in using WhatsApp OTP.');
             if (pinInput) {
                 pinInput.value = '';
                 pinInput.focus();
@@ -751,7 +751,7 @@
         });
         saveState();
 
-        const msg = `🔐 *BMS LOGIN OTP REQUEST*\n-----------------------------\n*Business:* ${m.name}\n*OTP Code:* *${otpCode}*\n(Valid for 10 minutes)`;
+        const msg = `ðŸ” *BMS LOGIN OTP REQUEST*\n-----------------------------\n*Business:* ${m.name}\n*OTP Code:* *${otpCode}*\n(Valid for 10 minutes)`;
         const adminWA = (state.settings && state.settings.adminWA) ? state.settings.adminWA : "919876543210";
         window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
         alert(`OTP request sent to Admin via WhatsApp!\nEnter code ${otpCode} once verified.`);
@@ -777,7 +777,7 @@
             renderDealerGradePills();
             renderDealerCatalog();
             renderDealerCart();
-            alert(`🎉 Verified! Welcome, ${m.name}!`);
+            alert(`ðŸŽ‰ Verified! Welcome, ${m.name}!`);
         } else {
             alert('Invalid or expired OTP code. Please request a new one.');
         }
@@ -1044,6 +1044,7 @@
         const drawerUserBadge = document.getElementById('drawer-user-badge');
         const drawerAuthAction = document.getElementById('drawer-auth-action');
         const drawerMyOrders = document.getElementById('drawer-my-orders-link');
+        const drawerShareCatalog = document.getElementById('drawer-share-catalog-link');
         const offersNavBtn = document.getElementById('nav-btn-offers');
         const mobileOffersNavBtn = document.getElementById('mobile-nav-btn-offers');
         const canSeeOffers = !!(dealerMerchant && dealerMerchant.allowOffers === true);
@@ -1061,6 +1062,7 @@
                 drawerAuthAction.innerHTML = `<a class="mobile-menu-link" style="color:#ef4444;" onclick="closeMobileDrawer(); dealerLogout();"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>`;
             }
             if (drawerMyOrders) drawerMyOrders.style.display = 'flex';
+            if (drawerShareCatalog) drawerShareCatalog.style.display = 'flex';
         } else {
             userBtn.innerHTML = `<i class="fa-regular fa-user"></i>`;
             userBtn.title = "Login / Register";
@@ -1072,6 +1074,7 @@
                 drawerAuthAction.innerHTML = `<a class="mobile-menu-link" style="color:#0e254f; font-weight:700;" onclick="closeMobileDrawer(); openDealerLoginModal();"><i class="fa-solid fa-key"></i> Dealer Login</a>`;
             }
             if (drawerMyOrders) drawerMyOrders.style.display = 'none';
+            if (drawerShareCatalog) drawerShareCatalog.style.display = 'none';
         }
     }
 
@@ -1194,10 +1197,10 @@
         });
 
         const gradeConfigs = {
-            'Premium': { icon: '⭐', label: 'Premium' },
-            'ROK': { icon: '🔹', label: 'ROK' },
-            'STD': { icon: '🔸', label: 'STD' },
-            'Commercial': { icon: '🔻', label: 'Commercial' }
+            'Premium': { icon: 'â­', label: 'Premium' },
+            'ROK': { icon: 'ðŸ”¹', label: 'ROK' },
+            'STD': { icon: 'ðŸ”¸', label: 'STD' },
+            'Commercial': { icon: 'ðŸ”»', label: 'Commercial' }
         };
 
         let pillsHtml = `
@@ -1207,7 +1210,7 @@
         `;
 
         allowedGrades.forEach(g => {
-            const cfg = gradeConfigs[g] || { icon: '🏷️', label: g };
+            const cfg = gradeConfigs[g] || { icon: 'ðŸ·ï¸', label: g };
             const count = prodsInScope.filter(p => (p.grade || 'Premium') === g).length;
             const isActive = (activeGradeFilter === g);
             pillsHtml += `
@@ -1368,10 +1371,10 @@
                 const gradeBadgeHtml = (() => {
                     const g = p.grade || 'Premium';
                     if (!hasMultiGrades && g === 'Premium') return '';
-                    if (g === 'Commercial') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:4px; padding:1px 6px;">🔻 Commercial</span>`;
-                    if (g === 'STD') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#ffedd5; color:#c2410c; border:1px solid #fdba74; border-radius:4px; padding:1px 6px;">🔸 STD</span>`;
-                    if (g === 'ROK') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:4px; padding:1px 6px;">🔹 ROK</span>`;
-                    return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:4px; padding:1px 6px;">⭐ Premium</span>`;
+                    if (g === 'Commercial') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:4px; padding:1px 6px;">ðŸ”» Commercial</span>`;
+                    if (g === 'STD') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#ffedd5; color:#c2410c; border:1px solid #fdba74; border-radius:4px; padding:1px 6px;">ðŸ”¸ STD</span>`;
+                    if (g === 'ROK') return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:4px; padding:1px 6px;">ðŸ”¹ ROK</span>`;
+                    return `<span style="display:inline-block; font-size:0.68rem; font-weight:800; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:4px; padding:1px 6px;">â­ Premium</span>`;
                 })();
 
                 const materialSpecBadge = p.material ? `<span style="display:inline-block; font-size:0.68rem; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:1px 6px;" title="Material Specification"><i class="fa-solid fa-shapes" style="font-size:0.6rem; color:#94a3b8;"></i> ${p.material}</span>` : '';
@@ -1399,12 +1402,12 @@
                     </button>
                     ${(isDual && (boxCount > 0 || looseQty > 0)) ? `
                         <div style="font-size:0.68rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:4px; padding:2px 6px; margin:3px 0; font-weight:700;">
-                            Cart: ${[boxCount > 0 ? `📦 ${boxCount} Box (${boxCount * p.boxQty} pcs)` : '', looseQty > 0 ? `${looseQty} Pcs` : ''].filter(Boolean).join(' + ')}
+                            Cart: ${[boxCount > 0 ? `ðŸ“¦ ${boxCount} Box (${boxCount * p.boxQty} pcs)` : '', looseQty > 0 ? `${looseQty} Pcs` : ''].filter(Boolean).join(' + ')}
                         </div>
                     ` : ''}
                     ${isDual ? `
                         <div style="display:flex; gap:4px; margin:0.35rem 0; background:#f1f5f9; padding:2px; border-radius:6px; box-sizing:border-box; width:100%;">
-                            <button type="button" onclick="setDealerCardUnit('${p.id}', 'box')" style="flex:1; border:none; padding:4px 4px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:700; ${activeUnit === 'box' ? 'background:#0e254f; color:#fff;' : 'background:transparent; color:#64748b;'}">📦 Box (${p.boxQty})</button>
+                            <button type="button" onclick="setDealerCardUnit('${p.id}', 'box')" style="flex:1; border:none; padding:4px 4px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:700; ${activeUnit === 'box' ? 'background:#0e254f; color:#fff;' : 'background:transparent; color:#64748b;'}">ðŸ“¦ Box (${p.boxQty})</button>
                             <button type="button" onclick="setDealerCardUnit('${p.id}', 'pcs')" style="flex:1; border:none; padding:4px 4px; font-size:0.75rem; border-radius:4px; cursor:pointer; font-weight:700; ${activeUnit === 'pcs' ? 'background:#0e254f; color:#fff;' : 'background:transparent; color:#64748b;'}">Loose Pcs</button>
                         </div>
                     ` : ''}
@@ -1419,7 +1422,7 @@
                         }
                     </div>
                     <div class="qty-adjuster-group">
-                        <button type="button" class="qty-adj-btn" onclick="event.stopPropagation(); dealerQtyChange('${activeCartKey}', -1)">−</button>
+                        <button type="button" class="qty-adj-btn" onclick="event.stopPropagation(); dealerQtyChange('${activeCartKey}', -1)">âˆ’</button>
                         <input type="number" class="qty-adj-val" id="dqty-${activeCartKey}" value="${activeQty}" onchange="dealerQtySet('${activeCartKey}', this.value)" onclick="event.stopPropagation()">
                         <button type="button" class="qty-adj-btn" onclick="event.stopPropagation(); dealerQtyChange('${activeCartKey}', +1)">+</button>
                     </div>
@@ -1448,7 +1451,7 @@
             } else {
                 const minQty = offer.minQty || 1;
                 if (newQty < minQty) {
-                    alert(`âš ï¸ Minimum order quantity for "${offer.model}" is ${minQty} pcs.`);
+                    alert(`Ã¢Å¡Â Ã¯Â¸Â Minimum order quantity for "${offer.model}" is ${minQty} pcs.`);
                     newQty = minQty;
                 }
                 dealerCart[normalizedKey] = newQty;
@@ -1666,7 +1669,7 @@
                             ${prod.model}
                             <span style="display:inline-block; font-size:0.68rem; font-weight:700; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 5px; margin-left:4px;">${prod.grade || 'Premium'}</span>
                             ${prod.material ? `<span style="display:inline-block; font-size:0.65rem; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; padding:1px 4px; margin-left:2px;">${prod.material}</span>` : ''}
-                            ${isBox ? `<span style="display:inline-block; font-size:0.7rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 6px; margin-left:4px; font-weight:700;">📦 ${qty} Box (${totalPcs} pcs)</span>` : ''}
+                            ${isBox ? `<span style="display:inline-block; font-size:0.7rem; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 6px; margin-left:4px; font-weight:700;">ðŸ“¦ ${qty} Box (${totalPcs} pcs)</span>` : ''}
                             ${(typeof isProductAsPerOrder === 'function' && isProductAsPerOrder(prod)) ? `<span style="display:inline-block; font-size:0.65rem; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:3px; padding:1px 4px; margin-left:4px; font-weight:700;">As Per Order</span>` : ''}
                         </div>
                         <div class="qty-adjuster-group" style="width: 100px; height: 26px; margin: 0.3rem 0;">
@@ -2003,13 +2006,13 @@
             let catTotal = 0;
             groupedOrderItems[cat].forEach((item, i) => {
                 catTotal += (item.qty * item.price);
-                const qtyWa = item.unit === 'box' ? `📦 ${item.orderQty} Box (${item.qty} pcs)` : `${item.qty} pcs`;
+                const qtyWa = item.unit === 'box' ? `ðŸ“¦ ${item.orderQty} Box (${item.qty} pcs)` : `${item.qty} pcs`;
                 const rateWa = item.unit === 'box' ? `₹${item.price.toLocaleString('en-IN')}/pc` : `₹${item.price.toLocaleString('en-IN')}`;
                 const matWa = item.material ? ` [${item.material}]` : '';
                 if (isHideTotals) {
-                    msg += `- ${item.model} (${item.grade || 'Premium'}${matWa}/${item.colour}) × ${qtyWa} @ ${rateWa}\n`;
+                    msg += `- ${item.model} (${item.grade || 'Premium'}${matWa}/${item.colour}) Ã— ${qtyWa} @ ${rateWa}\n`;
                 } else {
-                    msg += `- ${item.model} (${item.grade || 'Premium'}${matWa}/${item.colour}) × ${qtyWa} = ₹${(item.qty * item.price).toLocaleString('en-IN')}\n`;
+                    msg += `- ${item.model} (${item.grade || 'Premium'}${matWa}/${item.colour}) Ã— ${qtyWa} = ₹${(item.qty * item.price).toLocaleString('en-IN')}\n`;
                 }
             });
             if (!isHideTotals) {
@@ -2177,9 +2180,9 @@
             groupedOrderItems[cat].forEach((item, i) => {
                 catTotal += (item.qty * item.price);
                 if (isHideTotals) {
-                    msg += `- ${item.model} (${item.grade}/${item.colour}) × ${item.qty} @ ₹${item.price.toLocaleString('en-IN')}\n`;
+                    msg += `- ${item.model} (${item.grade}/${item.colour}) Ã— ${item.qty} @ ₹${item.price.toLocaleString('en-IN')}\n`;
                 } else {
-                    msg += `- ${item.model} (${item.grade}/${item.colour}) × ${item.qty} = ₹${(item.qty * item.price).toLocaleString('en-IN')}\n`;
+                    msg += `- ${item.model} (${item.grade}/${item.colour}) Ã— ${item.qty} = ₹${(item.qty * item.price).toLocaleString('en-IN')}\n`;
                 }
             });
             if (!isHideTotals) {
@@ -2634,7 +2637,7 @@ function addOfferToCart(offerId) {
     const qty = input ? (parseInt(input.value, 10) || o.minQty || 1) : (o.minQty || 1);
 
     if (qty < (o.minQty || 1)) {
-        alert(`⚠️ Minimum Order Quantity for this offer is ${o.minQty} pcs.`);
+        alert(`âš ï¸ Minimum Order Quantity for this offer is ${o.minQty} pcs.`);
         return;
     }
 
@@ -2645,7 +2648,7 @@ function addOfferToCart(offerId) {
     renderDealerCart();
     renderDealerOffers();
 
-    alert(`🎉 ${qty} pcs of "${o.model}" added to cart at Special Offer rate of ₹${o.offerPrice.toLocaleString('en-IN')}/pc!`);
+    alert(`ðŸŽ‰ ${qty} pcs of "${o.model}" added to cart at Special Offer rate of ₹${o.offerPrice.toLocaleString('en-IN')}/pc!`);
 }
 window.addOfferToCart = addOfferToCart;
 
@@ -2972,3 +2975,240 @@ function addSpecsToCart() {
     }
 }
 window.addSpecsToCart = addSpecsToCart;
+
+
+
+// ==========================================================================
+// LUXURY CUSTOMER CATALOG & QUOTE GENERATOR CONTROLLER (v4.2.0)
+// ==========================================================================
+
+let _dealerSavedCustomRates = {};
+
+function openShareCatalogModal() {
+    // 1. Populate Grades
+    const gradesContainer = document.getElementById('share-modal-grades-list');
+    if (gradesContainer) {
+        const allowedGrades = (typeof getMerchantAllowedGrades === 'function') 
+            ? getMerchantAllowedGrades(dealerMerchant) 
+            : ['Premium'];
+        gradesContainer.innerHTML = allowedGrades.map(g => `
+            <label style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.35rem 0.75rem; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff; font-size:0.8rem; font-weight:700; cursor:pointer; color:#0e254f;">
+                <input type="checkbox" class="share-grade-checkbox" value="${g}" checked onchange="onShareFilterChange()" style="width:15px; height:15px; accent-color:#0e254f;"> ${g}
+            </label>
+        `).join('');
+    }
+
+    // 2. Populate Categories
+    const catsContainer = document.getElementById('share-modal-cats-list');
+    if (catsContainer) {
+        const prods = (typeof state !== 'undefined' && state.products) ? state.products : [];
+        const allCats = Array.from(new Set(prods.map(p => p.category).filter(Boolean)));
+        const visibleCats = allCats.filter(c => typeof isCategoryVisibleToMerchant === 'function' ? isCategoryVisibleToMerchant(c, dealerMerchant) : true);
+        
+        catsContainer.innerHTML = visibleCats.map(c => `
+            <label style="display:flex; align-items:center; gap:0.55rem; font-size:0.84rem; font-weight:700; color:#1e293b; cursor:pointer; padding:0.25rem 0;">
+                <input type="checkbox" class="share-cat-checkbox" value="${c}" checked onchange="onShareFilterChange()" style="width:16px; height:16px; accent-color:#0e254f;"> 
+                <span>${c}</span>
+            </label>
+        `).join('');
+    }
+
+    // 3. Pre-fill firm & phone
+    const firmInput = document.getElementById('share-firm-name');
+    const phoneInput = document.getElementById('share-dealer-phone');
+    if (firmInput) {
+        firmInput.value = dealerMerchant ? (dealerMerchant.name || dealerMerchant.firmName || '') : '';
+    }
+    if (phoneInput) {
+        phoneInput.value = dealerMerchant ? (dealerMerchant.phone || '') : '';
+    }
+
+    onSharePriceModeChange();
+    openModal('share-catalog-modal');
+}
+window.openShareCatalogModal = openShareCatalogModal;
+
+function onShareFilterChange() {
+    const checkedRadio = document.querySelector('input[name="sharePriceMode"]:checked');
+    if (checkedRadio && checkedRadio.value === 'custom') {
+        renderCustomRateInputs();
+    }
+}
+window.onShareFilterChange = onShareFilterChange;
+
+function toggleAllShareCats(checkState) {
+    document.querySelectorAll('.share-cat-checkbox').forEach(cb => cb.checked = checkState);
+    onShareFilterChange();
+}
+window.toggleAllShareCats = toggleAllShareCats;
+
+function onSharePriceModeChange() {
+    const checkedRadio = document.querySelector('input[name="sharePriceMode"]:checked');
+    const mode = checkedRadio ? checkedRadio.value : 'mrp';
+    const discRow = document.getElementById('share-discount-input-row');
+    const discHint = document.getElementById('share-discount-hint');
+    const customBox = document.getElementById('share-custom-rates-box');
+
+    if (mode === 'discount') {
+        if (discRow) discRow.style.display = 'flex';
+        if (discHint) discHint.style.display = 'block';
+        if (customBox) customBox.style.display = 'none';
+        updateSharePriceHint();
+    } else if (mode === 'custom') {
+        if (discRow) discRow.style.display = 'none';
+        if (discHint) discHint.style.display = 'none';
+        if (customBox) {
+            customBox.style.display = 'flex';
+            renderCustomRateInputs();
+        }
+    } else {
+        if (discRow) discRow.style.display = 'none';
+        if (discHint) discHint.style.display = 'none';
+        if (customBox) customBox.style.display = 'none';
+    }
+}
+window.onSharePriceModeChange = onSharePriceModeChange;
+
+function updateSharePriceHint() {
+    const input = document.getElementById('share-discount-pct');
+    const hint = document.getElementById('share-discount-hint');
+    if (!input || !hint) return;
+    const pct = parseFloat(input.value) || 0;
+    const sample = Math.round(10000 * (1 - pct / 100));
+    hint.innerText = `Example: ₹10,000 MRP product will be shown to customer at ₹${sample.toLocaleString('en-IN')} (${pct}% OFF).`;
+}
+window.updateSharePriceHint = updateSharePriceHint;
+
+function renderCustomRateInputs() {
+    const listEl = document.getElementById('share-custom-rates-list');
+    if (!listEl) return;
+
+    const grades = Array.from(document.querySelectorAll('.share-grade-checkbox:checked')).map(cb => cb.value.toUpperCase());
+    const cats = Array.from(document.querySelectorAll('.share-cat-checkbox:checked')).map(cb => cb.value.toLowerCase());
+
+    const prods = (typeof state !== 'undefined' && state.products) ? state.products : [];
+    const filtered = prods.filter(p => {
+        const pGrade = (p.grade || 'PREMIUM').toUpperCase();
+        const pCat = (p.category || '').toLowerCase();
+        if (grades.length > 0 && !grades.includes(pGrade)) return false;
+        if (cats.length > 0 && !cats.includes(pCat)) return false;
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center; padding:1rem; font-size:0.8rem; color:#64748b;">No products match current filters.</div>`;
+        return;
+    }
+
+    listEl.innerHTML = filtered.map(p => {
+        const mrp = parseFloat(p.mrp || p.price || p.basePrice || 0);
+        const existingVal = _dealerSavedCustomRates[p.id] !== undefined ? _dealerSavedCustomRates[p.id] : Math.round(mrp * 0.6); // default 40% off
+        const img = p.imageUrl || (p.imagesBase64 && p.imagesBase64[0]) || p.imageBase64 || 'bms-logo.png';
+
+        return `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; background:#ffffff; padding:0.4rem 0.6rem; border-radius:6px; border:1px solid #e2e8f0;">
+                <div style="display:flex; align-items:center; gap:0.5rem; min-width:0; flex-grow:1;">
+                    <img src="${img}" style="width:32px; height:32px; object-fit:contain; border-radius:4px; border:1px solid #f1f5f9; background:#fff;" onerror="this.src='bms-logo.png'">
+                    <div style="min-width:0; overflow:hidden;">
+                        <div style="font-size:0.8rem; font-weight:800; color:#0e254f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.model}</div>
+                        <div style="font-size:0.68rem; color:#64748b; font-weight:600;">MRP: ₹${mrp.toLocaleString('en-IN')}</div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.3rem; flex-shrink:0;">
+                    <span style="font-size:0.8rem; font-weight:800; color:#0e254f;">₹</span>
+                    <input type="number" class="share-custom-rate-input" data-prod-id="${p.id}" data-mrp="${mrp}" value="${existingVal}" oninput="_dealerSavedCustomRates['${p.id}']=this.value" style="width:85px; padding:0.3rem 0.5rem; border-radius:5px; border:1.5px solid #2563eb; font-size:0.84rem; font-weight:800; color:#0e254f; text-align:right;">
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+window.renderCustomRateInputs = renderCustomRateInputs;
+
+function applyQuickFillDiscount() {
+    const discInput = document.getElementById('quick-fill-disc');
+    const disc = parseFloat(discInput ? discInput.value : 40) || 0;
+    
+    document.querySelectorAll('.share-custom-rate-input').forEach(input => {
+        const mrp = parseFloat(input.dataset.mrp) || 0;
+        const prodId = input.dataset.prodId;
+        const newRate = Math.round(mrp * (1 - (disc / 100)));
+        input.value = newRate;
+        if (prodId) {
+            _dealerSavedCustomRates[prodId] = newRate;
+        }
+    });
+}
+window.applyQuickFillDiscount = applyQuickFillDiscount;
+
+function executeShareAction(action) {
+    const grades = Array.from(document.querySelectorAll('.share-grade-checkbox:checked')).map(cb => cb.value);
+    if (grades.length === 0) {
+        alert("Please select at least one Quality Grade.");
+        return;
+    }
+
+    const cats = Array.from(document.querySelectorAll('.share-cat-checkbox:checked')).map(cb => cb.value);
+    if (cats.length === 0) {
+        alert("Please select at least one Category.");
+        return;
+    }
+
+    const checkedRadio = document.querySelector('input[name="sharePriceMode"]:checked');
+    const mode = checkedRadio ? checkedRadio.value : 'mrp';
+    const discPct = document.getElementById('share-discount-pct') ? document.getElementById('share-discount-pct').value : '40';
+    const firm = (document.getElementById('share-firm-name')?.value || '').trim();
+    const phone = (document.getElementById('share-dealer-phone')?.value || '').trim();
+
+    let curPath = window.location.href.split('?')[0];
+    let catalogUrl = curPath.substring(0, curPath.lastIndexOf('/') + 1) + 'catalog.html';
+    
+    const params = new URLSearchParams();
+    if (dealerMerchant) params.set('ref', dealerMerchant.id || dealerMerchant.phone || '');
+    if (firm) params.set('firm', firm);
+    if (phone) params.set('phone', phone);
+    
+    if (mode === 'discount') {
+        params.set('disc', discPct);
+    } else if (mode === 'custom') {
+        // Collect custom rates from all inputs
+        const ratesMap = {};
+        document.querySelectorAll('.share-custom-rate-input').forEach(inp => {
+            const pid = inp.dataset.prodId;
+            const val = parseFloat(inp.value);
+            if (pid && !isNaN(val) && val >= 0) {
+                ratesMap[pid] = val;
+            }
+        });
+        params.set('rates', JSON.stringify(ratesMap));
+    } else if (mode === 'hide') {
+        params.set('hidePrice', '1');
+    }
+
+    params.set('grades', grades.join(','));
+    params.set('cats', cats.join(','));
+
+    if (action === 'copy') {
+        const url = catalogUrl + '?' + params.toString();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('âœ… Link Copied to Clipboard!\n\nYou can now paste and send this Customer Catalog link on WhatsApp.');
+            }).catch(() => {
+                prompt('Copy this Customer Catalog Link:', url);
+            });
+        } else {
+            prompt('Copy this Customer Catalog Link:', url);
+        }
+    } else if (action === 'whatsapp') {
+        const url = catalogUrl + '?' + params.toString();
+        const text = encodeURIComponent(`*Rabbit World Luxury Product Catalog & Price List*\nPresented by: ${firm || 'Authorized Dealer'}\n\nPlease click the link below to view products, specifications and select items for order:\n${url}`);
+        window.open(`https://wa.me/?text=${text}`, '_blank');
+    } else if (action === 'pdf') {
+        params.set('mode', 'print');
+        const url = catalogUrl + '?' + params.toString();
+        window.open(url, '_blank');
+    } else if (action === 'preview') {
+        const url = catalogUrl + '?' + params.toString();
+        window.open(url, '_blank');
+    }
+}
+window.executeShareAction = executeShareAction;

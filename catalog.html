@@ -1,0 +1,1794 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rabbit World — Product Catalog & Digital Order Pad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase for live product sync -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <!-- BMS Core Shared State & Specifications Engine -->
+    <script src="core.js?v=4.8.9"></script>
+
+    <style>
+        :root {
+            --brand-navy: #0e254f;
+            --brand-navy-deep: #071328;
+            --brand-gold: #c59b27;
+            --brand-blue: #183587;
+            --bg-page: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding-bottom: 95px;
+        }
+
+        /* TOP BRAND NAVBAR (Matches Main Website Typography) */
+        .top-navbar {
+            background: linear-gradient(135deg, var(--brand-navy-deep) 0%, var(--brand-navy) 100%);
+            color: #ffffff;
+            padding: 0.85rem 1.25rem;
+            box-shadow: 0 4px 15px rgba(14,37,79,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .top-nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        .nav-brand-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .nav-brand-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            color: #ffffff;
+            text-transform: uppercase;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .nav-brand-subtitle {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            color: #93c5fd;
+            text-transform: uppercase;
+            margin-top: 3px;
+            white-space: nowrap;
+        }
+        @media (max-width: 640px) {
+            .nav-brand-title { font-size: 1.05rem; letter-spacing: 0.16em; }
+            .nav-brand-subtitle { font-size: 0.58rem; letter-spacing: 0.12em; }
+        }
+
+        .btn-pdf-print {
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 6px;
+            padding: 0.45rem 0.85rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+        }
+        .btn-pdf-print:hover {
+            background: #ffffff;
+            color: var(--brand-navy);
+        }
+
+        /* DEALER QUOTATION BANNER */
+        .dealer-info-banner {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-light);
+            padding: 0.75rem 1.25rem;
+        }
+        .dealer-info-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .dealer-firm-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 800;
+            font-size: 1.05rem;
+            color: var(--brand-navy);
+        }
+        .dealer-firm-contact {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .dealer-firm-contact a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* CATEGORY FILTER SECTION */
+        .filter-section {
+            max-width: 1200px;
+            margin: 1rem auto 0;
+            padding: 0 1.25rem;
+        }
+        .cat-pills-wrap {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            scrollbar-width: thin;
+        }
+        .cat-pill {
+            padding: 0.45rem 0.95rem;
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .cat-pill:hover, .cat-pill.active {
+            background: var(--brand-navy);
+            color: #ffffff;
+            border-color: var(--brand-navy);
+        }
+
+        /* PRODUCT GRID */
+        .products-container {
+            max-width: 1200px;
+            margin: 1.25rem auto;
+            padding: 0 1.25rem;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1.25rem;
+        }
+
+        /* PRODUCT CARD */
+        .product-card {
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+            border-color: #cbd5e1;
+        }
+        .card-img-wrap {
+            width: 100%;
+            aspect-ratio: 1/1;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        .card-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+        .product-card:hover .card-img-wrap img {
+            transform: scale(1.03);
+        }
+        .grade-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(14, 37, 79, 0.9);
+            color: #ffffff;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .grade-badge.rok {
+            background: rgba(180, 83, 9, 0.95);
+        }
+
+        .card-info {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .card-category {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--brand-navy);
+            margin-bottom: 6px;
+            line-height: 1.3;
+            cursor: pointer;
+        }
+        .card-title:hover {
+            color: #2563eb;
+        }
+        .card-specs-brief {
+            font-size: 0.78rem;
+            color: #475569;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .card-specs-brief span {
+            background: #f1f5f9;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .card-price-row {
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .price-final {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: var(--brand-navy);
+        }
+        .price-mrp-cut {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-decoration: line-through;
+            margin-left: 6px;
+        }
+        .discount-badge {
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #bbf7d0;
+        }
+
+        /* QTY SELECTOR ON CARD */
+        .order-qty-row {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .qty-controls {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #f8fafc;
+            overflow: hidden;
+        }
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            background: #ffffff;
+            border: none;
+            color: var(--brand-navy);
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+        .qty-btn:hover {
+            background: #e2e8f0;
+        }
+        .qty-input {
+            width: 42px;
+            height: 32px;
+            border: none;
+            border-left: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            background: transparent;
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--brand-navy);
+            text-align: center;
+            outline: none;
+        }
+        .btn-card-details {
+            background: #f1f5f9;
+            color: var(--brand-navy);
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 0.4rem 0.65rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        .btn-card-details:hover {
+            background: var(--brand-navy);
+            color: #ffffff;
+            border-color: var(--brand-navy);
+        }
+
+        /* STICKY BOTTOM ORDER BAR */
+        .sticky-order-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--brand-navy-deep);
+            color: #ffffff;
+            padding: 0.85rem 1.25rem;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+            z-index: 1000;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        .sticky-order-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .order-summary-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .summary-items {
+            font-size: 0.8rem;
+            color: #93c5fd;
+            font-weight: 600;
+        }
+        .summary-total {
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: #34d399;
+            line-height: 1.1;
+        }
+        .order-actions-right {
+            display: flex;
+            gap: 0.65rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn-whatsapp-order {
+            background: #16a34a;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.65rem 1.1rem;
+            font-size: 0.86rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+            transition: background 0.2s;
+        }
+        .btn-whatsapp-order:hover {
+            background: #15803d;
+        }
+        .btn-print-order {
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 8px;
+            padding: 0.65rem 0.95rem;
+            font-size: 0.84rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            transition: all 0.2s;
+        }
+        .btn-print-order:hover {
+            background: #ffffff;
+            color: var(--brand-navy);
+        }
+
+        /* =================================================== */
+        /* LUXURY PRODUCT TECHNICAL SPECIFICATIONS MODAL       */
+        /* (EXACT 1-TO-1 MATCH WITH MAIN SOFTWARE / DEALER.HTML)*/
+        /* =================================================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 10, 20, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 2200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        .modal-overlay.active {
+            display: flex !important;
+        }
+        .luxury-specs-content {
+            max-width: 960px;
+            width: 95%;
+            max-height: 92vh;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 2px solid #0e254f;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.4), 0 0 35px rgba(14, 37, 79, 0.15);
+            border-radius: 14px;
+            padding: 0;
+            color: #0e254f;
+            display: flex;
+            flex-direction: column;
+        }
+        .luxury-specs-body {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 1.5rem;
+            padding: 1.4rem 1.5rem;
+            background: #ffffff;
+        }
+        @media (max-width: 768px) {
+            .luxury-specs-body {
+                grid-template-columns: 1fr !important;
+                padding: 1rem !important;
+                gap: 1rem !important;
+            }
+        }
+        .specs-toggle-btn {
+            background: #ffffff;
+            color: #0e254f;
+            border: 1px solid #cbd5e1;
+            padding: 0.45rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .specs-toggle-btn.active {
+            background: #0e254f;
+            color: #ffffff;
+            border-color: #0e254f;
+            box-shadow: 0 4px 12px rgba(14, 37, 79, 0.25);
+        }
+
+        /* ORDER REVIEW MODAL STYLES */
+        .order-modal-content {
+            max-width: 880px;
+            width: 95%;
+            max-height: 92vh;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 2px solid #0e254f;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.45);
+            border-radius: 14px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            color: #0e254f;
+        }
+        .order-item-row {
+            display: grid;
+            grid-template-columns: 85px 1fr auto auto;
+            gap: 1rem;
+            align-items: center;
+            padding: 0.85rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        @media (max-width: 640px) {
+            .order-item-row {
+                grid-template-columns: 75px 1fr;
+                gap: 0.75rem;
+            }
+            .order-item-pricing-col {
+                grid-column: 1 / -1;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #f8fafc;
+                padding: 0.5rem 0.75rem;
+                border-radius: 6px;
+            }
+        }
+
+        /* PRINT STYLES: DEDICATED LUXURY A4 ORDER & CATALOG PDF */
+        @media print {
+            body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; color: #000000 !important; }
+            
+            /* Hide web UI during printing */
+            .top-navbar, .dealer-info-banner, .filter-section, .products-container, .sticky-order-bar, .modal-overlay {
+                display: none !important;
+            }
+
+            /* Order Print Mode: Show ONLY the official Client Order Sheet */
+            body.order-print-mode #printable-order-sheet {
+                display: block !important;
+            }
+            body.order-print-mode .print-page {
+                display: none !important;
+            }
+
+            /* Full Catalog Print Mode */
+            body:not(.order-print-mode) #printable-order-sheet {
+                display: none !important;
+            }
+            body:not(.order-print-mode) .print-page {
+                page-break-after: always;
+                width: 210mm;
+                height: 297mm;
+                padding: 12mm 15mm;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                position: relative;
+                background: #ffffff;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BRAND NAVBAR (Matches Main Website Typography) -->
+    <header class="top-navbar">
+        <div class="top-nav-inner">
+            <div class="nav-brand-wrap">
+                <div class="nav-brand-title">RABBIT WORLD</div>
+                <div class="nav-brand-subtitle">LUXURY BATH, KITCHEN & HOME</div>
+            </div>
+            <div class="nav-right-actions" style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn-pdf-print" onclick="printCatalogPdf()" title="Download complete product catalog as PDF">
+                    <i class="fa-solid fa-file-pdf" style="color:#f59e0b;"></i>
+                    <span>Catalog PDF</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- DEALER PRESENTATION BANNER -->
+    <section class="dealer-info-banner" id="dealer-banner">
+        <div class="dealer-info-inner">
+            <div class="dealer-firm-title">
+                <i class="fa-solid fa-store" style="color:var(--brand-navy);"></i>
+                <span id="display-firm-name">Official Product Catalog & Price List</span>
+            </div>
+            <div class="dealer-firm-contact" id="display-contact-wrap">
+                <span id="display-dealer-phone"><i class="fa-solid fa-phone"></i> Inquiries: Rabbit World</span>
+                <a id="btn-dealer-wa-call" href="#" target="_blank" style="display:none;">
+                    <i class="fa-brands fa-whatsapp"></i> Chat with Dealer
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CATEGORY FILTER PILLS -->
+    <section class="filter-section">
+        <div class="cat-pills-wrap" id="cat-pills-container">
+            <button class="cat-pill active" onclick="filterCatalogCategory('all', this)">All Collections</button>
+        </div>
+    </section>
+
+    <!-- PRODUCTS GRID -->
+    <main class="products-container">
+        <div class="products-grid" id="catalog-products-grid">
+            <div style="grid-column: 1/-1; text-align:center; padding: 3rem 1rem; color:#64748b;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size:2rem; color:var(--brand-navy);"></i>
+                <p style="margin-top:0.75rem; font-weight:600;">Loading product collections...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- STICKY BOTTOM ORDER BAR -->
+    <div class="sticky-order-bar" id="sticky-bar">
+        <div class="sticky-order-inner">
+            <div class="order-summary-text" onclick="openOrderSummaryModal()" style="cursor:pointer;" title="Click to review order details">
+                <span class="summary-items" id="summary-items-count">0 items selected</span>
+                <span class="summary-total" id="summary-total-amount">₹0</span>
+            </div>
+            <div class="order-actions-right">
+                <button class="btn-print-order" onclick="openOrderSummaryModal()" title="View selected items list">
+                    <i class="fa-solid fa-clipboard-list" style="color:#60a5fa;"></i>
+                    <span>View Order</span>
+                </button>
+                <button class="btn-print-order" onclick="printOrderPdf()" style="background:#ffffff; color:var(--brand-navy); font-weight:800; border:none; box-shadow:0 2px 8px rgba(0,0,0,0.15);" title="Generate & print order quotation PDF">
+                    <i class="fa-solid fa-file-pdf" style="color:#f59e0b;"></i>
+                    <span>Order PDF</span>
+                </button>
+                <button class="btn-whatsapp-order" onclick="submitWhatsAppOrder()" title="Send order via WhatsApp">
+                    <i class="fa-brands fa-whatsapp" style="font-size:1.15rem;"></i>
+                    <span>Send on WhatsApp</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- LUXURY PRODUCT SPECIFICATIONS & CAD BLUEPRINT MODAL                     -->
+    <!-- (EXACT 1-TO-1 MATCH WITH SOFTWARE DIALOG IN DEALER.HTML)                -->
+    <!-- ======================================================================= -->
+    <div id="product-specs-modal" class="modal-overlay">
+        <div class="luxury-specs-content">
+            
+            <!-- Modal Top Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.4rem; border-bottom: 1.5px solid #e2e8f0; background: #ffffff;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: #eef4ff; color: #0e254f; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                        <i class="fa-solid fa-gem"></i>
+                    </div>
+                    <div>
+                        <h2 id="specs-modal-title" style="margin: 0; font-size: 1.18rem; font-weight: 800; color: #0e254f; letter-spacing: -0.01em;">Product Specifications</h2>
+                        <span id="specs-modal-subtitle" style="font-size: 0.76rem; color: #64748b; font-weight: 600;">Rabbit Luxury Vitreous China Architecture</span>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeProductSpecsModal()" style="color: #64748b; font-size: 1.8rem; background: transparent; border: none; cursor: pointer; line-height: 1; padding: 0.2rem 0.5rem; transition: color 0.2s;">&times;</button>
+            </div>
+
+            <!-- Main Body: Two Columns on Desktop, Single on Mobile -->
+            <div class="luxury-specs-body">
+                
+                <!-- Left Column: Visual Showcase -->
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div id="specs-visual-container" style="position: relative; width: 100%; aspect-ratio: 1/1; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px; box-sizing: border-box; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+                        <img id="specs-ceramic-img" src="" alt="Product" style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; transition: all 0.3s ease; display: none;">
+                        <div id="specs-no-img-view" style="display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #94a3b8; background: #f8fafc; border-radius: 6px;">
+                            <i class="fa-solid fa-image-slash" style="font-size: 2.2rem; color: #cbd5e1;"></i>
+                            <span style="font-size: 0.78rem; font-weight: 600; color: #94a3b8;">No Photo Available</span>
+                        </div>
+                        <div id="specs-cad-view" style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden;"></div>
+                    </div>
+
+                    <!-- Toggles: Product View / Technical CAD Blueprint in Rabbit Blue & White -->
+                    <div style="display: flex; gap: 8px; margin-top: 0.9rem; width: 100%; justify-content: center;">
+                        <button type="button" id="btn-view-ceramic" onclick="switchSpecsView('ceramic')" class="specs-toggle-btn active" style="flex: 1;">
+                            <i class="fa-solid fa-box-open"></i> Product View
+                        </button>
+                        <button type="button" id="btn-view-cad" onclick="switchSpecsView('cad')" class="specs-toggle-btn" style="flex: 1;">
+                            <i class="fa-solid fa-drafting-compass"></i> Technical CAD Blueprint
+                        </button>
+                    </div>
+
+                    <!-- Direct Photo Download Button -->
+                    <button type="button" id="btn-download-specs-photo" onclick="downloadCurrentProductPhoto()" style="margin-top: 8px; width: 100%; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 0.48rem 0.75rem; font-size: 0.8rem; font-weight: 700; color: #0e254f; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all 0.2s;">
+                        <i class="fa-solid fa-download" style="color: #2563eb;"></i> Download High-Res Photo
+                    </button>
+                </div>
+
+                <!-- Right Column: Specifications Table & Features -->
+                <div style="display: flex; flex-direction: column;">
+                    
+                    <!-- Specs Table (Auto-populates ALL template fields from core.js) -->
+                    <div class="specs-table-container" style="border: 1.5px solid #e2e8f0; border-radius: 10px; background: #ffffff; overflow: hidden; margin-bottom: 1.1rem;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                            <tbody id="specs-table-rows">
+                                <!-- Injected dynamically via openProductSpecsModal() -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Key Engineered Features Badges -->
+                    <div style="margin-bottom: 1.25rem;">
+                        <div style="font-size: 0.72rem; font-weight: 800; color: #0e254f; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.65rem;">
+                            <i class="fa-solid fa-shield-halved" style="color:#0e254f; margin-right:4px;"></i> Key Engineered Features
+                        </div>
+                        <div id="specs-features-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px;">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Direct Order Action Section -->
+                    <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1.1rem; margin-top: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <div>
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Your Order Price:</span>
+                                <div id="modal-specs-price-display" style="font-size: 1.35rem; font-weight: 900; color: #1e3a8a;">₹0</div>
+                            </div>
+                            <div id="modal-specs-discount-badge"></div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; border-top: 1px dashed #cbd5e1; padding-top: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 0.8rem; font-weight: 800; color: #0e254f;">Qty:</span>
+                                <div style="display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px;">
+                                    <button class="qty-btn" onclick="specsQtyAdjust(-1)" style="width: 26px; height: 26px;">-</button>
+                                    <input type="number" id="specs-order-qty" value="1" min="1" style="width: 42px; text-align: center; border: none; font-weight: 800; color: #0e254f;" readonly>
+                                    <button class="qty-btn" onclick="specsQtyAdjust(1)" style="width: 26px; height: 26px;">+</button>
+                                </div>
+                            </div>
+
+                            <button type="button" id="specs-add-cart-btn" onclick="addModalSpecsToCart()" style="background: linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%); color: #ffffff; border: none; border-radius: 8px; padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 12px rgba(14,37,79,0.25);">
+                                <i class="fa-solid fa-cart-plus"></i> Add to Order
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- LUXURY CLIENT ORDER REVIEW & QUOTATION MODAL                            -->
+    <!-- ======================================================================= -->
+    <div id="order-summary-modal" class="modal-overlay">
+        <div class="order-modal-content">
+            <!-- Modal Top Bar -->
+            <div style="padding: 1.1rem 1.4rem; border-bottom: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #ffffff;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 38px; height: 38px; border-radius: 8px; background: #eef4ff; color: #0e254f; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.18rem; font-weight: 800; color: #0e254f;">Client Order & Quotation Summary</h2>
+                        <span id="order-modal-firm-subtitle" style="font-size: 0.78rem; color: #64748b; font-weight: 600;">Rabbit World • Luxury Sanitaryware & Fixtures</span>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeOrderSummaryModal()" style="color: #64748b; font-size: 1.8rem; background: transparent; border: none; cursor: pointer; line-height: 1; padding: 0.2rem 0.5rem; transition: color 0.2s;">&times;</button>
+            </div>
+
+            <!-- Items List Body -->
+            <div style="padding: 1.2rem 1.4rem; flex-grow: 1; overflow-y: auto; max-height: 60vh;">
+                <div id="order-items-table-container">
+                    <!-- Injected dynamically by renderOrderSummaryTable() -->
+                </div>
+            </div>
+
+            <!-- Modal Footer: Summary & Actions -->
+            <div style="padding: 1rem 1.4rem; background: #f8fafc; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Grand Total (<span id="order-modal-total-qty">0</span> Pcs):</div>
+                    <div id="order-modal-grand-total" style="font-size: 1.4rem; font-weight: 900; color: #10b981;">₹0</div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" onclick="downloadAllOrderPhotos()" style="background: #ffffff; color: #0e254f; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 0.65rem 0.95rem; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-images" style="color: #2563eb;"></i> Download Photos
+                    </button>
+                    <button type="button" onclick="printOrderPdf()" style="background: #0e254f; color: #ffffff; border: none; border-radius: 8px; padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(14,37,79,0.25);">
+                        <i class="fa-solid fa-file-pdf" style="color: #f59e0b;"></i> Download / Print Order PDF
+                    </button>
+                    <button type="button" onclick="submitWhatsAppOrder()" style="background: #16a34a; color: #ffffff; border: none; border-radius: 8px; padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(22,163,74,0.25);">
+                        <i class="fa-brands fa-whatsapp"></i> Send on WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- DEDICATED PRINTABLE LUXURY A4 ORDER SHEET CONTAINER                     -->
+    <!-- (SHOWN ONLY DURING PRINTING/PDF EXPORT)                                 -->
+    <!-- ======================================================================= -->
+    <div id="printable-order-sheet" style="display: none;">
+        <!-- Injected dynamically by renderOrderPrintableSheet() -->
+    </div>
+
+    <!-- JAVASCRIPT CONTROLLERS -->
+    <script>
+        // Parse Query Parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const firmName = urlParams.get('firm') || 'Rabbit World Authorized Dealer';
+        const dealerPhone = urlParams.get('phone') || '';
+        const discountPercent = parseInt(urlParams.get('disc') || '0', 10);
+        const allowedGradesStr = urlParams.get('grades') || '';
+        const allowedCatsStr = urlParams.get('cats') || '';
+        const hidePrice = urlParams.get('hideprice') === '1';
+
+        // Parse Custom Rates if passed
+        const customRates = {};
+        const customRatesStr = urlParams.get('customrates') || '';
+        if (customRatesStr) {
+            customRatesStr.split('|').forEach(pair => {
+                const parts = pair.split(':');
+                if (parts.length === 2) {
+                    customRates[parts[0]] = parseFloat(parts[1]);
+                }
+            });
+        }
+
+        const allowedGrades = allowedGradesStr ? allowedGradesStr.split(',').map(s => s.trim().toUpperCase()) : [];
+        const allowedCats = allowedCatsStr ? allowedCatsStr.split(',').map(s => s.trim().toLowerCase()) : [];
+
+        // Global State
+        const customerOrder = {};
+        let allProducts = [];
+        let currentFilterCat = 'all';
+        let currentSpecsProdId = null;
+        let currentSpecsViewMode = 'ceramic';
+
+        // Update presentation header
+        document.getElementById('display-firm-name').innerText = firmName;
+        if (dealerPhone) {
+            const cleanPhone = dealerPhone.replace(/[^0-9]/g, '');
+            document.getElementById('display-dealer-phone').innerHTML = `<i class="fa-solid fa-phone"></i> Inquiries: ${dealerPhone}`;
+            const waBtn = document.getElementById('btn-dealer-wa-call');
+            waBtn.href = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hello ${firmName}, I am reviewing your Rabbit World catalog.`)}`;
+            waBtn.style.display = 'inline-flex';
+        }
+
+        // Firebase Configuration (Uses official config from core.js)
+        const firebaseConfig = (typeof getEffectiveFirebaseConfig === 'function') 
+            ? getEffectiveFirebaseConfig() 
+            : (window.DEFAULT_FIREBASE_CONFIG || {
+                databaseURL: "https://rabbitbathware-d9d1b-default-rtdb.asia-southeast1.firebasedatabase.app"
+              });
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        // Process and filter products
+        function processRawProducts(rawList) {
+            allProducts = (rawList || []).filter(p => {
+                if (!p) return false;
+
+                // Grade filter
+                if (allowedGrades.length > 0) {
+                    const pGrade = (p.grade || 'Premium').toUpperCase();
+                    const matchesGrade = allowedGrades.some(g => pGrade.includes(g) || g.includes(pGrade));
+                    if (!matchesGrade) return false;
+                }
+
+                // Category filter
+                if (allowedCats.length > 0) {
+                    const pCat = (p.category || '').toLowerCase();
+                    const matchesCat = allowedCats.some(c => pCat.includes(c) || c.includes(pCat));
+                    if (!matchesCat) return false;
+                }
+
+                return true;
+            });
+
+            renderCategoryPills();
+            renderCatalogProducts();
+        }
+
+        // Load Products with instant cache & Firebase sync
+        function loadCatalogData() {
+            // 1. Instant local render from core.js state or DEFAULT_PRODUCTS
+            const initialList = (window.state && Array.isArray(window.state.products) && window.state.products.length > 0)
+                ? window.state.products
+                : ((typeof DEFAULT_PRODUCTS !== 'undefined' && Array.isArray(DEFAULT_PRODUCTS)) ? DEFAULT_PRODUCTS : []);
+            
+            if (initialList.length > 0) {
+                processRawProducts(initialList);
+            }
+
+            // 2. Realtime fetch from Firebase bms_state/products
+            try {
+                const targetDb = window.firebaseDB || db;
+                targetDb.ref('bms_state/products').once('value').then(snapshot => {
+                    const val = snapshot.val();
+                    if (val) {
+                        const list = Array.isArray(val) ? val.filter(Boolean) : Object.values(val);
+                        if (list.length > 0) {
+                            processRawProducts(list);
+                        }
+                    }
+                }).catch(err => {
+                    console.warn("Firebase sync note:", err);
+                    if (allProducts.length === 0 && initialList.length > 0) {
+                        processRawProducts(initialList);
+                    }
+                });
+            } catch (e) {
+                if (allProducts.length === 0 && initialList.length > 0) {
+                    processRawProducts(initialList);
+                }
+            }
+        }
+
+        // Render Category Filter Pills
+        function renderCategoryPills() {
+            const categories = new Set();
+            allProducts.forEach(p => {
+                if (p.category) categories.add(p.category.trim());
+            });
+
+            const container = document.getElementById('cat-pills-container');
+            let html = `<button class="cat-pill active" onclick="filterCatalogCategory('all', this)">All Collections (${allProducts.length})</button>`;
+            categories.forEach(cat => {
+                const count = allProducts.filter(p => p.category && p.category.trim() === cat).length;
+                html += `<button class="cat-pill" onclick="filterCatalogCategory('${cat}', this)">${cat} (${count})</button>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function filterCatalogCategory(cat, btn) {
+            currentFilterCat = cat;
+            document.querySelectorAll('.cat-pill').forEach(el => el.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderCatalogProducts();
+        }
+
+        // Calculate Price for a product based on rules
+        function calculateProductPrice(p) {
+            const mrp = p.mrp || (p.price ? Math.round(p.price * 1.55) : 0);
+            
+            // 1. Custom rate override
+            if (customRates[p.id] !== undefined) {
+                return {
+                    finalPrice: customRates[p.id],
+                    mrp: mrp,
+                    hasDiscount: customRates[p.id] < mrp,
+                    isCustom: true
+                };
+            }
+
+            // 2. Custom Trade Discount %
+            if (discountPercent > 0 && mrp > 0) {
+                const discounted = Math.round(mrp * (1 - (discountPercent / 100)));
+                return {
+                    finalPrice: discounted,
+                    mrp: mrp,
+                    hasDiscount: true,
+                    isCustom: false
+                };
+            }
+
+            // 3. Original MRP
+            return {
+                finalPrice: mrp,
+                mrp: mrp,
+                hasDiscount: false,
+                isCustom: false
+            };
+        }
+
+        // Render Products Grid
+        function renderCatalogProducts() {
+            const container = document.getElementById('catalog-products-grid');
+            const filtered = currentFilterCat === 'all'
+                ? allProducts
+                : allProducts.filter(p => p.category && p.category.trim() === currentFilterCat);
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; color:#64748b;">No products in this collection.</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const priceInfo = calculateProductPrice(p);
+                const currentQty = customerOrder[p.id] ? customerOrder[p.id].qty : 0;
+                const grade = (p.grade || 'Premium').toUpperCase();
+                const isRok = grade === 'ROK' || grade.includes('RUSTIC');
+
+                // Price display HTML
+                let priceHtml = '';
+                if (hidePrice) {
+                    priceHtml = `<span class="price-final" style="font-size:1.05rem; color:#64748b;">Price on Request</span>`;
+                } else if (priceInfo.hasDiscount) {
+                    priceHtml = `
+                        <div>
+                            <span class="price-final">₹${priceInfo.finalPrice.toLocaleString('en-IN')}</span>
+                            <span class="price-mrp-cut">₹${priceInfo.mrp.toLocaleString('en-IN')}</span>
+                        </div>
+                        <span class="discount-badge">${discountPercent ? discountPercent + '% OFF' : 'Special Rate'}</span>
+                    `;
+                } else {
+                    priceHtml = `<span class="price-final">MRP ₹${priceInfo.mrp.toLocaleString('en-IN')}</span>`;
+                }
+
+                // Image resolution
+                const imgSrc = (p.imagesBase64 && p.imagesBase64[0]) ? p.imagesBase64[0] : (p.imageUrl || p.imageBase64 || '');
+                const imgTag = imgSrc
+                    ? `<img src="${imgSrc}" alt="${p.model || 'Product'}" loading="lazy">`
+                    : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; color:#94a3b8; height:100%;">
+                         <i class="fa-solid fa-cube" style="font-size:2rem; margin-bottom:4px;"></i>
+                         <span style="font-size:0.75rem; font-weight:600;">No Photo</span>
+                       </div>`;
+
+                // Brief specs summary
+                const specs = typeof getProductSpecs === 'function' ? getProductSpecs(p) : (p.specs || {});
+                const dimText = specs.dimensionsMm || p.size || '';
+                const colorText = specs.colorFinish || p.colour || 'White';
+
+                return `
+                    <div class="product-card" id="card-${p.id}">
+                        <div class="card-img-wrap" onclick="openProductSpecsModal('${p.id}')" title="Click to view full technical specifications & CAD">
+                            ${imgTag}
+                            <span class="grade-badge ${isRok ? 'rok' : ''}">${grade}</span>
+                        </div>
+
+                        <div class="card-info">
+                            <div class="card-category">${p.category || 'Luxury Bathware'}${p.subcategory ? ' • ' + p.subcategory : ''}</div>
+                            <div class="card-title" onclick="openProductSpecsModal('${p.id}')" title="Click to view details">${p.model || 'Rabbit Fixture'}</div>
+
+                            <div class="card-specs-brief">
+                                ${dimText ? `<span><i class="fa-solid fa-ruler-combined" style="color:#2563eb; font-size:0.7rem;"></i> ${dimText}</span>` : ''}
+                                <span><i class="fa-solid fa-palette" style="color:#7c3aed; font-size:0.7rem;"></i> ${colorText}</span>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <button type="button" class="btn-card-details" onclick="openProductSpecsModal('${p.id}')">
+                                    <i class="fa-solid fa-sliders"></i> View Details & Specs
+                                </button>
+                            </div>
+
+                            <div class="card-price-row">
+                                ${priceHtml}
+                            </div>
+
+                            <div class="order-qty-row">
+                                <span style="font-size:0.8rem; font-weight:700; color:#0e254f;">Order Qty:</span>
+                                <div class="qty-controls">
+                                    <button class="qty-btn" onclick="updateCustomerQty('${p.id}', -1)">-</button>
+                                    <input type="number" class="qty-input" id="qty-input-${p.id}" value="${currentQty}" min="0" readonly>
+                                    <button class="qty-btn" onclick="updateCustomerQty('${p.id}', 1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================================================
+        // LUXURY PRODUCT TECHNICAL SPECIFICATIONS & CAD BLUEPRINT MODAL
+        // EXACT SAME ENGINE & SPECIFICATIONS AS SOFTWARE / DEALER.HTML
+        // ==========================================================================
+        function openProductSpecsModal(prodId) {
+            const p = allProducts.find(x => x.id === prodId);
+            if (!p) return;
+            currentSpecsProdId = prodId;
+            currentSpecsViewMode = 'ceramic';
+
+            // Retrieve specs using shared getProductSpecs from core.js
+            const specs = typeof getProductSpecs === 'function' ? getProductSpecs(p) : (p.specs || {});
+
+            // Header
+            const titleEl = document.getElementById('specs-modal-title');
+            const subTitleEl = document.getElementById('specs-modal-subtitle');
+            if (titleEl) titleEl.textContent = p.model || 'Product Specifications';
+            if (subTitleEl) subTitleEl.textContent = `${p.category || 'Rabbit World'}${p.subcategory ? ' • ' + p.subcategory : ''} • ${specs.ceramicVitrification || 'Architecture'}`;
+
+            // Visual Showcase
+            const imgList = (p.imagesBase64 && p.imagesBase64.length > 0) ? p.imagesBase64 : (p.imageUrl ? [p.imageUrl] : (p.imageBase64 ? [p.imageBase64] : []));
+            const imgEl = document.getElementById('specs-ceramic-img');
+            const noImgEl = document.getElementById('specs-no-img-view');
+            const cadViewEl = document.getElementById('specs-cad-view');
+
+            if (imgEl) {
+                if (imgList.length > 0 && imgList[0]) {
+                    imgEl.src = imgList[0];
+                    imgEl.style.display = 'block';
+                    if (noImgEl) noImgEl.style.display = 'none';
+                } else {
+                    imgEl.src = '';
+                    imgEl.removeAttribute('src');
+                    imgEl.style.display = 'none';
+                    if (noImgEl) noImgEl.style.display = 'flex';
+                }
+            }
+
+            if (cadViewEl) {
+                if (specs.cadBlueprintUrl) {
+                    cadViewEl.innerHTML = `<img src="${specs.cadBlueprintUrl}" alt="CAD Blueprint" style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; border-radius:6px;">`;
+                } else if (typeof getSpecsCADBlueprintSVG === 'function') {
+                    cadViewEl.innerHTML = getSpecsCADBlueprintSVG(p, specs);
+                } else {
+                    cadViewEl.innerHTML = `<div style="color:#94a3b8; font-size:0.85rem; padding:1.5rem; text-align:center;">CAD Blueprint diagram will appear here.</div>`;
+                }
+            }
+
+            // Reset View to Ceramic
+            switchSpecsView('ceramic');
+
+            // Specifications Table Rows: Exact 1-to-1 match with dealer.html
+            const tableEl = document.getElementById('specs-table-rows');
+            if (tableEl) {
+                const templateId = specs.template || (typeof detectSpecsTemplate === 'function' ? detectSpecsTemplate(p.category, p.subcategory || p.subCategory, p.model) : 'toilet');
+                const tmpl = (window.SPECS_TEMPLATES && window.SPECS_TEMPLATES[templateId]) ? window.SPECS_TEMPLATES[templateId] : null;
+
+                const rows = [];
+
+                // 1. Template-defined fields (Dimensions mm, Dimensions Inches, Flushing, Installation, etc.)
+                if (tmpl && Array.isArray(tmpl.fields)) {
+                    tmpl.fields.forEach(f => {
+                        const val = specs[f.key];
+                        if (val && typeof val === 'string' && val.trim() !== '' && val.trim().toLowerCase() !== 'n/a' && val.trim().toLowerCase() !== 'standard') {
+                            rows.push({ label: f.label, value: val.trim() });
+                        }
+                    });
+                }
+
+                // Fallback if no template fields matched
+                if (rows.length === 0) {
+                    const standardKeys = [
+                        { key: 'dimensionsMm', label: 'Dimensions (Millimeters)' },
+                        { key: 'dimensionsInches', label: 'Dimensions (Inches)' },
+                        { key: 'materialGrade', label: 'Material & Grade' },
+                        { key: 'bowlType', label: 'Bowl Configuration' },
+                        { key: 'thickness', label: 'Thickness / Gauge' },
+                        { key: 'soundDeadening', label: 'Sound Dampening' },
+                        { key: 'mountingType', label: 'Mounting / Vessel Type' },
+                        { key: 'overflowType', label: 'Overflow & Waste Specification' },
+                        { key: 'flushingSystem', label: 'Flushing System' },
+                        { key: 'installation', label: 'Installation / Mounting' },
+                        { key: 'seatCover', label: 'Seat Cover Specification' },
+                        { key: 'ceramicVitrification', label: 'Ceramic Vitrification' },
+                        { key: 'bodyMaterial', label: 'Body Material' },
+                        { key: 'cartridge', label: 'Cartridge Specification' },
+                        { key: 'flowType', label: 'Flow & Aerator Type' },
+                        { key: 'colorFinish', label: 'Color & Finish' },
+                        { key: 'warranty', label: 'Warranty Coverage' }
+                    ];
+                    standardKeys.forEach(item => {
+                        const val = specs[item.key] || p[item.key];
+                        if (val && typeof val === 'string' && val.trim() !== '' && val.trim().toLowerCase() !== 'n/a' && val.trim().toLowerCase() !== 'standard') {
+                            rows.push({ label: item.label, value: val.trim() });
+                        }
+                    });
+                }
+
+                // 2. Custom Specifications (Option 3 from admin)
+                if (Array.isArray(specs.customSpecs)) {
+                    specs.customSpecs.forEach(cs => {
+                        if (cs && cs.label && cs.value && String(cs.value).trim() !== '') {
+                            rows.push({ label: String(cs.label).trim(), value: String(cs.value).trim() });
+                        }
+                    });
+                }
+
+                // Render rows
+                let tableHtml = rows.map(r => `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 0.55rem 0.9rem; color: #64748b; font-weight: 600; font-size: 0.81rem; width: 44%;">${r.label}</td>
+                        <td style="padding: 0.55rem 0.9rem; color: #0e254f; font-weight: 700; font-size: 0.82rem; text-align: right;">${r.value}</td>
+                    </tr>
+                `).join('');
+
+                // MRP Row in clean green
+                const mrpValue = specs.mrp || p.mrp || (p.price ? Math.round(p.price * 1.55) : null);
+                if (mrpValue) {
+                    tableHtml += `
+                        <tr style="border-bottom: none; background: #f0fdf4; border-top: 1.5px solid #bbf7d0;">
+                            <td style="padding: 0.65rem 0.9rem; color: #0e254f; font-weight: 800; font-size: 0.86rem;">Maximum Retail Price (MRP)</td>
+                            <td style="padding: 0.65rem 0.9rem; color: #10b981; font-weight: 900; font-size: 1.22rem; text-align: right;">₹${Number(mrpValue).toLocaleString('en-IN')}</td>
+                        </tr>
+                    `;
+                }
+
+                tableEl.innerHTML = tableHtml || `<tr><td colspan="2" style="padding:0.75rem; text-align:center; color:#64748b; font-size:0.8rem;">Standard Rabbit Engineered Quality</td></tr>`;
+            }
+
+            // Key Engineered Features Badges
+            const featEl = document.getElementById('specs-features-grid');
+            if (featEl) {
+                const templateId = specs.template || (typeof detectSpecsTemplate === 'function' ? detectSpecsTemplate(p.category, p.subcategory || p.subCategory, p.model) : 'toilet');
+                const tmpl = (window.SPECS_TEMPLATES && window.SPECS_TEMPLATES[templateId]) ? window.SPECS_TEMPLATES[templateId] : null;
+                const feats = (Array.isArray(specs.keyFeatures) && specs.keyFeatures.length > 0)
+                    ? specs.keyFeatures
+                    : (tmpl && tmpl.defaultFeatures ? tmpl.defaultFeatures : ['High Temperature Vitrification', 'Nano Anti-Bacterial Glaze', 'Rigorous Load Tested', 'Easy Clean Architecture']);
+
+                featEl.innerHTML = feats.map(f => `
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.48rem 0.75rem; font-size: 0.75rem; color: #0e254f; display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                        <span style="color: #10b981; font-weight: 900; font-size: 0.88rem;">✓</span>
+                        <span style="font-weight: 600; color: #0e254f;">${f}</span>
+                    </div>
+                `).join('');
+            }
+
+            // Price & Order Quantity in Modal
+            const priceInfo = calculateProductPrice(p);
+            const priceDisplayEl = document.getElementById('modal-specs-price-display');
+            const badgeEl = document.getElementById('modal-specs-discount-badge');
+
+            if (hidePrice) {
+                priceDisplayEl.innerText = 'Price on Request';
+                badgeEl.innerHTML = '';
+            } else if (priceInfo.isCustom) {
+                priceDisplayEl.innerText = `₹${priceInfo.finalPrice.toLocaleString('en-IN')}`;
+                badgeEl.innerHTML = priceInfo.hasDiscount ? `<span class="discount-badge" style="background:#eff6ff; color:#2563eb; border-color:#bfdbfe;">Special Dealer Rate</span>` : '';
+            } else if (priceInfo.hasDiscount) {
+                priceDisplayEl.innerText = `₹${priceInfo.finalPrice.toLocaleString('en-IN')}`;
+                badgeEl.innerHTML = `<span class="discount-badge">${discountPercent}% OFF on MRP</span>`;
+            } else {
+                priceDisplayEl.innerText = `MRP ₹${priceInfo.mrp.toLocaleString('en-IN')}`;
+                badgeEl.innerHTML = '';
+            }
+
+            const inCartQty = customerOrder[p.id] ? customerOrder[p.id].qty : 1;
+            document.getElementById('specs-order-qty').value = inCartQty;
+
+            document.getElementById('product-specs-modal').classList.add('active');
+        }
+        window.openProductSpecsModal = openProductSpecsModal;
+
+        function closeProductSpecsModal() {
+            document.getElementById('product-specs-modal').classList.remove('active');
+            currentSpecsProdId = null;
+            const imgEl = document.getElementById('specs-ceramic-img');
+            const noImgEl = document.getElementById('specs-no-img-view');
+            if (imgEl) {
+                imgEl.src = '';
+                imgEl.removeAttribute('src');
+                imgEl.style.display = 'none';
+            }
+            if (noImgEl) noImgEl.style.display = 'none';
+        }
+        window.closeProductSpecsModal = closeProductSpecsModal;
+
+        function switchSpecsView(mode) {
+            currentSpecsViewMode = mode;
+            const btnCeramic = document.getElementById('btn-view-ceramic');
+            const btnCad = document.getElementById('btn-view-cad');
+            const imgEl = document.getElementById('specs-ceramic-img');
+            const noImgEl = document.getElementById('specs-no-img-view');
+            const cadViewEl = document.getElementById('specs-cad-view');
+
+            if (mode === 'cad') {
+                if (btnCad) btnCad.classList.add('active');
+                if (btnCeramic) btnCeramic.classList.remove('active');
+                if (imgEl) imgEl.style.display = 'none';
+                if (noImgEl) noImgEl.style.display = 'none';
+                if (cadViewEl) cadViewEl.style.display = 'flex';
+            } else {
+                if (btnCeramic) btnCeramic.classList.add('active');
+                if (btnCad) btnCad.classList.remove('active');
+                if (cadViewEl) cadViewEl.style.display = 'none';
+
+                if (imgEl && imgEl.hasAttribute('src') && imgEl.getAttribute('src') !== '') {
+                    imgEl.style.display = 'block';
+                    if (noImgEl) noImgEl.style.display = 'none';
+                } else {
+                    if (imgEl) imgEl.style.display = 'none';
+                    if (noImgEl) noImgEl.style.display = 'flex';
+                }
+            }
+        }
+        window.switchSpecsView = switchSpecsView;
+
+        function specsQtyAdjust(delta) {
+            const qtyInput = document.getElementById('specs-order-qty');
+            if (!qtyInput) return;
+            let val = parseInt(qtyInput.value, 10) || 1;
+            val += delta;
+            if (val < 1) val = 1;
+            qtyInput.value = val;
+        }
+        window.specsQtyAdjust = specsQtyAdjust;
+
+        function addModalSpecsToCart() {
+            if (!currentSpecsProdId) return;
+            const p = allProducts.find(x => x.id === currentSpecsProdId);
+            if (!p) return;
+
+            const qtyInput = document.getElementById('specs-order-qty');
+            const qty = parseInt(qtyInput ? qtyInput.value : 1, 10) || 1;
+
+            const priceInfo = calculateProductPrice(p);
+            if (qty > 0) {
+                customerOrder[p.id] = {
+                    prod: p,
+                    qty: qty,
+                    rate: priceInfo.finalPrice
+                };
+            } else {
+                delete customerOrder[p.id];
+            }
+
+            const cardInput = document.getElementById(`qty-input-${p.id}`);
+            if (cardInput) cardInput.value = qty;
+
+            updateStickyOrderBar();
+
+            const addBtn = document.getElementById('specs-add-cart-btn');
+            if (addBtn) {
+                const origText = addBtn.innerHTML;
+                addBtn.innerHTML = `<i class="fa-solid fa-check"></i> Added (${qty})`;
+                addBtn.style.background = '#059669';
+                setTimeout(() => {
+                    if (addBtn) {
+                        addBtn.innerHTML = origText;
+                        addBtn.style.background = 'linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%)';
+                    }
+                    closeProductSpecsModal();
+                }, 700);
+            }
+        }
+        window.addModalSpecsToCart = addModalSpecsToCart;
+
+        // Photo Download Functions
+        function triggerImageDownload(url, filename) {
+            if (!url) return;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (filename || 'rabbit-product').replace(/[^a-zA-Z0-9_-]/g, '_') + '.jpg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function downloadCurrentProductPhoto() {
+            if (!currentSpecsProdId) return;
+            const p = allProducts.find(x => x.id === currentSpecsProdId);
+            if (!p) return;
+            const imgSrc = (p.imagesBase64 && p.imagesBase64[0]) ? p.imagesBase64[0] : (p.imageUrl || p.imageBase64 || '');
+            if (!imgSrc) {
+                alert("No photo available to download for this product.");
+                return;
+            }
+            triggerImageDownload(imgSrc, `${p.model || 'rabbit-product'}-photo`);
+        }
+        window.downloadCurrentProductPhoto = downloadCurrentProductPhoto;
+
+        function downloadSingleItemPhoto(prodId) {
+            const p = allProducts.find(x => x.id === prodId);
+            if (!p) return;
+            const imgSrc = (p.imagesBase64 && p.imagesBase64[0]) ? p.imagesBase64[0] : (p.imageUrl || p.imageBase64 || '');
+            if (!imgSrc) {
+                alert("No photo available for this product.");
+                return;
+            }
+            triggerImageDownload(imgSrc, `${p.model || 'rabbit-product'}-photo`);
+        }
+        window.downloadSingleItemPhoto = downloadSingleItemPhoto;
+
+        function downloadAllOrderPhotos() {
+            const keys = Object.keys(customerOrder);
+            if (keys.length === 0) {
+                alert("No items selected in order yet.");
+                return;
+            }
+            let count = 0;
+            keys.forEach((id, idx) => {
+                const item = customerOrder[id];
+                const p = item.prod;
+                const imgSrc = (p.imagesBase64 && p.imagesBase64[0]) ? p.imagesBase64[0] : (p.imageUrl || p.imageBase64 || '');
+                if (imgSrc) {
+                    count++;
+                    setTimeout(() => {
+                        triggerImageDownload(imgSrc, `${p.model || 'product'}-photo`);
+                    }, idx * 400); // Slight stagger to allow browser download multiple files
+                }
+            });
+            if (count === 0) {
+                alert("None of the selected items have photos available.");
+            }
+        }
+        window.downloadAllOrderPhotos = downloadAllOrderPhotos;
+
+        // Cart / Quantity functions for cards
+        function updateCustomerQty(prodId, delta) {
+            const p = allProducts.find(item => item.id === prodId);
+            if (!p) return;
+
+            const current = customerOrder[prodId] ? customerOrder[prodId].qty : 0;
+            const newQty = Math.max(0, current + delta);
+
+            const priceInfo = calculateProductPrice(p);
+            if (newQty > 0) {
+                customerOrder[prodId] = {
+                    prod: p,
+                    qty: newQty,
+                    rate: priceInfo.finalPrice
+                };
+            } else {
+                delete customerOrder[prodId];
+            }
+
+            const inputEl = document.getElementById(`qty-input-${prodId}`);
+            if (inputEl) inputEl.value = newQty;
+
+            updateStickyOrderBar();
+        }
+
+        function updateStickyOrderBar() {
+            let totalQty = 0;
+            let totalAmount = 0;
+
+            Object.keys(customerOrder).forEach(id => {
+                const item = customerOrder[id];
+                totalQty += item.qty;
+                totalAmount += (item.qty * item.rate);
+            });
+
+            document.getElementById('summary-items-count').innerText = `${totalQty} item${totalQty === 1 ? '' : 's'} selected`;
+            document.getElementById('summary-total-amount').innerText = hidePrice ? 'Quotation Order' : `₹${totalAmount.toLocaleString('en-IN')}`;
+        }
+
+        // ==========================================================================
+        // CLIENT ORDER REVIEW & QUOTATION MODAL
+        // ==========================================================================
+        function openOrderSummaryModal() {
+            const keys = Object.keys(customerOrder);
+            if (keys.length === 0) {
+                alert("No items selected yet. Tap [+] on any product to select quantity.");
+                return;
+            }
+
+            renderOrderSummaryTable();
+            document.getElementById('order-summary-modal').classList.add('active');
+        }
+        window.openOrderSummaryModal = openOrderSummaryModal;
+
+        function closeOrderSummaryModal() {
+            document.getElementById('order-summary-modal').classList.remove('active');
+        }
+        window.closeOrderSummaryModal = closeOrderSummaryModal;
+
+        function renderOrderSummaryTable() {
+            const container = document.getElementById('order-items-table-container');
+            const keys = Object.keys(customerOrder);
+
+            if (keys.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:2.5rem; color:#64748b;">Your order is currently empty.</div>`;
+                document.getElementById('order-modal-total-qty').innerText = '0';
+                document.getElementById('order-modal-grand-total').innerText = '₹0';
+                return;
+            }
+
+            let totalQty = 0;
+            let grandTotal = 0;
+
+            const rowsHtml = keys.map(id => {
+                const item = customerOrder[id];
+                const p = item.prod;
+                const specs = typeof getProductSpecs === 'function' ? getProductSpecs(p) : (p.specs || {});
+                const lineTotal = item.qty * item.rate;
+                totalQty += item.qty;
+                grandTotal += lineTotal;
+
+                const imgSrc = (p.imagesBase64 && p.imagesBase64[0]) ? p.imagesBase64[0] : (p.imageUrl || p.imageBase64 || '');
+                const imgHtml = imgSrc
+                    ? `<img src="${imgSrc}" alt="${p.model}" style="width:100%; height:100%; object-fit:contain; border-radius:6px;">`
+                    : `<div style="color:#cbd5e1; font-size:1.5rem;"><i class="fa-solid fa-cube"></i></div>`;
+
+                const dimMm = specs.dimensionsMm || p.size || '';
+                const dimIn = specs.dimensionsInches || '';
+                const color = specs.colorFinish || p.colour || 'White';
+
+                return `
+                    <div class="order-item-row" id="order-row-${p.id}">
+                        <!-- Col 1: Photo & Save Photo link -->
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                            <div style="width: 75px; height: 75px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                ${imgHtml}
+                            </div>
+                            ${imgSrc ? `
+                                <button type="button" onclick="downloadSingleItemPhoto('${p.id}')" style="background:none; border:none; color:#2563eb; font-size:0.68rem; font-weight:700; cursor:pointer; padding:2px; display:flex; align-items:center; gap:2px;">
+                                    <i class="fa-solid fa-download"></i> Save Photo
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        <!-- Col 2: Product Details & Specs -->
+                        <div>
+                            <div style="font-size: 1.02rem; font-weight: 800; color: #0e254f; line-height: 1.25;">${p.model}</div>
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">
+                                ${p.category || 'Luxury Bathware'}${p.subcategory ? ' • ' + p.subcategory : ''}
+                            </div>
+                            
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 0.74rem;">
+                                ${dimMm ? `<span style="background:#f1f5f9; padding:2px 7px; border-radius:4px; font-weight:600; color:#334155;"><i class="fa-solid fa-ruler-combined" style="color:#2563eb; font-size:0.68rem;"></i> ${dimMm}</span>` : ''}
+                                ${dimIn ? `<span style="background:#f1f5f9; padding:2px 7px; border-radius:4px; font-weight:600; color:#334155;">(${dimIn})</span>` : ''}
+                                <span style="background:#f1f5f9; padding:2px 7px; border-radius:4px; font-weight:600; color:#334155;"><i class="fa-solid fa-palette" style="color:#7c3aed; font-size:0.68rem;"></i> ${color}</span>
+                                ${specs.flushingSystem ? `<span style="background:#f1f5f9; padding:2px 7px; border-radius:4px; font-weight:600; color:#0e254f;">${specs.flushingSystem}</span>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Col 3 & 4: Quantity & Pricing -->
+                        <div class="order-item-pricing-col" style="display: flex; align-items: center; gap: 14px;">
+                            <div style="display: flex; align-items: center; border: 1.5px solid #cbd5e1; border-radius: 6px; background: #fff; overflow: hidden; height: 34px;">
+                                <button type="button" onclick="adjustOrderModalQty('${p.id}', -1)" style="width:30px; height:100%; border:none; background:#f8fafc; font-weight:800; cursor:pointer;">-</button>
+                                <span style="width:36px; text-align:center; font-weight:800; font-size:0.9rem; color:#0e254f;">${item.qty}</span>
+                                <button type="button" onclick="adjustOrderModalQty('${p.id}', 1)" style="width:30px; height:100%; border:none; background:#f8fafc; font-weight:800; cursor:pointer;">+</button>
+                            </div>
+
+                            <div style="text-align: right; min-width: 105px;">
+                                <div style="font-size: 1.05rem; font-weight: 900; color: #0e254f;">${hidePrice ? 'N/A' : '₹' + lineTotal.toLocaleString('en-IN')}</div>
+                                <div style="font-size: 0.72rem; color: #64748b; font-weight: 600;">${hidePrice ? '' : '@ ₹' + item.rate.toLocaleString('en-IN') + ' / pc'}</div>
+                            </div>
+
+                            <button type="button" onclick="removeOrderItem('${p.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1rem; padding:4px;" title="Remove product">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = rowsHtml;
+            document.getElementById('order-modal-total-qty').innerText = totalQty;
+            document.getElementById('order-modal-grand-total').innerText = hidePrice ? 'Price on Request' : `₹${grandTotal.toLocaleString('en-IN')}`;
+        }
+
+        function adjustOrderModalQty(prodId, delta) {
+            updateCustomerQty(prodId, delta);
+            renderOrderSummaryTable();
+        }
+        window.adjustOrderModalQty = adjustOrderModalQty;
+
+        function removeOrderItem(prodId) {
+            delete customerOrder[prodId];
+            const inputEl = document.getElementById(`qty-input-${prodId}`);
+            if (inputEl) inputEl.value = 0;
+            updateStickyOrderBar();
+            renderOrderSummaryTable();
+        }
+        window.removeOrderItem = removeOrderItem;
+
+        // ==========================================================================
+        // DEDICATED LUXURY A4 ORDER PDF GENERATOR
+        // (PHOTO ON LEFT, DETAILS & SPECS IN MIDDLE, QTY & RATE ON RIGHT)
+        // ==========================================================================
+        function renderOrderPrintableSheet() {
+            const keys = Object.keys(customerOrder);
+            if (keys.length === 0) return false;
+
+            const sheetEl = document.getElementById('printable-order-sheet');
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            const refId = `RBT-ORD-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${now.getMinutes()}${now.getSeconds()}`;
+
+            let totalQty = 0;
+            let grandTotal = 0;
+
+            const rowsHtml = keys.map((id, idx) => {
+                const item = customerOrder[id];
+                const p = item.prod;
+                const specs = typeof getProductSpecs === 'function' ? getProductSpecs(p) : (p.specs || {});
+                const lineTotal = item.qty * item.rate;
+                totalQty += item.qty;
+                grandTotal += lineTotal;
+
+                const imgSrc = (p.imagesBase64 && p.imagesBase64[0]) ? p.imagesBase64[0] : (p.imageUrl || p.imageBase64 || '');
+                const imgHtml = imgSrc
+                    ? `<img src="${imgSrc}" alt="${p.model}" style="width:72px; height:72px; object-fit:contain; border-radius:4px;">`
+                    : `<div style="color:#94a3b8; font-size:0.75rem; text-align:center;">No Photo</div>`;
+
+                const dimMm = specs.dimensionsMm || p.size || '';
+                const dimIn = specs.dimensionsInches || '';
+                const color = specs.colorFinish || p.colour || 'White';
+
+                return `
+                    <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
+                        <td style="padding: 8px 6px; text-align: center; font-weight: 700; color: #64748b; font-size: 8pt; vertical-align: middle;">${idx + 1}</td>
+                        <td style="padding: 8px 6px; text-align: center; vertical-align: middle;">
+                            <div style="width: 76px; height: 76px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto;">
+                                ${imgHtml}
+                            </div>
+                        </td>
+                        <td style="padding: 8px 10px; vertical-align: middle;">
+                            <div style="font-size: 10pt; font-weight: 800; color: #0e254f; line-height: 1.2;">${p.model}</div>
+                            <div style="font-size: 7.2pt; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">
+                                ${p.category || 'Luxury Bathware'}${p.subcategory ? ' • ' + p.subcategory : ''} • ${p.grade || 'Premium'}
+                            </div>
+                            <div style="margin-top: 4px; font-size: 7.5pt; color: #334155; line-height: 1.4;">
+                                ${dimMm ? `<div><strong style="color:#0e254f;">Dimensions:</strong> ${dimMm} ${dimIn ? '(' + dimIn + ')' : ''}</div>` : ''}
+                                <div><strong style="color:#0e254f;">Color / Finish:</strong> ${color}</div>
+                                ${specs.flushingSystem ? `<div><strong style="color:#0e254f;">Flushing:</strong> ${specs.flushingSystem}</div>` : ''}
+                                ${specs.installation ? `<div><strong style="color:#0e254f;">Mounting:</strong> ${specs.installation}</div>` : ''}
+                            </div>
+                        </td>
+                        <td style="padding: 8px 8px; text-align: center; font-weight: 900; font-size: 10pt; color: #0e254f; vertical-align: middle;">
+                            ${item.qty} Pcs
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-weight: 700; font-size: 9pt; color: #334155; vertical-align: middle;">
+                            ${hidePrice ? 'N/A' : '₹' + item.rate.toLocaleString('en-IN')}
+                        </td>
+                        <td style="padding: 8px 10px; text-align: right; font-weight: 900; font-size: 10pt; color: #0e254f; vertical-align: middle;">
+                            ${hidePrice ? 'N/A' : '₹' + lineTotal.toLocaleString('en-IN')}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            sheetEl.innerHTML = `
+                <div style="padding: 10mm 12mm; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0e254f; background: #ffffff;">
+                    <!-- Order Sheet Top Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2.5px solid #0e254f; padding-bottom: 10px; margin-bottom: 14px;">
+                        <div>
+                            <div style="font-family: 'Syncopate', sans-serif; font-size: 15pt; font-weight: 800; color: #0e254f; letter-spacing: 0.16em;">RABBIT WORLD</div>
+                            <div style="font-size: 7.5pt; font-weight: 700; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">Luxury Bath, Kitchen & Home Solutions</div>
+                            <div style="margin-top: 6px; font-size: 9pt; font-weight: 800; color: #0e254f;">
+                                Presented by: <span style="color: #1e3a8a;">${firmName}</span>
+                            </div>
+                            ${dealerPhone ? `<div style="font-size: 8pt; color: #475569; font-weight: 600;">Dealer Contact: ${dealerPhone}</div>` : ''}
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="display: inline-block; background: #0e254f; color: #ffffff; font-size: 8.5pt; font-weight: 800; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+                                Client Purchase Order
+                            </div>
+                            <div style="font-size: 8pt; color: #64748b; font-weight: 600;">Date: ${dateStr} at ${timeStr}</div>
+                            <div style="font-size: 8pt; color: #0e254f; font-weight: 700;">Ref: ${refId}</div>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 8.5pt;">
+                        <thead>
+                            <tr style="background: #0e254f; color: #ffffff; text-transform: uppercase; font-size: 7.2pt; letter-spacing: 0.06em;">
+                                <th style="padding: 7px 6px; text-align: center; width: 28px;">#</th>
+                                <th style="padding: 7px 6px; text-align: center; width: 85px;">Photo</th>
+                                <th style="padding: 7px 10px; text-align: left;">Product Details & Technical Specifications</th>
+                                <th style="padding: 7px 8px; text-align: center; width: 65px;">Quantity</th>
+                                <th style="padding: 7px 10px; text-align: right; width: 90px;">Rate (₹)</th>
+                                <th style="padding: 7px 10px; text-align: right; width: 105px;">Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #f8fafc; border-top: 2px solid #0e254f;">
+                                <td colspan="3" style="padding: 10px; font-weight: 800; font-size: 9.5pt; color: #0e254f; text-transform: uppercase;">Total Order Summary</td>
+                                <td style="padding: 10px 8px; text-align: center; font-weight: 900; font-size: 10.5pt; color: #0e254f;">${totalQty} Pcs</td>
+                                <td style="padding: 10px; text-align: right; font-weight: 700; color: #64748b; font-size: 8.5pt;">Grand Total:</td>
+                                <td style="padding: 10px; text-align: right; font-weight: 900; font-size: 12.5pt; color: #10b981;">
+                                    ${hidePrice ? 'Price on Request' : '₹' + grandTotal.toLocaleString('en-IN')}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- Signature & Notes -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-top: 1px dashed #cbd5e1; padding-top: 10px; font-size: 7.5pt; color: #64748b;">
+                        <div>
+                            <div style="font-weight: 700; color: #0e254f; margin-bottom: 2px;">Order Confirmation Terms:</div>
+                            <div>• 100% Genuine Rabbit World Vitreous China Architecture (Kiln fired at 1280°C).</div>
+                            <div>• All dimensions subject to standard ceramic production tolerances (±5mm).</div>
+                            <div>• Please verify plumbing rough-in specifications prior to installation.</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 700; color: #0e254f;">Authorized Dealer Seal & Signature</div>
+                            <div style="margin-top: 30px; border-top: 1.5px solid #0e254f; width: 160px; display: inline-block;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return true;
+        }
+
+        function printOrderPdf() {
+            const keys = Object.keys(customerOrder);
+            if (keys.length === 0) {
+                alert("Please select at least 1 product quantity to generate an Order PDF.");
+                return;
+            }
+
+            const ready = renderOrderPrintableSheet();
+            if (!ready) return;
+
+            // Activate Order Print Mode so only the Order Sheet prints
+            document.body.classList.add('order-print-mode');
+
+            // Trigger Print Dialog
+            window.print();
+
+            // Clean up print mode safely
+            window.addEventListener('afterprint', function cleanOrderPrint() {
+                document.body.classList.remove('order-print-mode');
+                window.removeEventListener('afterprint', cleanOrderPrint);
+            });
+            setTimeout(() => {
+                document.body.classList.remove('order-print-mode');
+            }, 3000);
+        }
+        window.printOrderPdf = printOrderPdf;
+
+        function printCatalogPdf() {
+            document.body.classList.remove('order-print-mode');
+            window.print();
+        }
+        window.printCatalogPdf = printCatalogPdf;
+
+        function submitWhatsAppOrder() {
+            const keys = Object.keys(customerOrder);
+            if (keys.length === 0) {
+                alert("Please select at least 1 product quantity before sending order.");
+                return;
+            }
+
+            let msg = `*NEW ORDER INQUIRY*\n`;
+            msg += `Presented by: ${firmName || 'Rabbit World Dealer'}\n`;
+            msg += `------------------------------------\n`;
+
+            let grandTotal = 0;
+            let grandQty = 0;
+
+            keys.forEach((id, idx) => {
+                const item = customerOrder[id];
+                const p = item.prod;
+                const lineTotal = item.qty * item.rate;
+                grandTotal += lineTotal;
+                grandQty += item.qty;
+
+                msg += `${idx + 1}. *${p.model}* (${p.category || ''})\n`;
+                if (p.colour) msg += `   Color: ${p.colour}\n`;
+                if (p.size) msg += `   Size: ${p.size}\n`;
+                msg += `   Qty: *${item.qty} pcs*`;
+                if (!hidePrice && item.rate > 0) {
+                    msg += ` @ ₹${item.rate.toLocaleString('en-IN')} = ₹${lineTotal.toLocaleString('en-IN')}\n`;
+                } else {
+                    msg += `\n`;
+                }
+            });
+
+            msg += `------------------------------------\n`;
+            msg += `*Total Units:* ${grandQty} pcs\n`;
+            if (!hidePrice && grandTotal > 0) {
+                msg += `*Estimated Total:* ₹${grandTotal.toLocaleString('en-IN')}\n`;
+            }
+            msg += `------------------------------------\n`;
+            msg += `Please confirm order availability and dispatch schedule.`;
+
+            let targetPhone = dealerPhone.replace(/[^0-9]/g, '');
+            if (targetPhone.length === 10) targetPhone = '91' + targetPhone;
+            if (!targetPhone) targetPhone = '919876543210';
+
+            const waUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
+            window.open(waUrl, '_blank');
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', loadCatalogData);
+    </script>
+</body>
+</html>
