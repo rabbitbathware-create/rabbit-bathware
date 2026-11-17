@@ -550,6 +550,7 @@ function setupNavigation() {
         "ledger-tab": "Accounts Ledger",
         "party-performance-tab": "Party Performance & Payment Aging Report",
         "dealer-analytics-tab": "Dealer Analytics & Activity Tracking",
+        "dealer-map-tab": "Dealer Territory & Proximity Map",
         "offers-tab": "Special Offers & Clearance Manager",
         "banners-tab": "Homepage Banners & Photos",
         "settings-tab": "System Settings & Backup"
@@ -580,6 +581,7 @@ function setupNavigation() {
             else if (tabId === "ledger-tab") initLedgerTab();
             else if (tabId === "party-performance-tab") renderPartyPerformanceTab();
             else if (tabId === "dealer-analytics-tab") renderDealerAnalyticsTab();
+            else if (tabId === "dealer-map-tab") initDealerTerritoryMap();
             else if (tabId === "offers-tab") renderAdminOffersList();
             else if (tabId === "banners-tab") { renderAdminBanners(); if (typeof renderAdminCategoryCards === 'function') renderAdminCategoryCards(); }
             else if (tabId === "settings-tab") initSettingsTab();
@@ -7750,3 +7752,431 @@ function formatRelativeTime(ts) {
     return new Date(ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 }
 window.formatRelativeTime = formatRelativeTime;
+// ============================================================
+// DEALER TERRITORY MAP & PROXIMITY MEASUREMENT MODULE v1.0
+// Powered by Leaflet.js & OpenStreetMap (100% Free, Zero Billing)
+// ============================================================
+
+let territoryMap = null;
+let dealerMarkersLayer = null;
+let radiusCirclesLayer = null;
+let measureMarkersLayer = null;
+let measureLineLayer = null;
+
+let isMeasureModeActive = false;
+let measurePoints = []; // [{ lat, lng, name }]
+let showRadiusCircles = true;
+let defaultRadiusKm = 5; // Standard exclusive territory radius
+
+function initDealerTerritoryMap() {
+    const mapEl = document.getElementById('territory-map-view');
+    if (!mapEl) return;
+
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        mapEl.innerHTML = `
+            <div style="text-align:center; padding:3rem 1rem; color:#64748b;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size:2rem; color:#f59e0b; margin-bottom:0.75rem;"></i>
+                <div style="font-weight:700; color:#334155;">Map engine is loading...</div>
+                <div style="font-size:0.8rem; margin-top:0.25rem;">Please ensure internet connection is active to load map tiles.</div>
+            </div>
+        `;
+        return;
+    }
+
+    if (!territoryMap) {
+        // Initialize map centered on Gujarat (Rajkot/Morbi hub)
+        territoryMap = L.map('territory-map-view', {
+            center: [22.5000, 71.2000],
+            zoom: 8,
+            zoomControl: true
+        });
+
+        // Add OpenStreetMap Tile Layer (Free, high quality, worldwide streets)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Map &copy; Esri & OpenStreetMap contributors'
+        }).addTo(territoryMap);
+
+        dealerMarkersLayer = L.layerGroup().addTo(territoryMap);
+        radiusCirclesLayer = L.layerGroup().addTo(territoryMap);
+        measureMarkersLayer = L.layerGroup().addTo(territoryMap);
+        measureLineLayer = L.layerGroup().addTo(territoryMap);
+
+        // Map Click Listener for Distance Measure Mode
+        territoryMap.on('click', handleMapClickForMeasure);
+    }
+
+    // Leaflet needs invalidateSize() when rendered in a tab that was hidden
+    setTimeout(() => {
+        if (territoryMap) {
+            territoryMap.invalidateSize();
+            renderDealerMapMarkersAndCircles();
+        }
+    }, 250);
+
+    renderDealerMapDirectoryTable();
+}
+window.initDealerTerritoryMap = initDealerTerritoryMap;
+
+function renderDealerMapMarkersAndCircles() {
+    if (!territoryMap || !dealerMarkersLayer || !radiusCirclesLayer) return;
+
+    dealerMarkersLayer.clearLayers();
+    radiusCirclesLayer.clearLayers();
+
+    const merchants = (state && state.merchants) ? state.merchants : [];
+    let mappedCount = 0;
+
+    merchants.forEach(m => {
+        const coords = (typeof getMerchantCoordinates === 'function') ? getMerchantCoordinates(m) : null;
+        if (!coords) return;
+
+        mappedCount++;
+        const radius = m.territoryRadiusKm !== undefined ? m.territoryRadiusKm : defaultRadiusKm;
+
+        // Custom Marker Pin
+        const markerColor = (m.isLocked === true || (m.failedAttempts || 0) >= 5) ? '#dc2626' : '#2563eb';
+        const customIcon = L.divIcon({
+            className: 'dealer-map-pin',
+            html: `
+                <div style="background:${markerColor}; color:#fff; width:34px; height:34px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid #fff;">
+                    <i class="fa-solid fa-store" style="transform:rotate(45deg); font-size:13px;"></i>
+                </div>
+            `,
+            iconSize: [34, 34],
+            iconAnchor: [17, 34],
+            popupAnchor: [0, -34]
+        });
+
+        const marker = L.marker([coords.lat, coords.lng], { icon: customIcon });
+
+        // Popup Content
+        const city = m.address ? m.address.split(',')[0].trim() : 'Gujarat';
+        const lastOrder = (m.orders && m.orders.length > 0) ? m.orders[0].date : 'No orders yet';
+        const popupHtml = `
+            <div style="font-family:'Outfit',sans-serif; min-width:210px; padding:2px;">
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                    <span style="background:#0e254f; color:#fff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:3px;">${m.uid || 'DEALER'}</span>
+                    <b style="font-size:14px; color:#0e254f;">${m.name}</b>
+                </div>
+                <div style="font-size:12px; color:#64748b; margin-bottom:4px;">
+                    <i class="fa-solid fa-location-dot" style="color:#ef4444;"></i> ${m.address || city}
+                </div>
+                <div style="font-size:12px; color:#334155; margin-bottom:6px;">
+                    <i class="fa-brands fa-whatsapp" style="color:#25d366;"></i> +${m.phone}
+                </div>
+                <div style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:11px; margin-bottom:8px; color:#475569;">
+                    <b>Exclusive Radius:</b> ${radius} km<br>
+                    <b>GPS Source:</b> ${coords.isGps ? 'ðŸ“ Exact Shop GPS' : 'ðŸ¢ City Center Estimate'}
+                </div>
+                <div style="display:flex; gap:4px;">
+                    <button type="button" onclick="setMeasureStartPoint(${coords.lat}, ${coords.lng}, '${m.name.replace(/'/g, "\\'")}')" style="flex:1; background:#2563eb; color:#fff; border:none; padding:4px 6px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer;">
+                        <i class="fa-solid fa-ruler"></i> Measure Distance
+                    </button>
+                    <button type="button" onclick="sendCurrentPartyPinWhatsApp()" style="background:#25d366; color:#fff; border:none; padding:4px 6px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer;" title="WhatsApp">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        marker.bindPopup(popupHtml);
+        dealerMarkersLayer.addLayer(marker);
+
+        // Territory Radius Circle (Exclusive Zone)
+        if (showRadiusCircles && radius > 0) {
+            const circleColor = (m.isLocked === true) ? '#dc2626' : '#10b981';
+            const circle = L.circle([coords.lat, coords.lng], {
+                radius: radius * 1000, // meters
+                color: circleColor,
+                fillColor: circleColor,
+                fillOpacity: 0.12,
+                weight: 1.5,
+                dashArray: '4, 4'
+            });
+            circle.bindTooltip(`Exclusive Zone: ${m.name} (${radius} km)`, { sticky: true });
+            radiusCirclesLayer.addLayer(circle);
+        }
+    });
+
+    const countEl = document.getElementById('map-dealers-count');
+    if (countEl) countEl.textContent = `${mappedCount} Dealers Mapped`;
+}
+
+function toggleRadiusCircles() {
+    showRadiusCircles = !showRadiusCircles;
+    renderDealerMapMarkersAndCircles();
+    const btn = document.getElementById('btn-toggle-radius');
+    if (btn) {
+        if (showRadiusCircles) {
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="fa-solid fa-circle-dot"></i> Radius Circles: ON';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="fa-regular fa-circle"></i> Radius Circles: OFF';
+        }
+    }
+}
+window.toggleRadiusCircles = toggleRadiusCircles;
+
+function toggleMeasureMode() {
+    isMeasureModeActive = !isMeasureModeActive;
+    measurePoints = [];
+    if (measureMarkersLayer) measureMarkersLayer.clearLayers();
+    if (measureLineLayer) measureLineLayer.clearLayers();
+
+    const infoBox = document.getElementById('map-measure-infobox');
+    const btn = document.getElementById('btn-measure-mode');
+
+    if (isMeasureModeActive) {
+        if (btn) {
+            btn.classList.add('active');
+            btn.style.background = '#dc2626';
+            btn.style.color = '#fff';
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Exit Measure Mode';
+        }
+        if (infoBox) {
+            infoBox.style.display = 'block';
+            infoBox.innerHTML = `
+                <div style="font-weight:800; color:#0e254f; font-size:13px; margin-bottom:4px;">
+                    <i class="fa-solid fa-ruler-combined" style="color:#2563eb;"></i> Distance Measure Mode Active
+                </div>
+                <div style="font-size:12px; color:#475569;">
+                    Click anywhere on the map or click a dealer to set <b>Point A</b>, then click <b>Point B</b> to measure distance in kilometers.
+                </div>
+            `;
+        }
+    } else {
+        if (btn) {
+            btn.classList.remove('active');
+            btn.style.background = '#f8fafc';
+            btn.style.color = '#334155';
+            btn.innerHTML = '<i class="fa-solid fa-ruler"></i> Measure Distance Tool';
+        }
+        if (infoBox) infoBox.style.display = 'none';
+    }
+}
+window.toggleMeasureMode = toggleMeasureMode;
+
+function handleMapClickForMeasure(e) {
+    if (!isMeasureModeActive) return;
+
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+
+    if (measurePoints.length === 0) {
+        // Point A
+        measurePoints.push({ lat, lng, name: 'Point A' });
+        const markerA = L.circleMarker([lat, lng], { radius: 7, color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.9 }).addTo(measureMarkersLayer);
+        markerA.bindTooltip('Point A (Start)', { permanent: true, direction: 'top' });
+
+        const infoBox = document.getElementById('map-measure-infobox');
+        if (infoBox) {
+            infoBox.innerHTML = `
+                <div style="font-weight:800; color:#0e254f; font-size:13px; margin-bottom:4px;">
+                    <i class="fa-solid fa-location-dot" style="color:#2563eb;"></i> Point A Selected
+                </div>
+                <div style="font-size:12px; color:#475569;">
+                    Now click <b>Point B</b> (where you want to appoint new dealer or check distance).
+                </div>
+            `;
+        }
+    } else if (measurePoints.length === 1) {
+        // Point B
+        const ptA = measurePoints[0];
+        measurePoints.push({ lat, lng, name: 'Point B' });
+
+        const markerB = L.circleMarker([lat, lng], { radius: 7, color: '#dc2626', fillColor: '#dc2626', fillOpacity: 0.9 }).addTo(measureMarkersLayer);
+        markerB.bindTooltip('Point B', { permanent: true, direction: 'top' });
+
+        // Draw line between A and B
+        const polyline = L.polyline([[ptA.lat, ptA.lng], [lat, lng]], { color: '#dc2626', weight: 3, dashArray: '6, 6' }).addTo(measureLineLayer);
+
+        // Calculate distance
+        const distKm = (typeof calculateDistanceKm === 'function') 
+            ? calculateDistanceKm(ptA.lat, ptA.lng, lat, lng)
+            : 0;
+
+        // Check against nearest dealer radius conflict
+        let conflictWarning = '';
+        if (distKm <= defaultRadiusKm) {
+            conflictWarning = `
+                <div style="background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; padding:6px 8px; border-radius:4px; font-size:11px; font-weight:700; margin-top:6px;">
+                    âš ï¸ Territory Alert: Distance is only ${distKm} km (Inside ${defaultRadiusKm} km exclusive buffer)! May conflict with nearby dealer.
+                </div>
+            `;
+        } else {
+            conflictWarning = `
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; color:#059669; padding:6px 8px; border-radius:4px; font-size:11px; font-weight:700; margin-top:6px;">
+                    âœ… Safe Territory: Distance is ${distKm} km (Beyond ${defaultRadiusKm} km buffer). Good location for new dealership!
+                </div>
+            `;
+        }
+
+        const infoBox = document.getElementById('map-measure-infobox');
+        if (infoBox) {
+            infoBox.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <b style="color:#0e254f; font-size:13px;"><i class="fa-solid fa-ruler-combined" style="color:#2563eb;"></i> Measured Distance:</b>
+                    <span style="font-size:16px; font-weight:900; color:#dc2626;">${distKm} KM</span>
+                </div>
+                <div style="font-size:11.5px; color:#475569;">
+                    <b>From:</b> ${ptA.name} <br>
+                    <b>To:</b> Selected Location
+                </div>
+                ${conflictWarning}
+                <div style="margin-top:8px; display:flex; gap:6px;">
+                    <button type="button" onclick="resetMeasurePoints()" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:3px 8px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer;">
+                        Measure Another
+                    </button>
+                    <button type="button" onclick="toggleMeasureMode()" style="background:#0e254f; color:#fff; border:none; padding:3px 8px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer;">
+                        Done
+                    </button>
+                </div>
+            `;
+        }
+    }
+}
+
+function setMeasureStartPoint(lat, lng, name) {
+    if (!territoryMap) return;
+    if (!isMeasureModeActive) toggleMeasureMode();
+
+    if (measureMarkersLayer) measureMarkersLayer.clearLayers();
+    if (measureLineLayer) measureLineLayer.clearLayers();
+    measurePoints = [{ lat, lng, name: name || 'Selected Dealer' }];
+
+    const markerA = L.circleMarker([lat, lng], { radius: 8, color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.9 }).addTo(measureMarkersLayer);
+    markerA.bindTooltip(`${name} (Start)`, { permanent: true, direction: 'top' });
+
+    const infoBox = document.getElementById('map-measure-infobox');
+    if (infoBox) {
+        infoBox.style.display = 'block';
+        infoBox.innerHTML = `
+            <div style="font-weight:800; color:#0e254f; font-size:13px; margin-bottom:4px;">
+                <i class="fa-solid fa-store" style="color:#2563eb;"></i> Starting Point: ${name}
+            </div>
+            <div style="font-size:12px; color:#475569;">
+                Now click on any other location on the map to measure the exact distance from <b>${name}</b>.
+            </div>
+        `;
+    }
+}
+window.setMeasureStartPoint = setMeasureStartPoint;
+
+function resetMeasurePoints() {
+    measurePoints = [];
+    if (measureMarkersLayer) measureMarkersLayer.clearLayers();
+    if (measureLineLayer) measureLineLayer.clearLayers();
+    const infoBox = document.getElementById('map-measure-infobox');
+    if (infoBox) {
+        infoBox.innerHTML = `
+            <div style="font-weight:800; color:#0e254f; font-size:13px; margin-bottom:4px;">
+                <i class="fa-solid fa-ruler-combined" style="color:#2563eb;"></i> Ready to Measure
+            </div>
+            <div style="font-size:12px; color:#475569;">
+                Click on the map to set <b>Point A</b>.
+            </div>
+        `;
+    }
+}
+window.resetMeasurePoints = resetMeasurePoints;
+
+function flyToCity(cityName) {
+    if (!territoryMap) return;
+    const cities = (typeof GUJARAT_CITY_COORDINATES !== 'undefined') ? GUJARAT_CITY_COORDINATES : {};
+    if (cityName === 'all_gujarat') {
+        territoryMap.flyTo([22.5000, 71.2000], 8);
+    } else if (cities[cityName.toLowerCase()]) {
+        const c = cities[cityName.toLowerCase()];
+        territoryMap.flyTo([c.lat, c.lng], 12);
+    }
+}
+window.flyToCity = flyToCity;
+
+function flyToDealer(merchantId) {
+    if (!territoryMap) return;
+    const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
+    if (!m) return;
+    const coords = (typeof getMerchantCoordinates === 'function') ? getMerchantCoordinates(m) : null;
+    if (coords) {
+        territoryMap.flyTo([coords.lat, coords.lng], 14);
+        setTimeout(() => {
+            if (dealerMarkersLayer) {
+                dealerMarkersLayer.eachLayer(layer => {
+                    const lPos = layer.getLatLng();
+                    if (Math.abs(lPos.lat - coords.lat) < 0.001 && Math.abs(lPos.lng - coords.lng) < 0.001) {
+                        layer.openPopup();
+                    }
+                });
+            }
+        }, 500);
+    }
+}
+window.flyToDealer = flyToDealer;
+
+function updateDealerRadius(merchantId, newRadiusKm) {
+    const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
+    if (!m) return;
+    m.territoryRadiusKm = parseFloat(newRadiusKm) || 0;
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderDealerMapMarkersAndCircles();
+}
+window.updateDealerRadius = updateDealerRadius;
+
+function renderDealerMapDirectoryTable() {
+    const tbody = document.getElementById('map-dealers-tbody');
+    if (!tbody) return;
+
+    const merchants = (state && state.merchants) ? state.merchants : [];
+    if (merchants.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:1.5rem; color:#64748b;">No dealers registered.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = merchants.map(m => {
+        const coords = (typeof getMerchantCoordinates === 'function') ? getMerchantCoordinates(m) : { lat: 22.8, lng: 70.8, isGps: false };
+        const radius = m.territoryRadiusKm !== undefined ? m.territoryRadiusKm : defaultRadiusKm;
+        const city = m.address ? m.address.split(',')[0].trim() : 'Gujarat';
+
+        return `
+            <tr style="border-bottom:1px solid #f1f5f9; font-size:13px;">
+                <td style="padding:10px 12px; font-weight:700; color:#0e254f;">
+                    <div>${m.name}</div>
+                    <small style="color:#64748b; font-size:11px;">UID: ${m.uid || m.id} • ${city}</small>
+                </td>
+                <td style="padding:10px 12px; color:#475569;">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        ${coords.isGps 
+                            ? '<span style="color:#16a34a; font-weight:700; font-size:11px;"><i class="fa-solid fa-circle-check"></i> Exact GPS</span>' 
+                            : '<span style="color:#b45309; font-weight:600; font-size:11px;"><i class="fa-solid fa-map-pin"></i> City Coords</span>'}
+                    </div>
+                    <small style="font-size:10px; color:#94a3b8;">${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}</small>
+                </td>
+                <td style="padding:10px 12px;">
+                    <select onchange="updateDealerRadius('${m.id}', this.value)" style="padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; font-weight:700; color:#0e254f; background:#f8fafc; outline:none;">
+                        <option value="3" ${radius === 3 ? 'selected' : ''}>3 KM Buffer</option>
+                        <option value="5" ${radius === 5 ? 'selected' : ''}>5 KM Buffer</option>
+                        <option value="8" ${radius === 8 ? 'selected' : ''}>8 KM Buffer</option>
+                        <option value="10" ${radius === 10 ? 'selected' : ''}>10 KM Buffer</option>
+                        <option value="15" ${radius === 15 ? 'selected' : ''}>15 KM Buffer</option>
+                        <option value="0" ${radius === 0 ? 'selected' : ''}>No Protection</option>
+                    </select>
+                </td>
+                <td style="padding:10px 12px; text-align:right;">
+                    <div style="display:inline-flex; gap:4px;">
+                        <button type="button" class="btn btn-secondary" onclick="flyToDealer('${m.id}')" style="padding:4px 8px; font-size:11px; font-weight:700;" title="Zoom on Map">
+                            <i class="fa-solid fa-crosshairs"></i> Locate
+                        </button>
+                        <button type="button" class="btn" onclick="setMeasureStartPoint(${coords.lat}, ${coords.lng}, '${m.name.replace(/'/g, "\\'")}')" style="padding:4px 8px; font-size:11px; font-weight:700; background:#2563eb; color:#fff; border:none; border-radius:4px; cursor:pointer;" title="Measure distance from this dealer">
+                            <i class="fa-solid fa-ruler"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+window.renderDealerMapDirectoryTable = renderDealerMapDirectoryTable;
+

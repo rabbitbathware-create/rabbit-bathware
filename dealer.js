@@ -610,6 +610,9 @@
             };
         });
 
+        const reqLatVal = document.getElementById('req-lat') ? parseFloat(document.getElementById('req-lat').value) : NaN;
+        const reqLngVal = document.getElementById('req-lng') ? parseFloat(document.getElementById('req-lng').value) : NaN;
+
         if (!state.dealerRequests) state.dealerRequests = [];
         const newReq = {
             id: "req-" + Date.now(),
@@ -621,6 +624,8 @@
             callingPhone: callingPhone,
             gst: gst,
             remarks: remarks,
+            lat: (!isNaN(reqLatVal) && reqLatVal !== 0) ? reqLatVal : undefined,
+            lng: (!isNaN(reqLngVal) && reqLngVal !== 0) ? reqLngVal : undefined,
             date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
             cartItems: inquiryItems
         };
@@ -866,13 +871,114 @@
         const nameEl = document.getElementById('profile-modal-name');
         const addrEl = document.getElementById('profile-modal-address');
         const phoneEl = document.getElementById('profile-modal-phone');
+        const gpsBadge = document.getElementById('profile-modal-gps-badge');
+        const gpsText = document.getElementById('profile-modal-gps-text');
 
         if (nameEl) nameEl.textContent = dealerMerchant.name || 'N/A';
         if (addrEl) addrEl.textContent = dealerMerchant.address || 'N/A';
         if (phoneEl) phoneEl.textContent = 'Ph: ' + (dealerMerchant.phone || 'N/A');
 
+        if (gpsBadge) {
+            if (dealerMerchant.lat && dealerMerchant.lng) {
+                gpsBadge.style.display = 'inline-flex';
+                if (gpsText) gpsText.textContent = `Shop GPS: ${Number(dealerMerchant.lat).toFixed(4)}, ${Number(dealerMerchant.lng).toFixed(4)}`;
+            } else {
+                gpsBadge.style.display = 'none';
+            }
+        }
+
         openModal('profile-modal');
     }
+    window.openProfileModal = openProfileModal;
+
+    function captureCurrentDealerGPS() {
+        if (!dealerMerchant) {
+            alert('Please login first.');
+            return;
+        }
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser.');
+            return;
+        }
+
+        const btn = document.getElementById('profile-btn-detect-gps');
+        const oldText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Detecting GPS Location...';
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                dealerMerchant.lat = lat;
+                dealerMerchant.lng = lng;
+
+                if (state && state.merchants) {
+                    const idx = state.merchants.findIndex(m => m.id === dealerMerchant.id);
+                    if (idx !== -1) {
+                        state.merchants[idx].lat = lat;
+                        state.merchants[idx].lng = lng;
+                    }
+                }
+                saveState();
+                if (typeof syncToCloud === 'function') syncToCloud();
+
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Location Saved Successfully!';
+                    setTimeout(() => {
+                        if (btn) btn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> 📍 Update My Shop GPS Location';
+                    }, 2500);
+                }
+
+                const gpsBadge = document.getElementById('profile-modal-gps-badge');
+                const gpsText = document.getElementById('profile-modal-gps-text');
+                if (gpsBadge) {
+                    gpsBadge.style.display = 'inline-flex';
+                    if (gpsText) gpsText.textContent = `Shop GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                }
+                alert(`Shop location captured successfully!\nCoordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+            },
+            (err) => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldText || '<i class="fa-solid fa-crosshairs"></i> 📍 Auto-Detect My Shop GPS Location';
+                }
+                alert('GPS location permission denied or timed out. Please allow location access in your browser settings.');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+    window.captureCurrentDealerGPS = captureCurrentDealerGPS;
+
+    function captureNewDealerRegistrationGPS() {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser.');
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const latEl = document.getElementById('req-lat');
+                const lngEl = document.getElementById('req-lng');
+                const badge = document.getElementById('req-gps-badge');
+                if (latEl) latEl.value = lat;
+                if (lngEl) lngEl.value = lng;
+                if (badge) {
+                    badge.style.display = 'block';
+                    badge.innerHTML = `<i class="fa-solid fa-check-circle"></i> GPS Attached: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                }
+            },
+            (err) => {
+                alert('GPS access denied or unavailable. You can still register by typing your City.');
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
+    window.captureNewDealerRegistrationGPS = captureNewDealerRegistrationGPS;
 
     function openDealerOrdersModal() {
         if (!dealerMerchant) {

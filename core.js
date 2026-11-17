@@ -3031,3 +3031,59 @@ function seedInitialDealerAnalyticsIfEmpty() {
 window.seedInitialDealerAnalyticsIfEmpty = seedInitialDealerAnalyticsIfEmpty;
 
 
+
+// ============================================================
+// GEOGRAPHIC & COORDINATE UTILITIES FOR TERRITORY MANAGEMENT
+// ============================================================
+
+const GUJARAT_CITY_COORDINATES = {
+    "rajkot": { lat: 22.3039, lng: 70.8022 },
+    "ahmedabad": { lat: 23.0225, lng: 72.5714 },
+    "surat": { lat: 21.1702, lng: 72.8311 },
+    "morbi": { lat: 22.8120, lng: 70.8378 },
+    "vadodara": { lat: 22.3072, lng: 73.1812 },
+    "jamnagar": { lat: 22.4707, lng: 70.0577 },
+    "bhavnagar": { lat: 21.7645, lng: 72.1519 },
+    "junagadh": { lat: 21.5222, lng: 70.4579 },
+    "gandhinagar": { lat: 23.2156, lng: 72.6369 },
+    "mehsana": { lat: 23.5880, lng: 72.3693 },
+    "bhuj": { lat: 23.2420, lng: 69.6669 },
+    "anand": { lat: 22.5645, lng: 72.9289 },
+    "bharuch": { lat: 21.7051, lng: 72.9959 },
+    "vapi": { lat: 20.3893, lng: 72.9106 },
+    "himatnagar": { lat: 23.5977, lng: 72.9698 },
+    "palanpur": { lat: 24.1725, lng: 72.4344 }
+};
+window.GUJARAT_CITY_COORDINATES = GUJARAT_CITY_COORDINATES;
+
+function getMerchantCoordinates(m) {
+    if (!m) return null;
+    if (m.lat && m.lng && !isNaN(m.lat) && !isNaN(m.lng)) {
+        return { lat: parseFloat(m.lat), lng: parseFloat(m.lng), isGps: true };
+    }
+    const fullText = ((m.city || '') + ' ' + (m.address || '')).toLowerCase();
+    for (const [cityName, coords] of Object.entries(GUJARAT_CITY_COORDINATES)) {
+        if (fullText.includes(cityName)) {
+            const hash = (m.id || m.name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+            const offsetLat = ((hash % 10) - 5) * 0.008;
+            const offsetLng = (((hash * 3) % 10) - 5) * 0.008;
+            return { lat: coords.lat + offsetLat, lng: coords.lng + offsetLng, isGps: false };
+        }
+    }
+    return { lat: 22.8120, lng: 70.8378, isGps: false };
+}
+window.getMerchantCoordinates = getMerchantCoordinates;
+
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return parseFloat((R * c).toFixed(2));
+}
+window.calculateDistanceKm = calculateDistanceKm;
+
