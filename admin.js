@@ -7227,12 +7227,104 @@ window.addEventListener('bms_remote_sync', function() {
 });
 
 // ============================================================
-// DEALER ANALYTICS & ACTIVITY TRACKING MODULE FOR ADMIN v1.0
+// DEALER ANALYTICS & ACTIVITY TRACKING MODULE FOR ADMIN v2.0
+// Supports: All Time, Today, Yesterday, This Week, This Month, This Year,
+// and Specific Single Date Picker (તારીખ મુજબ ફિલ્ટર).
 // ============================================================
 
 let currentAnalyticsFilter = 'all';
 let currentAnalyticsSort = 'recent';
 let currentAnalyticsSearch = '';
+let currentAnalyticsPeriod = 'all'; // 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom_date'
+let currentSpecificDate = '';       // 'YYYY-MM-DD'
+
+function getTimeframeRange() {
+    const now = new Date();
+    if (currentAnalyticsPeriod === 'today') {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+        return { isAllTime: false, start, end, label: `Today (${now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })})` };
+    }
+    if (currentAnalyticsPeriod === 'yesterday') {
+        const y = new Date(now.getTime() - 86400000);
+        const start = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 0, 0, 0, 0).getTime();
+        const end = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 23, 59, 59, 999).getTime();
+        return { isAllTime: false, start, end, label: `Yesterday (${y.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })})` };
+    }
+    if (currentAnalyticsPeriod === 'week') {
+        const start = now.getTime() - 7 * 86400000;
+        const end = now.getTime();
+        return { isAllTime: false, start, end, label: 'Past 7 Days (This Week)' };
+    }
+    if (currentAnalyticsPeriod === 'month') {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0).getTime();
+        const end = now.getTime();
+        return { isAllTime: false, start, end, label: `This Month (${now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })})` };
+    }
+    if (currentAnalyticsPeriod === 'year') {
+        const currentYear = now.getFullYear();
+        const fyStartYear = (now.getMonth() >= 3) ? currentYear : currentYear - 1;
+        const start = new Date(fyStartYear, 3, 1, 0, 0, 0).getTime();
+        const end = now.getTime();
+        return { isAllTime: false, start, end, label: `Year (FY ${fyStartYear}-${(fyStartYear + 1).toString().slice(2)})` };
+    }
+    if (currentAnalyticsPeriod === 'custom_date' && currentSpecificDate) {
+        const parts = currentSpecificDate.split('-');
+        if (parts.length === 3) {
+            const y = parseInt(parts[0]);
+            const m = parseInt(parts[1]) - 1;
+            const d = parseInt(parts[2]);
+            const start = new Date(y, m, d, 0, 0, 0, 0).getTime();
+            const end = new Date(y, m, d, 23, 59, 59, 999).getTime();
+            const dtObj = new Date(y, m, d);
+            return { isAllTime: false, start, end, label: `Date: ${dtObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}` };
+        }
+    }
+    return { isAllTime: true, start: 0, end: Infinity, label: 'All Time (Total History)' };
+}
+
+function setTimeframePeriod(period) {
+    currentAnalyticsPeriod = period;
+    currentSpecificDate = '';
+    const dateInput = document.getElementById('ana-specific-date');
+    if (dateInput) dateInput.value = '';
+    const clearBtn = document.getElementById('ana-clear-date-btn');
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    // Update active pill button
+    document.querySelectorAll('.ana-time-pill').forEach(btn => {
+        if (btn.getAttribute('data-period') === period) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+
+    renderDealerAnalyticsTab();
+}
+window.setTimeframePeriod = setTimeframePeriod;
+
+function onSpecificDatePicked(dateStr) {
+    if (!dateStr) return;
+    currentAnalyticsPeriod = 'custom_date';
+    currentSpecificDate = dateStr;
+
+    // Deselect quick pills
+    document.querySelectorAll('.ana-time-pill').forEach(btn => btn.classList.remove('active'));
+
+    const clearBtn = document.getElementById('ana-clear-date-btn');
+    if (clearBtn) clearBtn.style.display = 'inline-block';
+
+    renderDealerAnalyticsTab();
+}
+window.onSpecificDatePicked = onSpecificDatePicked;
+
+function clearSpecificDate() {
+    currentSpecificDate = '';
+    const dateInput = document.getElementById('ana-specific-date');
+    if (dateInput) dateInput.value = '';
+    const clearBtn = document.getElementById('ana-clear-date-btn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    setTimeframePeriod('all');
+}
+window.clearSpecificDate = clearSpecificDate;
 
 function renderDealerAnalyticsTab() {
     if (typeof seedInitialDealerAnalyticsIfEmpty === 'function') {
@@ -7241,42 +7333,82 @@ function renderDealerAnalyticsTab() {
 
     const merchants = (state && state.merchants) ? state.merchants : [];
     const activities = (state && state.dealerActivities) ? state.dealerActivities : [];
+    const timeRange = getTimeframeRange();
 
-    // Calculate Global KPIs
-    const totalDealers = merchants.length;
+    // Filter activities within the selected timeframe
+    const periodActivities = timeRange.isAllTime 
+        ? activities 
+        : activities.filter(a => a.timestamp >= timeRange.start && a.timestamp <= timeRange.end);
+
+    // Calculate metrics for each merchant within the selected timeframe
+    const merchantStatsMap = {};
     let totalVisits = 0;
     let totalPdfs = 0;
+    let activeDealersCount = 0;
     let hotLeadsCount = 0;
 
     merchants.forEach(m => {
-        const v = m.visits || 0;
-        const p = m.pdfCount || 0;
+        let v = 0;
+        let p = 0;
+        let lastActTime = null;
+        let lastPdfMode = m.lastPdfMode || '';
+
+        if (timeRange.isAllTime) {
+            v = m.visits || 0;
+            p = m.pdfCount || 0;
+            lastActTime = m.lastVisit || m.lastPdfAt || null;
+        } else {
+            const mActs = periodActivities.filter(a => a.merchantId === m.id || a.merchantPhone === m.phone);
+            v = mActs.filter(a => a.action === 'visit').length;
+            const pdfActs = mActs.filter(a => a.action === 'pdf');
+            p = pdfActs.length;
+            if (pdfActs.length > 0) lastPdfMode = pdfActs[0].priceMode || lastPdfMode;
+            if (mActs.length > 0) lastActTime = mActs[0].timestamp;
+        }
+
+        merchantStatsMap[m.id] = { visits: v, pdfs: p, lastActTime, lastPdfMode, isActiveInPeriod: (v > 0 || p > 0) };
+
         totalVisits += v;
         totalPdfs += p;
+        if (v > 0 || p > 0) activeDealersCount++;
 
-        // Hot lead: has generated PDF or has >= 4 visits, but no recent dispatched order
         const orders = (state && state.orders) ? state.orders.filter(o => o.merchantId === m.id) : [];
         const hasOrders = orders.length > 0;
-        if ((p > 0 || v >= 4) && (!hasOrders || (orders[0] && orders[0].status === 'Pending'))) {
+        if ((p > 0 || v >= 3) && (!hasOrders || (orders[0] && orders[0].status === 'Pending'))) {
             hotLeadsCount++;
         }
     });
 
-    // Update KPI UI
+    // Update KPI Card UI
     const elDealers = document.getElementById('ana-metric-dealers');
-    if (elDealers) elDealers.textContent = totalDealers;
+    if (elDealers) {
+        elDealers.textContent = timeRange.isAllTime ? merchants.length : activeDealersCount;
+    }
+    const elDealersSub = document.getElementById('ana-metric-dealers-sub');
+    if (elDealersSub) {
+        elDealersSub.textContent = timeRange.isAllTime ? 'Total Active Dealers' : `Active in ${timeRange.label}`;
+    }
 
     const elVisits = document.getElementById('ana-metric-visits');
     if (elVisits) elVisits.textContent = totalVisits;
 
     const elVisitsSub = document.getElementById('ana-metric-visits-sub');
-    if (elVisitsSub) elVisitsSub.textContent = `Avg. ${totalDealers > 0 ? (totalVisits / totalDealers).toFixed(1) : 0} visits per dealer`;
+    if (elVisitsSub) {
+        const denom = timeRange.isAllTime ? merchants.length : (activeDealersCount || 1);
+        elVisitsSub.textContent = `Avg. ${denom > 0 ? (totalVisits / denom).toFixed(1) : 0} visits / dealer (${timeRange.label})`;
+    }
 
     const elPdfs = document.getElementById('ana-metric-pdfs');
     if (elPdfs) elPdfs.textContent = totalPdfs;
 
     const elHotLeads = document.getElementById('ana-metric-hotleads');
     if (elHotLeads) elHotLeads.textContent = hotLeadsCount;
+
+    // Update Active Timeframe Label Banner
+    const bannerEl = document.getElementById('ana-active-period-label');
+    if (bannerEl) {
+        bannerEl.innerHTML = `Showing Data for: <b>${timeRange.label}</b> • ${totalVisits} Total Visits • ${totalPdfs} PDFs Generated`;
+    }
 
     // Filter and Sort Merchants List
     let filtered = merchants.slice();
@@ -7294,34 +7426,37 @@ function renderDealerAnalyticsTab() {
 
     // 2. Dropdown Filter
     if (currentAnalyticsFilter === 'pdf_only') {
-        filtered = filtered.filter(m => (m.pdfCount || 0) > 0);
+        filtered = filtered.filter(m => (merchantStatsMap[m.id].pdfs || 0) > 0);
     } else if (currentAnalyticsFilter === 'high_visits') {
-        filtered = filtered.filter(m => (m.visits || 0) >= 5);
+        filtered = filtered.filter(m => (merchantStatsMap[m.id].visits || 0) >= (timeRange.isAllTime ? 5 : 2));
     } else if (currentAnalyticsFilter === 'hot_leads') {
         filtered = filtered.filter(m => {
-            const v = m.visits || 0;
-            const p = m.pdfCount || 0;
+            const st = merchantStatsMap[m.id];
             const orders = (state && state.orders) ? state.orders.filter(o => o.merchantId === m.id) : [];
-            return (p > 0 || v >= 4) && orders.length === 0;
+            return (st.pdfs > 0 || st.visits >= 3) && orders.length === 0;
         });
     } else if (currentAnalyticsFilter === 'locked') {
         filtered = filtered.filter(m => m.isLocked === true || (m.failedAttempts || 0) >= 5);
+    } else if (currentAnalyticsFilter === 'active_period_only') {
+        filtered = filtered.filter(m => merchantStatsMap[m.id].isActiveInPeriod);
     } else if (currentAnalyticsFilter === 'inactive') {
-        filtered = filtered.filter(m => (m.visits || 0) === 0);
+        filtered = filtered.filter(m => (merchantStatsMap[m.id].visits || 0) === 0);
     }
 
     // 3. Sorting
     filtered.sort((a, b) => {
+        const stA = merchantStatsMap[a.id];
+        const stB = merchantStatsMap[b.id];
         if (currentAnalyticsSort === 'visits_desc') {
-            return (b.visits || 0) - (a.visits || 0);
+            return (stB.visits || 0) - (stA.visits || 0);
         } else if (currentAnalyticsSort === 'pdf_desc') {
-            return (b.pdfCount || 0) - (a.pdfCount || 0);
+            return (stB.pdfs || 0) - (stA.pdfs || 0);
         } else if (currentAnalyticsSort === 'name_asc') {
             return (a.name || '').localeCompare(b.name || '');
         } else {
-            // Default: most recent active timestamp
-            const tsA = a.lastVisit || a.lastPdfAt || 0;
-            const tsB = b.lastVisit || b.lastPdfAt || 0;
+            // Default: Most recent active in this period
+            const tsA = stA.lastActTime || a.lastVisit || a.lastPdfAt || 0;
+            const tsB = stB.lastActTime || b.lastVisit || b.lastPdfAt || 0;
             return tsB - tsA;
         }
     });
@@ -7334,25 +7469,27 @@ function renderDealerAnalyticsTab() {
     if (listContainer) {
         if (filtered.length === 0) {
             listContainer.innerHTML = `
-                <div style="background:#fff; border:1px dashed #cbd5e1; border-radius:8px; padding:2rem; text-align:center; color:#64748b;">
-                    <i class="fa-solid fa-filter-circle-xmark" style="font-size:2rem; color:#94a3b8; margin-bottom:0.5rem;"></i>
-                    <div style="font-weight:700;">No dealers found matching the selected filter.</div>
-                    <div style="font-size:0.8rem; margin-top:0.25rem;">Try changing search or filter options.</div>
+                <div style="background:#fff; border:1px dashed #cbd5e1; border-radius:8px; padding:2.5rem 1rem; text-align:center; color:#64748b;">
+                    <i class="fa-solid fa-calendar-xmark" style="font-size:2.2rem; color:#94a3b8; margin-bottom:0.6rem; display:block;"></i>
+                    <div style="font-weight:700; font-size:1rem; color:#334155;">No dealer activity recorded for ${timeRange.label}</div>
+                    <div style="font-size:0.8rem; margin-top:0.35rem; color:#64748b;">
+                        Try selecting <a href="javascript:void(0)" onclick="setTimeframePeriod('all')" style="color:#2563eb; font-weight:700;">All Time</a> or choose another date/filter.
+                    </div>
                 </div>
             `;
         } else {
-            listContainer.innerHTML = filtered.map(m => renderSingleDealerAnalyticsCard(m)).join('');
+            listContainer.innerHTML = filtered.map(m => renderSingleDealerAnalyticsCard(m, merchantStatsMap[m.id], timeRange)).join('');
         }
     }
 
-    // Render Live Activity Stream
-    renderLiveActivityStream(activities);
+    // Render Live Activity Stream for the selected period
+    renderLiveActivityStream(periodActivities, timeRange);
 }
 window.renderDealerAnalyticsTab = renderDealerAnalyticsTab;
 
-function renderSingleDealerAnalyticsCard(m) {
-    const visits = m.visits || 0;
-    const pdfs = m.pdfCount || 0;
+function renderSingleDealerAnalyticsCard(m, stats, timeRange) {
+    const visits = (stats && stats.visits !== undefined) ? stats.visits : (m.visits || 0);
+    const pdfs = (stats && stats.pdfs !== undefined) ? stats.pdfs : (m.pdfCount || 0);
     const isLocked = (m.isLocked === true || (m.failedAttempts || 0) >= 5);
     const lastVisitStr = formatRelativeTime(m.lastVisit);
     const lastPdfStr = m.lastPdfAt ? formatRelativeTime(m.lastPdfAt) : 'Never';
@@ -7362,16 +7499,18 @@ function renderSingleDealerAnalyticsCard(m) {
     // Determine status tag
     let tagHtml = '';
     if (isLocked) {
-        tagHtml = `<span style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-lock"></i> LOCKED (5 Failed)</span>`;
+        tagHtml = `<span style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-lock"></i> LOCKED</span>`;
     } else if (pdfs > 0 && orders.length === 0) {
         tagHtml = `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-fire"></i> HOT LEAD - PDF Downloaded</span>`;
-    } else if (visits >= 5 && orders.length === 0) {
-        tagHtml = `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-bolt"></i> HIGH INTEREST (Call Now)</span>`;
+    } else if (visits >= (timeRange.isAllTime ? 5 : 2) && orders.length === 0) {
+        tagHtml = `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-bolt"></i> HIGH INTEREST</span>`;
     } else if (orders.length > 0) {
         tagHtml = `<span style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-circle-check"></i> ACTIVE BUYER (${orders.length} Orders)</span>`;
     } else {
         tagHtml = `<span style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; font-size:0.7rem; font-weight:700; padding:0.18rem 0.5rem; border-radius:4px;">PROSPECTIVE</span>`;
     }
+
+    const periodBadge = !timeRange.isAllTime ? `<span style="font-size:0.68rem; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:4px; padding:0.1rem 0.35rem; font-weight:700;">In ${timeRange.label}</span>` : '';
 
     return `
         <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:1rem 1.15rem; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.2s ease;">
@@ -7381,21 +7520,22 @@ function renderSingleDealerAnalyticsCard(m) {
                     <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                         <h4 style="margin:0; font-size:1.02rem; color:#0e254f; font-weight:800;">${m.name}</h4>
                         ${tagHtml}
+                        ${periodBadge}
                     </div>
                     <div style="font-size:0.78rem; color:#64748b; margin-top:0.25rem;">
-                        <i class="fa-solid fa-location-dot" style="color:#94a3b8;"></i> ${city}  -  
-                        <i class="fa-brands fa-whatsapp" style="color:#25d366;"></i> +${m.phone}  -  
+                        <i class="fa-solid fa-location-dot" style="color:#94a3b8;"></i> ${city} • 
+                        <i class="fa-brands fa-whatsapp" style="color:#25d366;"></i> +${m.phone} • 
                         UID: <span style="font-weight:700; color:#334155;">${m.uid || m.id}</span>
                     </div>
                 </div>
 
                 <!-- Stats Badges -->
                 <div style="display:flex; gap:0.5rem; align-items:center;">
-                    <div style="background:${visits > 0 ? '#eff6ff' : '#f8fafc'}; border:1px solid ${visits > 0 ? '#bfdbfe' : '#e2e8f0'}; border-radius:6px; padding:0.35rem 0.65rem; text-align:center;">
+                    <div style="background:${visits > 0 ? '#eff6ff' : '#f8fafc'}; border:1px solid ${visits > 0 ? '#bfdbfe' : '#e2e8f0'}; border-radius:6px; padding:0.35rem 0.65rem; text-align:center; min-width:55px;">
                         <div style="font-size:0.65rem; text-transform:uppercase; color:#64748b; font-weight:700;">Visits</div>
                         <div style="font-size:1.15rem; font-weight:900; color:${visits > 0 ? '#1d4ed8' : '#94a3b8'}; line-height:1;">${visits}</div>
                     </div>
-                    <div style="background:${pdfs > 0 ? '#fffbeb' : '#f8fafc'}; border:1px solid ${pdfs > 0 ? '#fde68a' : '#e2e8f0'}; border-radius:6px; padding:0.35rem 0.65rem; text-align:center;">
+                    <div style="background:${pdfs > 0 ? '#fffbeb' : '#f8fafc'}; border:1px solid ${pdfs > 0 ? '#fde68a' : '#e2e8f0'}; border-radius:6px; padding:0.35rem 0.65rem; text-align:center; min-width:55px;">
                         <div style="font-size:0.65rem; text-transform:uppercase; color:#64748b; font-weight:700;">PDFs</div>
                         <div style="font-size:1.15rem; font-weight:900; color:${pdfs > 0 ? '#d97706' : '#94a3b8'}; line-height:1;">${pdfs}</div>
                     </div>
@@ -7411,13 +7551,13 @@ function renderSingleDealerAnalyticsCard(m) {
                 <div>
                     <span style="color:#94a3b8;"><i class="fa-solid fa-file-arrow-down"></i> Last PDF:</span> 
                     <b style="color:#1e293b;">${lastPdfStr}</b>
-                    ${m.lastPdfMode ? `<span style="font-size:0.7rem; color:#64748b; margin-left:2px;">(${m.lastPdfMode})</span>` : ''}
+                    ${(stats && stats.lastPdfMode) ? `<span style="font-size:0.7rem; color:#64748b; margin-left:2px;">(${stats.lastPdfMode})</span>` : ''}
                 </div>
             </div>
 
             <!-- Action Buttons Row -->
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-                <div style="display:flex; gap:0.4rem;">
+                <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
                     <button type="button" class="btn" onclick="sendDealerAnalyticsFollowUp('${m.id}')" style="background:#25d366; color:#fff; font-size:0.78rem; font-weight:700; padding:0.4rem 0.75rem; border:none; border-radius:5px; cursor:pointer; display:flex; align-items:center; gap:5px;" title="Send WhatsApp follow-up">
                         <i class="fa-brands fa-whatsapp" style="font-size:0.95rem;"></i> WhatsApp Follow-up
                     </button>
@@ -7425,7 +7565,7 @@ function renderSingleDealerAnalyticsCard(m) {
                         <i class="fa-solid fa-timeline"></i> Activity History (${(m.activityLog || []).length})
                     </button>
                 </div>
-                <div style="display:flex; gap:0.4rem;">
+                <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
                     ${isLocked ? `
                     <button type="button" class="btn btn-success" onclick="unlockMerchantAccount('${m.id}')" style="background:#16a34a; color:#fff; font-size:0.78rem; font-weight:700; padding:0.4rem 0.75rem; border:none; border-radius:5px; cursor:pointer;">
                         <i class="fa-solid fa-lock-open"></i> Unlock
@@ -7440,21 +7580,21 @@ function renderSingleDealerAnalyticsCard(m) {
     `;
 }
 
-function renderLiveActivityStream(activities) {
+function renderLiveActivityStream(activities, timeRange) {
     const container = document.getElementById('ana-live-stream');
     if (!container) return;
 
     if (!activities || activities.length === 0) {
         container.innerHTML = `
-            <div style="text-align:center; padding:1.5rem 0.5rem; color:#94a3b8; font-size:0.8rem;">
-                <i class="fa-regular fa-bell-slash" style="font-size:1.5rem; margin-bottom:0.35rem; display:block;"></i>
-                No recent activity stream logged yet.
+            <div style="text-align:center; padding:2rem 0.5rem; color:#94a3b8; font-size:0.8rem;">
+                <i class="fa-regular fa-bell-slash" style="font-size:1.6rem; margin-bottom:0.35rem; display:block;"></i>
+                No activities logged in ${timeRange.label}.
             </div>
         `;
         return;
     }
 
-    const latest = activities.slice(0, 15);
+    const latest = activities.slice(0, 20);
     container.innerHTML = latest.map(act => {
         let iconHtml = '<i class="fa-solid fa-circle-info" style="color:#3b82f6;"></i>';
         let bg = '#eff6ff';
@@ -7512,21 +7652,21 @@ function openDealerActivityHistoryModal(merchantId) {
     const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
     if (!m) return;
 
-    const modal = document.getElementById('dealer-activity-history-modal');
     const titleEl = document.getElementById('act-modal-title');
     const subEl = document.getElementById('act-modal-subtitle');
     const bodyEl = document.getElementById('act-modal-body');
 
-    if (titleEl) titleEl.textContent = `${m.name}  -  Activity Timeline`;
-    if (subEl) subEl.textContent = `Total Visits: ${m.visits || 0}  -  PDFs Generated: ${m.pdfCount || 0}  -  Phone: +${m.phone}`;
+    if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color:#60a5fa;"></i> ${m.name} — Activity Timeline`;
+    if (subEl) subEl.textContent = `Total Visits: ${m.visits || 0} • PDFs Generated: ${m.pdfCount || 0} • Phone: +${m.phone}`;
 
     const logs = m.activityLog || [];
     if (bodyEl) {
         if (logs.length === 0) {
             bodyEl.innerHTML = `
-                <div style="text-align:center; padding:2rem; color:#64748b;">
-                    <i class="fa-solid fa-clock-rotate-left" style="font-size:2rem; color:#cbd5e1; margin-bottom:0.5rem; display:block;"></i>
-                    No specific activity history recorded for this dealer yet.
+                <div style="text-align:center; padding:2.5rem 1rem; color:#64748b;">
+                    <i class="fa-solid fa-clock-rotate-left" style="font-size:2.5rem; color:#cbd5e1; margin-bottom:0.75rem; display:block;"></i>
+                    <div style="font-weight:700; font-size:0.95rem; color:#334155;">No Specific Activity Recorded Yet</div>
+                    <div style="font-size:0.8rem; margin-top:0.25rem; color:#94a3b8;">Portal visits and PDF downloads will appear here in chronological order.</div>
                 </div>
             `;
         } else {
@@ -7534,19 +7674,27 @@ function openDealerActivityHistoryModal(merchantId) {
                 <div style="display:flex; flex-direction:column; gap:0.75rem;">
                     ${logs.map(log => {
                         let icon = '<i class="fa-solid fa-eye" style="color:#2563eb;"></i>';
-                        if (log.action === 'pdf') icon = '<i class="fa-solid fa-file-pdf" style="color:#d97706;"></i>';
-                        else if (log.action === 'order') icon = '<i class="fa-solid fa-check-circle" style="color:#10b981;"></i>';
-                        else if (log.action === 'lockout') icon = '<i class="fa-solid fa-lock" style="color:#ef4444;"></i>';
+                        let border = '#bfdbfe';
+                        if (log.action === 'pdf') {
+                            icon = '<i class="fa-solid fa-file-pdf" style="color:#d97706;"></i>';
+                            border = '#fde68a';
+                        } else if (log.action === 'order') {
+                            icon = '<i class="fa-solid fa-check-circle" style="color:#10b981;"></i>';
+                            border = '#a7f3d0';
+                        } else if (log.action === 'lockout') {
+                            icon = '<i class="fa-solid fa-lock" style="color:#ef4444;"></i>';
+                            border = '#fca5a5';
+                        }
 
                         return `
-                            <div style="display:flex; gap:0.75rem; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem;">
-                                <div style="font-size:1.1rem; margin-top:2px;">${icon}</div>
-                                <div style="flex:1;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                                        <b style="font-size:0.85rem; color:#0e254f;">${log.title}</b>
-                                        <span style="font-size:0.72rem; color:#64748b;">${log.dateStr || formatRelativeTime(log.timestamp)}</span>
+                            <div style="display:flex; gap:0.85rem; background:#fff; border:1px solid #e2e8f0; border-left:4px solid ${border}; border-radius:8px; padding:0.85rem 1rem; box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+                                <div style="font-size:1.25rem; margin-top:2px;">${icon}</div>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem;">
+                                        <b style="font-size:0.88rem; color:#0e254f;">${log.title}</b>
+                                        <span style="font-size:0.72rem; color:#64748b; background:#f1f5f9; padding:0.15rem 0.5rem; border-radius:4px; font-weight:600;">${log.dateStr || formatRelativeTime(log.timestamp)}</span>
                                     </div>
-                                    ${log.description ? `<div style="font-size:0.78rem; color:#475569; margin-top:0.2rem;">${log.description}</div>` : ''}
+                                    ${log.description ? `<div style="font-size:0.78rem; color:#475569; margin-top:0.3rem; line-height:1.35;">${log.description}</div>` : ''}
                                 </div>
                             </div>
                         `;
@@ -7569,14 +7717,14 @@ function sendDealerAnalyticsFollowUp(merchantId) {
         return;
     }
 
-    let text = `*Rabbit World  -  Luxury Bathware Exclusive Follow-up*\n` +
+    let text = `*Rabbit World — Luxury Bathware Follow-up*\n` +
                `-----------------------------------------\n` +
                `Namaste ${m.name},\n` +
                `We noticed you were browsing our Rabbit World luxury catalog and products recently.\n\n` +
                `Are you planning an order or client requirement for:\n` +
-               ` -  Vitreous China One Piece / Wall Hung Closets\n` +
-               ` -  Designer Matte Art Basins & Table Tops\n` +
-               ` -  Quartz & Handmade 304 Kitchen Sinks\n\n` +
+               `• Vitreous China One Piece / Wall Hung Closets\n` +
+               `• Designer Matte Art Basins & Table Tops\n` +
+               `• Quartz & Handmade 304 Kitchen Sinks\n\n` +
                `We have fresh production lots ready in Morbi with priority dealer dispatch for you. Please let us know your requirements so we can block the stock.\n` +
                `-----------------------------------------\n` +
                `Best regards,\n*Rabbit World Bathware Admin Team*`;
@@ -7602,5 +7750,3 @@ function formatRelativeTime(ts) {
     return new Date(ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 }
 window.formatRelativeTime = formatRelativeTime;
-
-

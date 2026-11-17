@@ -27,6 +27,29 @@
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+.ana-time-pill {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.ana-time-pill:hover {
+    background: #e2e8f0;
+    color: #0e254f;
+}
+.ana-time-pill.active {
+    background: #0e254f !important;
+    color: #ffffff !important;
+    border-color: #0e254f !important;
+    box-shadow: 0 2px 5px rgba(14, 37, 79, 0.25);
+}
+</style>
 </head>
 <body>
 
@@ -654,6 +677,36 @@
                     </div>
                 </div>
 
+                <!-- Timeframe & Date Filter Bar -->
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem 1rem; margin-bottom:0.85rem; display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; justify-content:space-between;">
+                    <!-- Quick Time Range Pills -->
+                    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                        <span style="font-size:0.8rem; font-weight:800; color:#0e254f; margin-right:0.35rem; display:flex; align-items:center; gap:5px;">
+                            <i class="fa-regular fa-calendar-days" style="color:#2563eb;"></i> Time Period:
+                        </span>
+                        <button type="button" class="ana-time-pill active" data-period="all" onclick="setTimeframePeriod('all')">All Time</button>
+                        <button type="button" class="ana-time-pill" data-period="today" onclick="setTimeframePeriod('today')">Today (આજે)</button>
+                        <button type="button" class="ana-time-pill" data-period="yesterday" onclick="setTimeframePeriod('yesterday')">Yesterday (ગઈકાલે)</button>
+                        <button type="button" class="ana-time-pill" data-period="week" onclick="setTimeframePeriod('week')">This Week (7 Days)</button>
+                        <button type="button" class="ana-time-pill" data-period="month" onclick="setTimeframePeriod('month')">This Month</button>
+                        <button type="button" class="ana-time-pill" data-period="year" onclick="setTimeframePeriod('year')">This Year</button>
+                    </div>
+
+                    <!-- Specific Single Date Picker (જે તે તારીખ સિલેક્ટ કરવા) -->
+                    <div style="display:flex; align-items:center; gap:0.5rem; background:#f8fafc; border:1.5px solid #2563eb; border-radius:6px; padding:0.3rem 0.65rem;">
+                        <label for="ana-specific-date" style="font-size:0.78rem; font-weight:800; color:#0e254f; margin:0; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                            <i class="fa-regular fa-calendar-check" style="color:#2563eb;"></i> Specific Date:
+                        </label>
+                        <input type="date" id="ana-specific-date" onchange="onSpecificDatePicked(this.value)" style="border:none; background:transparent; font-size:0.82rem; font-weight:700; color:#0e254f; outline:none; cursor:pointer;" title="Pick any specific day">
+                        <button type="button" id="ana-clear-date-btn" onclick="clearSpecificDate()" style="display:none; background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; border-radius:4px; font-size:0.72rem; font-weight:700; cursor:pointer; padding:0.15rem 0.45rem;" title="Reset to All Time">Clear Date</button>
+                    </div>
+                </div>
+
+                <!-- Active Filter & Time Range Banner -->
+                <div id="ana-active-period-label" style="font-size:0.8rem; color:#1e40af; margin-bottom:1rem; padding:0.45rem 0.85rem; background:#eff6ff; border-left:4px solid #2563eb; border-radius:4px; font-weight:600;">
+                    Showing Data for: <b>All Time (Total History)</b>
+                </div>
+
                 <!-- Filters & Search Bar -->
                 <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem 1rem; margin-bottom:1.25rem; display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; justify-content:space-between;">
                     <div style="display:flex; flex:1; min-width:260px; position:relative;">
@@ -666,6 +719,7 @@
                             <option value="pdf_only">📄 Downloaded PDF Only</option>
                             <option value="high_visits">🔥 High Visits (≥ 5 Visits)</option>
                             <option value="hot_leads">⚡ Hot Leads (High Interest, No Order)</option>
+                            <option value="active_period_only">⚡ Active in Selected Period Only</option>
                             <option value="locked">🔒 Locked Accounts</option>
                             <option value="inactive">💤 Inactive / 0 Visits</option>
                         </select>
@@ -2150,8 +2204,8 @@
         <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i><span>Ledger</span></button>
     </nav>
 
-<script src="core.js?v=4.9.5"></script>
-<script src="admin.js?v=4.9.5"></script>
+<script src="core.js?v=4.9.6"></script>
+<script src="admin.js?v=4.9.6"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
