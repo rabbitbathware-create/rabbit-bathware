@@ -761,6 +761,7 @@
 
             dealerMerchant = merchant;
             sessionStorage.setItem("bms_dealer_session", merchant.id);
+            if (typeof recordDealerActivity === 'function') { recordDealerActivity(merchant.id, 'visit', { title: 'Dealer Login via PIN', description: 'Logged into portal with 6-digit PIN' }); }
             closeModal('dealer-auth-modal');
             updateTopBarAuth();
             renderCategoryPills();
@@ -3261,6 +3262,18 @@ function executeShareAction(action) {
     } else if (action === 'pdf') {
         params.set('mode', 'print');
         const url = catalogUrl + '?' + params.toString();
+        let modeLabel = 'Original MRP';
+        if (mode === 'discount') modeLabel = 'Trade Discount on MRP';
+        else if (mode === 'custom') modeLabel = 'Custom Product-wise Rates';
+        else if (mode === 'hide') modeLabel = 'No Prices (Photos Only)';
+        if (typeof recordDealerActivity === 'function') {
+            recordDealerActivity(dealerMerchant ? dealerMerchant.id : 'guest', 'pdf', {
+                title: 'Catalog PDF Downloaded',
+                description: 'Client Catalog PDF generated in ' + modeLabel,
+                priceMode: modeLabel,
+                dealerName: firm
+            });
+        }
         window.open(url, '_blank');
     } else if (action === 'preview') {
         const url = catalogUrl + '?' + params.toString();

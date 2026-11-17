@@ -65,6 +65,7 @@
             <button class="nav-item" data-tab="orders-tab"><i class="fa-solid fa-truck-ramp-box"></i> Orders &amp; Dispatch</button>
             <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i> Accounts Ledger</button>
             <button class="nav-item" data-tab="party-performance-tab"><i class="fa-solid fa-chart-line"></i> Party Performance <span id="sidebar-perf-badge" style="display:none; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">0</span></button>
+            <button class="nav-item" data-tab="dealer-analytics-tab"><i class="fa-solid fa-chart-user"></i> Dealer Analytics &amp; Activity <span id="sidebar-analytics-badge" style="background:#2563eb; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">LIVE</span></button>
             <button class="nav-item" data-tab="offers-tab"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> Special Offers <span id="sidebar-offers-badge" style="display:none; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">0</span></button>
             <button class="nav-item" data-tab="banners-tab"><i class="fa-solid fa-images"></i> Home Banners</button>
             <button class="nav-item" data-tab="settings-tab"><i class="fa-solid fa-gear"></i> Settings</button>
@@ -596,6 +597,118 @@
                     </table>
                 </div>
             </section>
+
+            <!-- 6.8 DEALER ANALYTICS & ACTIVITY TRACKING -->
+            <section id="dealer-analytics-tab" class="tab-panel">
+                <!-- Top Header & Live Status -->
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.25rem;">
+                    <div>
+                        <h2 style="margin:0; color:#0e254f; font-size:1.35rem; display:flex; align-items:center; gap:0.5rem;">
+                            <i class="fa-solid fa-chart-line" style="color:#2563eb;"></i> Dealer Analytics &amp; Activity Tracking
+                        </h2>
+                        <p style="margin:0.25rem 0 0 0; color:#64748b; font-size:0.83rem;">Real-time dealer portal visits, catalog opens, PDF downloads &amp; sales follow-up intelligence.</p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <span style="display:inline-flex; align-items:center; gap:0.4rem; background:#ecfdf5; border:1px solid #a7f3d0; color:#059669; font-size:0.75rem; font-weight:700; padding:0.35rem 0.75rem; border-radius:20px;">
+                            <span class="dot green" style="width:8px; height:8px; background:#10b981; border-radius:50%; display:inline-block; box-shadow:0 0 6px #10b981;"></span> Live Tracking Active
+                        </span>
+                        <button type="button" class="btn btn-secondary" onclick="renderDealerAnalyticsTab()" style="padding:0.45rem 0.85rem; font-size:0.82rem; font-weight:700;">
+                            <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 High-Impact KPI Cards -->
+                <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1.25rem;">
+                    <div class="metric-card glow-blue">
+                        <div class="card-icon" style="background:rgba(37,99,235,0.12); color:#2563eb;"><i class="fa-solid fa-users-viewfinder"></i></div>
+                        <div class="card-info">
+                            <h3>Monitored Dealers</h3>
+                            <p id="ana-metric-dealers">0</p>
+                            <small style="color:#64748b; font-size:0.75rem; font-weight:600;">Total Active Dealers</small>
+                        </div>
+                    </div>
+                    <div class="metric-card glow-green">
+                        <div class="card-icon" style="background:rgba(16,185,129,0.15); color:#10b981;"><i class="fa-solid fa-eye"></i></div>
+                        <div class="card-info">
+                            <h3>Total Portal Visits</h3>
+                            <p id="ana-metric-visits" style="color:#10b981;">0</p>
+                            <small id="ana-metric-visits-sub" style="color:#059669; font-size:0.75rem; font-weight:600;">Avg. Visits per Dealer</small>
+                        </div>
+                    </div>
+                    <div class="metric-card" style="border-left:4px solid #f59e0b; background:#fff; padding:1.1rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; align-items:center; gap:1rem;">
+                        <div class="card-icon" style="background:rgba(245,158,11,0.15); color:#d97706; width:48px; height:48px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1.4rem;"><i class="fa-solid fa-file-pdf"></i></div>
+                        <div class="card-info">
+                            <h3 style="font-size:0.8rem; color:#64748b; margin:0; text-transform:uppercase; font-weight:700;">PDFs Generated</h3>
+                            <p id="ana-metric-pdfs" style="font-size:1.6rem; font-weight:800; color:#d97706; margin:0.2rem 0 0 0;">0</p>
+                            <small style="color:#b45309; font-size:0.75rem; font-weight:600;">Catalog &amp; Order PDFs Downloaded</small>
+                        </div>
+                    </div>
+                    <div class="metric-card glow-red">
+                        <div class="card-icon" style="background:rgba(239,68,68,0.15); color:#ef4444;"><i class="fa-solid fa-fire-flame-curved"></i></div>
+                        <div class="card-info">
+                            <h3>Hot Sales Leads</h3>
+                            <p id="ana-metric-hotleads" style="color:#ef4444;">0</p>
+                            <small id="ana-metric-hotleads-sub" style="color:#dc2626; font-size:0.75rem; font-weight:600;">Downloaded PDF • Follow-up Ready</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters & Search Bar -->
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:0.85rem 1rem; margin-bottom:1.25rem; display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; justify-content:space-between;">
+                    <div style="display:flex; flex:1; min-width:260px; position:relative;">
+                        <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.9rem;"></i>
+                        <input type="text" id="ana-search-input" placeholder="Search by Dealer Name, City, or Mobile..." oninput="onDealerAnalyticsSearch()" style="width:100%; padding:0.5rem 0.75rem 0.5rem 2.2rem; border:1.5px solid #cbd5e1; border-radius:6px; font-size:0.85rem; outline:none;">
+                    </div>
+                    <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                        <select id="ana-filter-select" onchange="onDealerAnalyticsFilterChange()" style="padding:0.5rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:6px; font-size:0.83rem; font-weight:600; color:#334155; outline:none; background:#f8fafc;">
+                            <option value="all">All Dealers</option>
+                            <option value="pdf_only">📄 Downloaded PDF Only</option>
+                            <option value="high_visits">🔥 High Visits (≥ 5 Visits)</option>
+                            <option value="hot_leads">⚡ Hot Leads (High Interest, No Order)</option>
+                            <option value="locked">🔒 Locked Accounts</option>
+                            <option value="inactive">💤 Inactive / 0 Visits</option>
+                        </select>
+                        <select id="ana-sort-select" onchange="onDealerAnalyticsFilterChange()" style="padding:0.5rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:6px; font-size:0.83rem; font-weight:600; color:#334155; outline:none; background:#f8fafc;">
+                            <option value="recent">Sort: Most Recent Active</option>
+                            <option value="visits_desc">Sort: Highest Visits</option>
+                            <option value="pdf_desc">Sort: Most PDFs Created</option>
+                            <option value="name_asc">Sort: Name (A-Z)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Two Column Main Layout: Dealers Grid (Left) + Live Activity Feed (Right) -->
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1.25rem; align-items:start;" class="dealer-analytics-layout">
+                    
+                    <!-- Left: Dealer Cards List -->
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                            <div style="font-weight:700; color:#0e254f; font-size:0.95rem;">
+                                Dealer Activity Cards (<span id="ana-dealer-count-badge">0</span>)
+                            </div>
+                            <small style="color:#64748b; font-size:0.75rem;">Real-time stats from Portal &amp; PDF engine</small>
+                        </div>
+                        <div id="ana-dealers-list" style="display:flex; flex-direction:column; gap:0.85rem;">
+                            <!-- Injected via renderDealerAnalyticsTab() -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Live Activity Stream Feed -->
+                    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; box-shadow:0 1px 3px rgba(0,0,0,0.05); position:sticky; top:1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.5rem;">
+                            <h3 style="margin:0; font-size:0.95rem; color:#0e254f; display:flex; align-items:center; gap:0.4rem;">
+                                <i class="fa-solid fa-clock-rotate-left" style="color:#2563eb;"></i> Live Activity Feed
+                            </h3>
+                            <span style="font-size:0.7rem; color:#64748b; font-weight:600;">Recent Stream</span>
+                        </div>
+                        <div id="ana-live-stream" style="max-height:550px; overflow-y:auto; display:flex; flex-direction:column; gap:0.65rem; padding-right:0.3rem;">
+                            <!-- Injected via renderDealerAnalyticsTab() -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
 
             <!-- 7. SETTINGS & BACKUP -->
             <section id="settings-tab" class="tab-panel">
@@ -2008,6 +2121,26 @@
         </div>
     </div>
 
+    
+    <!-- DEALER ACTIVITY TIMELINE MODAL -->
+    <div id="dealer-activity-history-modal" class="modal" style="display:none; align-items:center; justify-content:center; z-index:9999;">
+        <div class="modal-content" style="max-width:620px; width:92%; max-height:85vh; display:flex; flex-direction:column; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background:#0e254f; color:#fff; padding:1rem 1.25rem; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h3 id="act-modal-title" style="margin:0; font-size:1.05rem; color:#fff; font-weight:800;">Dealer Activity History</h3>
+                    <p id="act-modal-subtitle" style="margin:0.2rem 0 0 0; font-size:0.75rem; color:#cbd5e1;"></p>
+                </div>
+                <button type="button" onclick="closeModal('dealer-activity-history-modal')" style="background:none; border:none; color:#fff; font-size:1.4rem; cursor:pointer; padding:0 0.2rem;">&times;</button>
+            </div>
+            <div id="act-modal-body" style="flex:1; overflow-y:auto; padding:1.25rem; background:#f8fafc;">
+                <!-- Injected activity log items -->
+            </div>
+            <div class="modal-footer" style="padding:0.75rem 1.25rem; background:#fff; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('dealer-activity-history-modal')" style="padding:0.45rem 1rem; font-size:0.85rem; font-weight:700;">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile Bottom Navigation (Admin) -->
     <nav class="mobile-bottom-nav">
         <button class="nav-item active" data-tab="dashboard-tab"><i class="fa-solid fa-chart-pie"></i><span>Home</span></button>
@@ -2017,8 +2150,8 @@
         <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i><span>Ledger</span></button>
     </nav>
 
-<script src="core.js?v=4.9.1"></script>
-<script src="admin.js?v=4.9.2"></script>
+<script src="core.js?v=4.9.4"></script>
+<script src="admin.js?v=4.9.4"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {

@@ -549,6 +549,7 @@ function setupNavigation() {
         "orders-tab": "Orders & Dispatch",
         "ledger-tab": "Accounts Ledger",
         "party-performance-tab": "Party Performance & Payment Aging Report",
+        "dealer-analytics-tab": "Dealer Analytics & Activity Tracking",
         "offers-tab": "Special Offers & Clearance Manager",
         "banners-tab": "Homepage Banners & Photos",
         "settings-tab": "System Settings & Backup"
@@ -578,6 +579,7 @@ function setupNavigation() {
             else if (tabId === "orders-tab") renderOrdersList();
             else if (tabId === "ledger-tab") initLedgerTab();
             else if (tabId === "party-performance-tab") renderPartyPerformanceTab();
+            else if (tabId === "dealer-analytics-tab") renderDealerAnalyticsTab();
             else if (tabId === "offers-tab") renderAdminOffersList();
             else if (tabId === "banners-tab") { renderAdminBanners(); if (typeof renderAdminCategoryCards === 'function') renderAdminCategoryCards(); }
             else if (tabId === "settings-tab") initSettingsTab();
@@ -7223,3 +7225,382 @@ window.addEventListener('bms_remote_sync', function() {
         console.warn("Admin remote sync UI update error:", err);
     }
 });
+
+// ============================================================
+// DEALER ANALYTICS & ACTIVITY TRACKING MODULE FOR ADMIN v1.0
+// ============================================================
+
+let currentAnalyticsFilter = 'all';
+let currentAnalyticsSort = 'recent';
+let currentAnalyticsSearch = '';
+
+function renderDealerAnalyticsTab() {
+    if (typeof seedInitialDealerAnalyticsIfEmpty === 'function') {
+        seedInitialDealerAnalyticsIfEmpty();
+    }
+
+    const merchants = (state && state.merchants) ? state.merchants : [];
+    const activities = (state && state.dealerActivities) ? state.dealerActivities : [];
+
+    // Calculate Global KPIs
+    const totalDealers = merchants.length;
+    let totalVisits = 0;
+    let totalPdfs = 0;
+    let hotLeadsCount = 0;
+
+    merchants.forEach(m => {
+        const v = m.visits || 0;
+        const p = m.pdfCount || 0;
+        totalVisits += v;
+        totalPdfs += p;
+
+        // Hot lead: has generated PDF or has >= 4 visits, but no recent dispatched order
+        const orders = (state && state.orders) ? state.orders.filter(o => o.merchantId === m.id) : [];
+        const hasOrders = orders.length > 0;
+        if ((p > 0 || v >= 4) && (!hasOrders || (orders[0] && orders[0].status === 'Pending'))) {
+            hotLeadsCount++;
+        }
+    });
+
+    // Update KPI UI
+    const elDealers = document.getElementById('ana-metric-dealers');
+    if (elDealers) elDealers.textContent = totalDealers;
+
+    const elVisits = document.getElementById('ana-metric-visits');
+    if (elVisits) elVisits.textContent = totalVisits;
+
+    const elVisitsSub = document.getElementById('ana-metric-visits-sub');
+    if (elVisitsSub) elVisitsSub.textContent = `Avg. ${totalDealers > 0 ? (totalVisits / totalDealers).toFixed(1) : 0} visits per dealer`;
+
+    const elPdfs = document.getElementById('ana-metric-pdfs');
+    if (elPdfs) elPdfs.textContent = totalPdfs;
+
+    const elHotLeads = document.getElementById('ana-metric-hotleads');
+    if (elHotLeads) elHotLeads.textContent = hotLeadsCount;
+
+    // Filter and Sort Merchants List
+    let filtered = merchants.slice();
+
+    // 1. Text Search
+    if (currentAnalyticsSearch) {
+        const q = currentAnalyticsSearch.toLowerCase();
+        filtered = filtered.filter(m => 
+            (m.name && m.name.toLowerCase().includes(q)) ||
+            (m.address && m.address.toLowerCase().includes(q)) ||
+            (m.phone && String(m.phone).includes(q)) ||
+            (m.uid && m.uid.toLowerCase().includes(q))
+        );
+    }
+
+    // 2. Dropdown Filter
+    if (currentAnalyticsFilter === 'pdf_only') {
+        filtered = filtered.filter(m => (m.pdfCount || 0) > 0);
+    } else if (currentAnalyticsFilter === 'high_visits') {
+        filtered = filtered.filter(m => (m.visits || 0) >= 5);
+    } else if (currentAnalyticsFilter === 'hot_leads') {
+        filtered = filtered.filter(m => {
+            const v = m.visits || 0;
+            const p = m.pdfCount || 0;
+            const orders = (state && state.orders) ? state.orders.filter(o => o.merchantId === m.id) : [];
+            return (p > 0 || v >= 4) && orders.length === 0;
+        });
+    } else if (currentAnalyticsFilter === 'locked') {
+        filtered = filtered.filter(m => m.isLocked === true || (m.failedAttempts || 0) >= 5);
+    } else if (currentAnalyticsFilter === 'inactive') {
+        filtered = filtered.filter(m => (m.visits || 0) === 0);
+    }
+
+    // 3. Sorting
+    filtered.sort((a, b) => {
+        if (currentAnalyticsSort === 'visits_desc') {
+            return (b.visits || 0) - (a.visits || 0);
+        } else if (currentAnalyticsSort === 'pdf_desc') {
+            return (b.pdfCount || 0) - (a.pdfCount || 0);
+        } else if (currentAnalyticsSort === 'name_asc') {
+            return (a.name || '').localeCompare(b.name || '');
+        } else {
+            // Default: most recent active timestamp
+            const tsA = a.lastVisit || a.lastPdfAt || 0;
+            const tsB = b.lastVisit || b.lastPdfAt || 0;
+            return tsB - tsA;
+        }
+    });
+
+    const badgeEl = document.getElementById('ana-dealer-count-badge');
+    if (badgeEl) badgeEl.textContent = filtered.length;
+
+    // Render Dealer Activity Cards
+    const listContainer = document.getElementById('ana-dealers-list');
+    if (listContainer) {
+        if (filtered.length === 0) {
+            listContainer.innerHTML = `
+                <div style="background:#fff; border:1px dashed #cbd5e1; border-radius:8px; padding:2rem; text-align:center; color:#64748b;">
+                    <i class="fa-solid fa-filter-circle-xmark" style="font-size:2rem; color:#94a3b8; margin-bottom:0.5rem;"></i>
+                    <div style="font-weight:700;">No dealers found matching the selected filter.</div>
+                    <div style="font-size:0.8rem; margin-top:0.25rem;">Try changing search or filter options.</div>
+                </div>
+            `;
+        } else {
+            listContainer.innerHTML = filtered.map(m => renderSingleDealerAnalyticsCard(m)).join('');
+        }
+    }
+
+    // Render Live Activity Stream
+    renderLiveActivityStream(activities);
+}
+window.renderDealerAnalyticsTab = renderDealerAnalyticsTab;
+
+function renderSingleDealerAnalyticsCard(m) {
+    const visits = m.visits || 0;
+    const pdfs = m.pdfCount || 0;
+    const isLocked = (m.isLocked === true || (m.failedAttempts || 0) >= 5);
+    const lastVisitStr = formatRelativeTime(m.lastVisit);
+    const lastPdfStr = m.lastPdfAt ? formatRelativeTime(m.lastPdfAt) : 'Never';
+    const city = m.address ? m.address.split(',')[0].trim() : 'Gujarat';
+    const orders = (state && state.orders) ? state.orders.filter(o => o.merchantId === m.id) : [];
+
+    // Determine status tag
+    let tagHtml = '';
+    if (isLocked) {
+        tagHtml = `<span style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-lock"></i> LOCKED (5 Failed)</span>`;
+    } else if (pdfs > 0 && orders.length === 0) {
+        tagHtml = `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-fire"></i> HOT LEAD - PDF Downloaded</span>`;
+    } else if (visits >= 5 && orders.length === 0) {
+        tagHtml = `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-bolt"></i> HIGH INTEREST (Call Now)</span>`;
+    } else if (orders.length > 0) {
+        tagHtml = `<span style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; font-size:0.7rem; font-weight:800; padding:0.18rem 0.5rem; border-radius:4px;"><i class="fa-solid fa-circle-check"></i> ACTIVE BUYER (${orders.length} Orders)</span>`;
+    } else {
+        tagHtml = `<span style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; font-size:0.7rem; font-weight:700; padding:0.18rem 0.5rem; border-radius:4px;">PROSPECTIVE</span>`;
+    }
+
+    return `
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:1rem 1.15rem; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.2s ease;">
+            <!-- Header Row -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.6rem;">
+                <div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                        <h4 style="margin:0; font-size:1.02rem; color:#0e254f; font-weight:800;">${m.name}</h4>
+                        ${tagHtml}
+                    </div>
+                    <div style="font-size:0.78rem; color:#64748b; margin-top:0.25rem;">
+                        <i class="fa-solid fa-location-dot" style="color:#94a3b8;"></i> ${city}  -  
+                        <i class="fa-brands fa-whatsapp" style="color:#25d366;"></i> +${m.phone}  -  
+                        UID: <span style="font-weight:700; color:#334155;">${m.uid || m.id}</span>
+                    </div>
+                </div>
+
+                <!-- Stats Badges -->
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <div style="background:${visits > 0 ? '#eff6ff' : '#f8fafc'}; border:1px solid ${visits > 0 ? '#bfdbfe' : '#e2e8f0'}; border-radius:6px; padding:0.35rem 0.65rem; text-align:center;">
+                        <div style="font-size:0.65rem; text-transform:uppercase; color:#64748b; font-weight:700;">Visits</div>
+                        <div style="font-size:1.15rem; font-weight:900; color:${visits > 0 ? '#1d4ed8' : '#94a3b8'}; line-height:1;">${visits}</div>
+                    </div>
+                    <div style="background:${pdfs > 0 ? '#fffbeb' : '#f8fafc'}; border:1px solid ${pdfs > 0 ? '#fde68a' : '#e2e8f0'}; border-radius:6px; padding:0.35rem 0.65rem; text-align:center;">
+                        <div style="font-size:0.65rem; text-transform:uppercase; color:#64748b; font-weight:700;">PDFs</div>
+                        <div style="font-size:1.15rem; font-weight:900; color:${pdfs > 0 ? '#d97706' : '#94a3b8'}; line-height:1;">${pdfs}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Details Row -->
+            <div style="background:#f8fafc; border-radius:6px; padding:0.55rem 0.8rem; font-size:0.78rem; color:#475569; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.5rem; margin-bottom:0.75rem;">
+                <div>
+                    <span style="color:#94a3b8;"><i class="fa-regular fa-clock"></i> Last Portal Visit:</span> 
+                    <b style="color:#1e293b;">${lastVisitStr}</b>
+                </div>
+                <div>
+                    <span style="color:#94a3b8;"><i class="fa-solid fa-file-arrow-down"></i> Last PDF:</span> 
+                    <b style="color:#1e293b;">${lastPdfStr}</b>
+                    ${m.lastPdfMode ? `<span style="font-size:0.7rem; color:#64748b; margin-left:2px;">(${m.lastPdfMode})</span>` : ''}
+                </div>
+            </div>
+
+            <!-- Action Buttons Row -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                <div style="display:flex; gap:0.4rem;">
+                    <button type="button" class="btn" onclick="sendDealerAnalyticsFollowUp('${m.id}')" style="background:#25d366; color:#fff; font-size:0.78rem; font-weight:700; padding:0.4rem 0.75rem; border:none; border-radius:5px; cursor:pointer; display:flex; align-items:center; gap:5px;" title="Send WhatsApp follow-up">
+                        <i class="fa-brands fa-whatsapp" style="font-size:0.95rem;"></i> WhatsApp Follow-up
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="openDealerActivityHistoryModal('${m.id}')" style="font-size:0.78rem; font-weight:700; padding:0.4rem 0.75rem; border-radius:5px;">
+                        <i class="fa-solid fa-timeline"></i> Activity History (${(m.activityLog || []).length})
+                    </button>
+                </div>
+                <div style="display:flex; gap:0.4rem;">
+                    ${isLocked ? `
+                    <button type="button" class="btn btn-success" onclick="unlockMerchantAccount('${m.id}')" style="background:#16a34a; color:#fff; font-size:0.78rem; font-weight:700; padding:0.4rem 0.75rem; border:none; border-radius:5px; cursor:pointer;">
+                        <i class="fa-solid fa-lock-open"></i> Unlock
+                    </button>
+                    ` : ''}
+                    <button type="button" class="btn btn-outline" onclick="openPartyDetailsModal('${m.id}', 'profile')" style="font-size:0.78rem; padding:0.4rem 0.75rem; border-radius:5px;">
+                        <i class="fa-solid fa-user-pen"></i> Edit Party
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderLiveActivityStream(activities) {
+    const container = document.getElementById('ana-live-stream');
+    if (!container) return;
+
+    if (!activities || activities.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:1.5rem 0.5rem; color:#94a3b8; font-size:0.8rem;">
+                <i class="fa-regular fa-bell-slash" style="font-size:1.5rem; margin-bottom:0.35rem; display:block;"></i>
+                No recent activity stream logged yet.
+            </div>
+        `;
+        return;
+    }
+
+    const latest = activities.slice(0, 15);
+    container.innerHTML = latest.map(act => {
+        let iconHtml = '<i class="fa-solid fa-circle-info" style="color:#3b82f6;"></i>';
+        let bg = '#eff6ff';
+        if (act.action === 'pdf') {
+            iconHtml = '<i class="fa-solid fa-file-pdf" style="color:#d97706;"></i>';
+            bg = '#fffbeb';
+        } else if (act.action === 'order') {
+            iconHtml = '<i class="fa-solid fa-cart-shopping" style="color:#10b981;"></i>';
+            bg = '#ecfdf5';
+        } else if (act.action === 'lockout') {
+            iconHtml = '<i class="fa-solid fa-lock" style="color:#ef4444;"></i>';
+            bg = '#fef2f2';
+        } else if (act.action === 'share') {
+            iconHtml = '<i class="fa-brands fa-whatsapp" style="color:#25d366;"></i>';
+            bg = '#f0fdf4';
+        }
+
+        const timeStr = formatRelativeTime(act.timestamp);
+
+        return `
+            <div style="display:flex; gap:0.6rem; align-items:flex-start; padding:0.55rem; border-radius:6px; background:${bg}; border:1px solid rgba(0,0,0,0.04);">
+                <div style="margin-top:2px; font-size:0.95rem;">${iconHtml}</div>
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.15rem;">
+                        <span style="font-weight:700; font-size:0.8rem; color:#0e254f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${act.merchantName}">
+                            ${act.merchantName}
+                        </span>
+                        <span style="font-size:0.68rem; color:#94a3b8; font-weight:600; white-space:nowrap; margin-left:4px;">${timeStr}</span>
+                    </div>
+                    <div style="font-size:0.74rem; font-weight:600; color:#334155;">${act.title}</div>
+                    ${act.description ? `<div style="font-size:0.7rem; color:#64748b; line-height:1.2; margin-top:1px;">${act.description}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function onDealerAnalyticsSearch() {
+    const inp = document.getElementById('ana-search-input');
+    currentAnalyticsSearch = inp ? inp.value.trim() : '';
+    renderDealerAnalyticsTab();
+}
+window.onDealerAnalyticsSearch = onDealerAnalyticsSearch;
+
+function onDealerAnalyticsFilterChange() {
+    const fSel = document.getElementById('ana-filter-select');
+    const sSel = document.getElementById('ana-sort-select');
+    currentAnalyticsFilter = fSel ? fSel.value : 'all';
+    currentAnalyticsSort = sSel ? sSel.value : 'recent';
+    renderDealerAnalyticsTab();
+}
+window.onDealerAnalyticsFilterChange = onDealerAnalyticsFilterChange;
+
+function openDealerActivityHistoryModal(merchantId) {
+    const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
+    if (!m) return;
+
+    const modal = document.getElementById('dealer-activity-history-modal');
+    const titleEl = document.getElementById('act-modal-title');
+    const subEl = document.getElementById('act-modal-subtitle');
+    const bodyEl = document.getElementById('act-modal-body');
+
+    if (titleEl) titleEl.textContent = `${m.name}  -  Activity Timeline`;
+    if (subEl) subEl.textContent = `Total Visits: ${m.visits || 0}  -  PDFs Generated: ${m.pdfCount || 0}  -  Phone: +${m.phone}`;
+
+    const logs = m.activityLog || [];
+    if (bodyEl) {
+        if (logs.length === 0) {
+            bodyEl.innerHTML = `
+                <div style="text-align:center; padding:2rem; color:#64748b;">
+                    <i class="fa-solid fa-clock-rotate-left" style="font-size:2rem; color:#cbd5e1; margin-bottom:0.5rem; display:block;"></i>
+                    No specific activity history recorded for this dealer yet.
+                </div>
+            `;
+        } else {
+            bodyEl.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    ${logs.map(log => {
+                        let icon = '<i class="fa-solid fa-eye" style="color:#2563eb;"></i>';
+                        if (log.action === 'pdf') icon = '<i class="fa-solid fa-file-pdf" style="color:#d97706;"></i>';
+                        else if (log.action === 'order') icon = '<i class="fa-solid fa-check-circle" style="color:#10b981;"></i>';
+                        else if (log.action === 'lockout') icon = '<i class="fa-solid fa-lock" style="color:#ef4444;"></i>';
+
+                        return `
+                            <div style="display:flex; gap:0.75rem; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem;">
+                                <div style="font-size:1.1rem; margin-top:2px;">${icon}</div>
+                                <div style="flex:1;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <b style="font-size:0.85rem; color:#0e254f;">${log.title}</b>
+                                        <span style="font-size:0.72rem; color:#64748b;">${log.dateStr || formatRelativeTime(log.timestamp)}</span>
+                                    </div>
+                                    ${log.description ? `<div style="font-size:0.78rem; color:#475569; margin-top:0.2rem;">${log.description}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+    }
+
+    if (modal) modal.style.display = 'flex';
+}
+window.openDealerActivityHistoryModal = openDealerActivityHistoryModal;
+
+function sendDealerAnalyticsFollowUp(merchantId) {
+    const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
+    if (!m) return;
+    const phone = (m.phone || '').replace(/\D/g, '');
+    if (!phone) {
+        alert("No registered mobile number for this dealer.");
+        return;
+    }
+
+    let text = `*Rabbit World  -  Luxury Bathware Exclusive Follow-up*\n` +
+               `-----------------------------------------\n` +
+               `Namaste ${m.name},\n` +
+               `We noticed you were browsing our Rabbit World luxury catalog and products recently.\n\n` +
+               `Are you planning an order or client requirement for:\n` +
+               ` -  Vitreous China One Piece / Wall Hung Closets\n` +
+               ` -  Designer Matte Art Basins & Table Tops\n` +
+               ` -  Quartz & Handmade 304 Kitchen Sinks\n\n` +
+               `We have fresh production lots ready in Morbi with priority dealer dispatch for you. Please let us know your requirements so we can block the stock.\n` +
+               `-----------------------------------------\n` +
+               `Best regards,\n*Rabbit World Bathware Admin Team*`;
+
+    window.open(`https://api.whatsapp.com/send?phone=91${phone}&text=${encodeURIComponent(text)}`, '_blank');
+}
+window.sendDealerAnalyticsFollowUp = sendDealerAnalyticsFollowUp;
+
+// Helper: Format relative time in minutes, hours, days
+function formatRelativeTime(ts) {
+    if (!ts || isNaN(ts)) return 'Never';
+    const diffMs = Date.now() - ts;
+    if (diffMs < 0) return 'Just now';
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 30) return `${diffDays} days ago`;
+    return new Date(ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+}
+window.formatRelativeTime = formatRelativeTime;
+
+

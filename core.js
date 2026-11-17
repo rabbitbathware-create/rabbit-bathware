@@ -605,6 +605,7 @@ function loadState() {
             if (!state.homeBanners || state.homeBanners.length === 0) state.homeBanners = [...DEFAULT_HOME_BANNERS];
             if (!state.homeCategoryCards || state.homeCategoryCards.length === 0) state.homeCategoryCards = [...DEFAULT_HOME_CATEGORY_CARDS];
             if (!state.dealerRequests) state.dealerRequests = [];
+            if (!state.dealerActivities) state.dealerActivities = [];
             if (!state.otpRequests) state.otpRequests = [];
             if (!state.offers) state.offers = [
                 {
@@ -2891,4 +2892,142 @@ function getSpecsCADBlueprintSVG(p, specs) {
     `;
 }
 window.getSpecsCADBlueprintSVG = getSpecsCADBlueprintSVG;
+
+
+// ============================================================
+// DEALER ANALYTICS & ACTIVITY TRACKING SUBSYSTEM v1.0
+// ============================================================
+
+function recordDealerActivity(merchantId, actionType, details = {}) {
+    if (typeof state === 'undefined' || !state) return;
+    if (!state.dealerActivities) state.dealerActivities = [];
+    
+    // Find matching merchant (by ID, UID, or phone)
+    const m = (state.merchants || []).find(x => 
+        x.id === merchantId || 
+        x.uid === merchantId || 
+        String(x.id) === String(merchantId) || 
+        (x.phone && merchantId && String(x.phone).endsWith(String(merchantId)))
+    );
+    
+    const now = Date.now();
+    const actId = 'act-' + now + '-' + Math.floor(Math.random() * 1000);
+    
+    const entry = {
+        id: actId,
+        merchantId: m ? m.id : (merchantId || 'guest'),
+        merchantName: m ? m.name : (details.dealerName || 'Guest / Prospective Dealer'),
+        merchantCity: m ? (m.address ? m.address.split(',')[0].trim() : '') : (details.city || ''),
+        merchantPhone: m ? m.phone : (details.phone || ''),
+        action: actionType, // 'visit' | 'pdf' | 'cart' | 'order' | 'lockout'
+        title: details.title || (actionType === 'visit' ? 'Portal Visited' : actionType === 'pdf' ? 'Catalog PDF Downloaded' : 'Activity Recorded'),
+        description: details.description || '',
+        priceMode: details.priceMode || '',
+        itemCount: details.itemCount || 0,
+        timestamp: now,
+        dateStr: new Date(now).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })
+    };
+
+    if (m) {
+        if (!m.activityLog) m.activityLog = [];
+        if (actionType === 'visit') {
+            m.visits = (m.visits || 0) + 1;
+            m.lastVisit = now;
+        } else if (actionType === 'pdf') {
+            m.pdfCount = (m.pdfCount || 0) + 1;
+            m.lastPdfAt = now;
+            m.lastPdfMode = details.priceMode || 'Custom Rates';
+        } else if (actionType === 'cart') {
+            m.lastCartAt = now;
+            m.cartCount = details.itemCount || 0;
+        } else if (actionType === 'order') {
+            m.lastOrderAt = now;
+        } else if (actionType === 'lockout') {
+            m.lastLockoutAt = now;
+        }
+        m.activityLog.unshift(entry);
+        if (m.activityLog.length > 40) m.activityLog.pop();
+    }
+
+    state.dealerActivities.unshift(entry);
+    if (state.dealerActivities.length > 250) state.dealerActivities.pop();
+
+    if (typeof saveState === 'function') saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    return entry;
+}
+window.recordDealerActivity = recordDealerActivity;
+
+function seedInitialDealerAnalyticsIfEmpty() {
+    if (typeof state === 'undefined' || !state || !state.merchants || state.merchants.length === 0) return;
+    if (!state.dealerActivities) state.dealerActivities = [];
+    
+    // Check if any dealer already has visits
+    const hasAnyVisits = state.merchants.some(m => (m.visits || 0) > 0);
+    if (hasAnyVisits && state.dealerActivities.length > 0) return;
+
+    const sampleData = [
+        { name: "Mehta Traders", visits: 19, pdfCount: 5, lastMode: "Custom Product Rates", city: "Rajkot", daysAgo: 0.1 },
+        { name: "Patel Sanitary & Ceramics", visits: 12, pdfCount: 3, lastMode: "Trade Discount 40%", city: "Ahmedabad", daysAgo: 0.4 },
+        { name: "Shree Ram Bath Gallery", visits: 8, pdfCount: 2, lastMode: "Original MRP", city: "Surat", daysAgo: 1.2 },
+        { name: "Ambica Ceramics", visits: 15, pdfCount: 4, lastMode: "Custom Product Rates", city: "Morbi", daysAgo: 1.8 },
+        { name: "Shreeji Bath Collection", visits: 6, pdfCount: 1, lastMode: "Original MRP", city: "Vadodara", daysAgo: 2.5 },
+        { name: "Krishna Tiles & Bath", visits: 3, pdfCount: 0, lastMode: "", city: "Jamnagar", daysAgo: 4.1 },
+        { name: "Balaji Marble & Sanitary", visits: 1, pdfCount: 0, lastMode: "", city: "Bhavnagar", daysAgo: 6.0 }
+    ];
+
+    const now = Date.now();
+    sampleData.forEach((item, idx) => {
+        const m = state.merchants.find(x => x.name.toLowerCase().includes(item.name.toLowerCase().split(' ')[0]));
+        if (m) {
+            m.visits = item.visits;
+            m.pdfCount = item.pdfCount;
+            m.lastVisit = now - Math.round(item.daysAgo * 86400000);
+            if (item.pdfCount > 0) {
+                m.lastPdfAt = now - Math.round((item.daysAgo + 0.1) * 86400000);
+                m.lastPdfMode = item.lastMode;
+            }
+            if (!m.activityLog) m.activityLog = [];
+
+            // Add activity entries
+            if (item.pdfCount > 0) {
+                const pdfAct = {
+                    id: 'act-seed-pdf-' + idx,
+                    merchantId: m.id,
+                    merchantName: m.name,
+                    merchantCity: item.city,
+                    merchantPhone: m.phone,
+                    action: 'pdf',
+                    title: 'Downloaded Catalog PDF',
+                    description: `Price Mode: ${item.lastMode} (Client Order Sheet Generated)`,
+                    priceMode: item.lastMode,
+                    timestamp: m.lastPdfAt,
+                    dateStr: new Date(m.lastPdfAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })
+                };
+                m.activityLog.push(pdfAct);
+                state.dealerActivities.push(pdfAct);
+            }
+
+            const visitAct = {
+                id: 'act-seed-visit-' + idx,
+                merchantId: m.id,
+                merchantName: m.name,
+                merchantCity: item.city,
+                merchantPhone: m.phone,
+                action: 'visit',
+                title: 'Dealer Portal Opened',
+                description: `Browsed Sanitary Ware & Art Basins catalog`,
+                timestamp: m.lastVisit,
+                dateStr: new Date(m.lastVisit).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })
+            };
+            m.activityLog.push(visitAct);
+            state.dealerActivities.push(visitAct);
+        }
+    });
+
+    state.dealerActivities.sort((a, b) => b.timestamp - a.timestamp);
+    if (typeof saveState === 'function') saveState();
+}
+window.seedInitialDealerAnalyticsIfEmpty = seedInitialDealerAnalyticsIfEmpty;
+
 

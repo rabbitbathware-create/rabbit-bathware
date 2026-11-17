@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
     <!-- BMS Core Shared State & Specifications Engine -->
-    <script src="core.js?v=4.9.1"></script>
+    <script src="core.js?v=4.9.4"></script>
 
     <style>
         :root {
@@ -1719,6 +1719,14 @@
             // Activate Order Print Mode so only the Order Sheet prints
             document.body.classList.add('order-print-mode');
 
+            try {
+                const qp = new URLSearchParams(window.location.search);
+                const mp = qp.get('phone') || qp.get('m') || '';
+                const mf = qp.get('firm') || '';
+                if (typeof recordDealerActivity === 'function') {
+                    recordDealerActivity(mp, 'pdf', { title: 'Order Sheet PDF Downloaded', description: 'Generated Order PDF with ' + keys.length + ' items', dealerName: mf, phone: mp, itemCount: keys.length });
+                }
+            } catch(e) {}
             // Trigger Print Dialog
             window.print();
 
