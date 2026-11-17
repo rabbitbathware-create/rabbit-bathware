@@ -96,6 +96,7 @@
             <button class="nav-item" data-tab="offers-tab"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> Special Offers <span id="sidebar-offers-badge" style="display:none; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">0</span></button>
             <button class="nav-item" data-tab="banners-tab"><i class="fa-solid fa-images"></i> Home Banners</button>
             <button class="nav-item" data-tab="settings-tab"><i class="fa-solid fa-gear"></i> Settings</button>
+            <button class="nav-item" type="button" onclick="openRabbitAIAssistant()" style="margin-top:0.6rem; background:linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%); color:#93c5fd; border:1px solid #3b82f6; font-weight:700;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#60a5fa;"></i> Rabbit AI Assistant <span style="background:#10b981; color:#fff; font-size:0.65rem; padding:0.1rem 0.45rem; border-radius:10px; margin-left:auto;">VOICE</span></button>
         </nav>
         <div class="sidebar-footer">
             <p>System Version 3.0.0</p>
@@ -126,6 +127,9 @@
                     <div style="background:#f1f5f9; padding:0.4rem 0.75rem; border-radius:6px; border:1px solid #cbd5e1; font-size:0.85rem; color:#475569; display:flex; align-items:center; gap:0.4rem; white-space:nowrap;"><i class="fa-regular fa-calendar"></i> <span id="current-date-only"></span></div>
                     <div style="background:#f1f5f9; padding:0.4rem 0.75rem; border-radius:6px; border:1px solid #cbd5e1; font-size:0.85rem; color:#475569; display:flex; align-items:center; gap:0.4rem; white-space:nowrap; font-variant-numeric:tabular-nums; min-width:105px; justify-content:center;"><i class="fa-solid fa-clock"></i> <span id="current-time-only"></span></div>
                 </div>
+                <button type="button" class="btn" onclick="openRabbitAIAssistant()" style="font-size:0.8rem; padding:0.4rem 0.75rem; background:linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%); color:#60a5fa; border:1px solid #3b82f6; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; box-shadow:0 2px 6px rgba(37,99,235,0.25);" title="Rabbit AI Business Assistant (Voice & Text)">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Rabbit AI</span>
+                </button>
                 <a href="dealer.html" target="_blank" class="btn btn-secondary" style="font-size:0.8rem;">
                     <i class="fa-solid fa-share-nodes"></i> Dealer Portal Link
                 </a>
@@ -2353,8 +2357,115 @@
         <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i><span>Ledger</span></button>
     </nav>
 
-<script src="core.js?v=4.9.12"></script>
-<script src="admin.js?v=4.9.12"></script>
+    <!-- FLOATING RABBIT AI LAUNCHER BUTTON -->
+    <button id="rabbit-ai-launcher-btn" type="button" onclick="toggleRabbitAIAssistant()" 
+        style="position:fixed; bottom:75px; right:20px; z-index:9990; width:54px; height:54px; border-radius:50%; background:linear-gradient(135deg, #0e254f 0%, #2563eb 100%); color:#fff; border:2px solid #60a5fa; box-shadow:0 6px 20px rgba(37,99,235,0.45); display:flex; align-items:center; justify-content:center; font-size:1.35rem; cursor:pointer; transition:all 0.2s ease;"
+        title="Rabbit AI Assistant (Voice / Offline)">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+    </button>
+
+    <!-- RABBIT AI BUSINESS ASSISTANT MODAL (OFFLINE / VOICE / MULTILINGUAL) -->
+    <div id="rabbit-ai-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(14,37,79,0.6); backdrop-filter:blur(3px); z-index:99999; align-items:center; justify-content:center; padding:12px;" onclick="if(event.target===this) closeRabbitAIAssistant()">
+        <div style="background:#ffffff; width:100%; max-width:540px; height:90vh; max-height:680px; border-radius:14px; box-shadow:0 25px 60px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden; border:1px solid #cbd5e1;">
+            
+            <!-- Modal Header -->
+            <div style="background:linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%); color:#fff; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; color:#60a5fa; font-size:1.2rem; border:1px solid rgba(255,255,255,0.2);">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:800; font-size:0.95rem; display:flex; align-items:center; gap:6px;">
+                            Rabbit AI Assistant
+                            <span style="font-size:0.65rem; background:#10b981; color:#fff; padding:1px 6px; border-radius:10px; font-weight:700;">OFFLINE</span>
+                        </div>
+                        <div style="font-size:0.72rem; color:#93c5fd;">Voice &amp; Text Business Intelligence</div>
+                    </div>
+                </div>
+
+                <!-- Controls (Lang & Sound & Close) -->
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <!-- Language Toggle -->
+                    <div style="background:rgba(255,255,255,0.15); padding:2px; border-radius:6px; display:flex; gap:2px;">
+                        <button type="button" id="ai-lang-gu" onclick="setAILanguage('gu')" style="background:#2563eb; color:#fff; border:none; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; cursor:pointer;">GU</button>
+                        <button type="button" id="ai-lang-en" onclick="setAILanguage('en')" style="background:#f1f5f9; color:#475569; border:none; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; cursor:pointer;">EN</button>
+                    </div>
+                    <!-- Voice Mute Toggle -->
+                    <button type="button" id="ai-voice-mute-btn" onclick="toggleAIVoiceMute()" style="background:rgba(255,255,255,0.15); border:none; color:#10b981; width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.9rem;" title="Voice Active (Click to Mute)">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <!-- Clear Chat Button -->
+                    <button type="button" id="ai-clear-chat-btn" onclick="clearRabbitAIChat()" style="background:rgba(255,255,255,0.15); border:none; color:#cbd5e1; width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.85rem;" title="Clear Chat (ચેટ સાફ કરો)" onmouseover="this.style.color='#f87171'; this.style.background='rgba(239,68,68,0.2)';" onmouseout="this.style.color='#cbd5e1'; this.style.background='rgba(255,255,255,0.15)';">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                    <!-- Close Button -->
+                    <button type="button" onclick="closeRabbitAIAssistant()" style="background:none; border:none; color:#cbd5e1; font-size:1.5rem; cursor:pointer; line-height:1; padding:0 4px;">&times;</button>
+                </div>
+            </div>
+
+            <!-- Quick Query Suggestion Chips -->
+            <div style="background:#f8fafc; padding:8px 12px; border-bottom:1px solid #e2e8f0; display:flex; gap:6px; overflow-x:auto; white-space:nowrap; scrollbar-width:thin;">
+                <button type="button" onclick="clearRabbitAIChat()" style="background:#fff; border:1px solid #fecaca; color:#dc2626; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                    🗑️ <span>Clear Chat</span>
+                </button>
+                <button type="button" onclick="handleAIQuickPrompt('આપણી પાસે કેટલી પાર્ટી છે?')" style="background:#fff; border:1px solid #cbd5e1; color:#0e254f; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                    👥 <span>કેટલી પાર્ટી છે? (Total Parties)</span>
+                </button>
+                <button type="button" onclick="handleAIQuickPrompt('રાજકોટ માં કેટલી પાર્ટી ચાલુ છે?')" style="background:#fff; border:1px solid #cbd5e1; color:#0e254f; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                    📍 <span>રાજકોટ પાર્ટીઓ (Rajkot)</span>
+                </button>
+                <button type="button" onclick="handleAIQuickPrompt('કુલ બાકી ઉધારી કેટલી?')" style="background:#fff; border:1px solid #cbd5e1; color:#0e254f; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                    💰 <span>Total Dues (ઉધારી)</span>
+                </button>
+                <button type="button" onclick="handleAIQuickPrompt('કેટલા ઓર્ડર પેન્ડિંગ છે?')" style="background:#fff; border:1px solid #cbd5e1; color:#0e254f; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                    📦 <span>Pending Orders</span>
+                </button>
+                <button type="button" onclick="handleAIQuickPrompt('ટોપ 5 ડીલર જણાવો')" style="background:#fff; border:1px solid #cbd5e1; color:#0e254f; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                    🏆 <span>Top Dealers</span>
+                </button>
+                <button type="button" onclick="handleAIQuickPrompt('સ્ટોક અને કેટલોગ સ્ટેટસ')" style="background:#fff; border:1px solid #cbd5e1; color:#0e254f; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                    🏷️ <span>Stock &amp; Catalog</span>
+                </button>
+                <button type="button" onclick="handleAIQuickPrompt('ડીલર ટેરીટરી મેપ')" style="background:#fff; border:1px solid #cbd5e1; color:#0e254f; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+                    🗺️ <span>Territory Map</span>
+                </button>
+            </div>
+
+            <!-- Chat Conversation Thread -->
+            <div id="rabbit-ai-thread" style="flex:1; overflow-y:auto; padding:14px; background:#f1f5f9; display:flex; flex-direction:column;">
+                <!-- Welcome Greeting -->
+                <div style="display:flex; margin-bottom:12px; gap:8px; align-items:flex-start;">
+                    <div style="width:30px; height:30px; background:linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%); color:#60a5fa; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div style="background:#ffffff; color:#0e254f; border:1px solid #e2e8f0; padding:12px 14px; border-radius:4px 14px 14px 14px; max-width:88%; font-size:13px; line-height:1.45; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="font-weight:800; color:#0e254f; margin-bottom:4px; font-size:13.5px;">
+                            નમસ્તે! હું તમારો Rabbit Smart Business Assistant છું. 🤖
+                        </div>
+                        <div style="color:#475569; font-size:12.5px;">
+                            તમે ગુજરાતી, English અથવા Gujlish માં પૂછી શકો છો. માઇક 🎙️ દબાવીને બોલી પણ શકો છો.<br>
+                            દા.ત. <b>"Mehta traders ni udhari?"</b> અથવા <b>"કેટલા ઓર્ડર પેન્ડિંગ છે?"</b>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Bar with Mic & Send -->
+            <div style="background:#ffffff; padding:10px 14px; border-top:1px solid #e2e8f0; display:flex; align-items:center; gap:8px;">
+                <button type="button" id="ai-mic-btn" onclick="toggleAIVoiceListening()" style="width:40px; height:40px; border-radius:50%; background:#f1f5f9; color:#0e254f; border:1px solid #cbd5e1; display:flex; align-items:center; justify-content:center; font-size:1.1rem; cursor:pointer; flex-shrink:0; transition:all 0.2s;" title="Click to Speak (Voice Query)">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+                <input type="text" id="rabbit-ai-input" placeholder="ગુજરાતી અથવા English માં પૂછો (જેમ કે: Mehta Traders ni udhari?)..." style="flex:1; padding:9px 12px; border:1px solid #cbd5e1; border-radius:20px; font-size:13px; outline:none; transition:border 0.2s;" onkeypress="if(event.key === 'Enter') handleAISubmitQuery()" onfocus="this.style.borderColor='#2563eb';" onblur="this.style.borderColor='#cbd5e1';">
+                <button type="button" onclick="handleAISubmitQuery()" style="width:40px; height:40px; border-radius:50%; background:#2563eb; color:#fff; border:none; display:flex; align-items:center; justify-content:center; font-size:1rem; cursor:pointer; flex-shrink:0; box-shadow:0 3px 10px rgba(37,99,235,0.35);" title="Send Message">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script src="core.js?v=4.9.14"></script>
+<script src="admin.js?v=4.9.14"></script>
+<script src="admin_ai_assistant.js?v=4.9.15"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
