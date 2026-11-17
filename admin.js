@@ -7556,7 +7556,7 @@ function openDealerActivityHistoryModal(merchantId) {
         }
     }
 
-    if (modal) modal.style.display = 'flex';
+    openModal('dealer-activity-history-modal');
 }
 window.openDealerActivityHistoryModal = openDealerActivityHistoryModal;
 

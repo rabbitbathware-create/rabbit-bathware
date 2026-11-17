@@ -2123,8 +2123,8 @@
 
     
     <!-- DEALER ACTIVITY TIMELINE MODAL -->
-    <div id="dealer-activity-history-modal" class="modal" style="display:none; align-items:center; justify-content:center; z-index:9999;">
-        <div class="modal-content" style="max-width:620px; width:92%; max-height:85vh; display:flex; flex-direction:column; border-radius:10px; overflow:hidden; background:#fff; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+    <div id="dealer-activity-history-modal" class="modal-overlay" onclick="if(event.target===this) closeModal('dealer-activity-history-modal')">
+        <div class="modal-content" style="max-width:580px; width:92%; max-height:85vh; display:flex; flex-direction:column; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 20px 45px rgba(0,0,0,0.3); padding:0 !important; margin:auto;">
             <div class="modal-header" style="background:#0e254f; color:#fff; padding:1rem 1.25rem; display:flex; justify-content:space-between; align-items:center;">
                 <div>
                     <h3 id="act-modal-title" style="margin:0; font-size:1.05rem; color:#fff; font-weight:800;">Dealer Activity History</h3>
@@ -2150,8 +2150,8 @@
         <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i><span>Ledger</span></button>
     </nav>
 
-<script src="core.js?v=4.9.4"></script>
-<script src="admin.js?v=4.9.4"></script>
+<script src="core.js?v=4.9.5"></script>
+<script src="admin.js?v=4.9.5"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
