@@ -871,27 +871,84 @@
         const nameEl = document.getElementById('profile-modal-name');
         const addrEl = document.getElementById('profile-modal-address');
         const phoneEl = document.getElementById('profile-modal-phone');
-        const gpsBadge = document.getElementById('profile-modal-gps-badge');
-        const gpsText = document.getElementById('profile-modal-gps-text');
 
         if (nameEl) nameEl.textContent = dealerMerchant.name || 'N/A';
         if (addrEl) addrEl.textContent = dealerMerchant.address || 'N/A';
         if (phoneEl) phoneEl.textContent = 'Ph: ' + (dealerMerchant.phone || 'N/A');
 
-        if (gpsBadge) {
-            if (dealerMerchant.lat && dealerMerchant.lng) {
-                gpsBadge.style.display = 'inline-flex';
-                if (gpsText) gpsText.textContent = `Shop GPS: ${Number(dealerMerchant.lat).toFixed(4)}, ${Number(dealerMerchant.lng).toFixed(4)}`;
-            } else {
-                gpsBadge.style.display = 'none';
-            }
-        }
-
         openModal('profile-modal');
     }
     window.openProfileModal = openProfileModal;
 
-    function captureCurrentDealerGPS() {
+    function openShopProfileModal() {
+        if (!dealerMerchant) {
+            openDealerLoginModal();
+            return;
+        }
+
+        // Fill all dealer profile fields
+        const uidEl = document.getElementById('dsp-uid');
+        const firmEl = document.getElementById('dsp-firm-name');
+        const ownerEl = document.getElementById('dsp-owner-name');
+        const waEl = document.getElementById('dsp-whatsapp');
+        const callingEl = document.getElementById('dsp-calling');
+        const cityEl = document.getElementById('dsp-city');
+        const pinEl = document.getElementById('dsp-pincode');
+        const addrEl = document.getElementById('dsp-full-address');
+        const gstEl = document.getElementById('dsp-gst');
+        const gstBadge = document.getElementById('dsp-gst-badge');
+        const territoryBadge = document.getElementById('dsp-territory-badge');
+
+        if (uidEl) uidEl.textContent = dealerMerchant.uid || dealerMerchant.id || 'N/A';
+        if (firmEl) firmEl.textContent = dealerMerchant.name || dealerMerchant.shopName || 'N/A';
+        if (ownerEl) ownerEl.textContent = dealerMerchant.ownerName || 'Authorized Partner';
+        if (waEl) waEl.textContent = dealerMerchant.phone ? ('+91 ' + dealerMerchant.phone) : 'N/A';
+        if (callingEl) callingEl.textContent = dealerMerchant.callingPhone ? ('+91 ' + dealerMerchant.callingPhone) : (dealerMerchant.phone ? ('+91 ' + dealerMerchant.phone) : 'N/A');
+        
+        const city = dealerMerchant.city || (dealerMerchant.address ? dealerMerchant.address.split(',')[0].trim() : 'Gujarat');
+        if (cityEl) cityEl.textContent = city;
+        if (pinEl) pinEl.textContent = dealerMerchant.pincode || '363641';
+        if (addrEl) addrEl.textContent = dealerMerchant.address || 'Gujarat, India';
+        
+        if (gstEl) {
+            if (dealerMerchant.gst && dealerMerchant.gst.trim()) {
+                gstEl.textContent = dealerMerchant.gst.toUpperCase();
+                if (gstBadge) { gstBadge.textContent = 'Verified GST'; gstBadge.style.color = '#15803d'; gstBadge.style.background = '#dcfce7'; }
+            } else {
+                gstEl.textContent = 'Not Registered';
+                if (gstBadge) { gstBadge.textContent = 'Unregistered'; gstBadge.style.color = '#64748b'; gstBadge.style.background = '#f1f5f9'; }
+            }
+        }
+
+        const radius = dealerMerchant.territoryRadiusKm !== undefined ? dealerMerchant.territoryRadiusKm : 5;
+        if (territoryBadge) {
+            territoryBadge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${radius > 0 ? (radius + ' KM Buffer') : 'Open Area'}`;
+        }
+
+        // GPS Location & Territory State
+        const lockedBox = document.getElementById('dsp-gps-locked-box');
+        const unlockedBox = document.getElementById('dsp-gps-unlocked-box');
+        const coordsText = document.getElementById('dsp-gps-coords-text');
+
+        const hasGps = (dealerMerchant.lat !== undefined && dealerMerchant.lat !== null && !isNaN(dealerMerchant.lat) && dealerMerchant.lng !== undefined && dealerMerchant.lng !== null && !isNaN(dealerMerchant.lng));
+        const isLocked = hasGps && (dealerMerchant.gpsUnlocked !== true);
+
+        if (isLocked) {
+            if (lockedBox) lockedBox.style.display = 'block';
+            if (unlockedBox) unlockedBox.style.display = 'none';
+            if (coordsText) {
+                coordsText.textContent = `Coordinates: ${Number(dealerMerchant.lat).toFixed(4)}° N, ${Number(dealerMerchant.lng).toFixed(4)}° E`;
+            }
+        } else {
+            if (lockedBox) lockedBox.style.display = 'none';
+            if (unlockedBox) unlockedBox.style.display = 'block';
+        }
+
+        openModal('dealer-shop-profile-modal');
+    }
+    window.openShopProfileModal = openShopProfileModal;
+
+    function captureAndLockShopGPS() {
         if (!dealerMerchant) {
             alert('Please login first.');
             return;
@@ -901,11 +958,14 @@
             return;
         }
 
-        const btn = document.getElementById('profile-btn-detect-gps');
+        const confirmPresent = confirm("⚠️ Location Confirmation:\n\nAre you physically present at your shop or showroom right now?\n\nClicking 'OK' will permanently save and lock your shop location for territory protection.");
+        if (!confirmPresent) return;
+
+        const btn = document.getElementById('dsp-btn-capture-gps');
         const oldText = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Detecting GPS Location...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Detecting & Saving Shop GPS...';
         }
 
         navigator.geolocation.getCurrentPosition(
@@ -914,44 +974,67 @@
                 const lng = pos.coords.longitude;
                 dealerMerchant.lat = lat;
                 dealerMerchant.lng = lng;
+                dealerMerchant.gpsLocked = true;
+                dealerMerchant.gpsUnlocked = false;
+                dealerMerchant.locationChangeRequested = false;
 
                 if (state && state.merchants) {
                     const idx = state.merchants.findIndex(m => m.id === dealerMerchant.id);
                     if (idx !== -1) {
                         state.merchants[idx].lat = lat;
                         state.merchants[idx].lng = lng;
+                        state.merchants[idx].gpsLocked = true;
+                        state.merchants[idx].gpsUnlocked = false;
+                        state.merchants[idx].locationChangeRequested = false;
                     }
                 }
                 saveState();
                 if (typeof syncToCloud === 'function') syncToCloud();
 
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Location Saved Successfully!';
-                    setTimeout(() => {
-                        if (btn) btn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> 📍 Update My Shop GPS Location';
-                    }, 2500);
-                }
-
-                const gpsBadge = document.getElementById('profile-modal-gps-badge');
-                const gpsText = document.getElementById('profile-modal-gps-text');
-                if (gpsBadge) {
-                    gpsBadge.style.display = 'inline-flex';
-                    if (gpsText) gpsText.textContent = `Shop GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                }
-                alert(`Shop location captured successfully!\nCoordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+                alert(`✅ Shop Location Successfully Locked!\n\nCoordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}\nYour shop is now permanently mapped and protected in our territory system.`);
+                openShopProfileModal();
             },
             (err) => {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = oldText || '<i class="fa-solid fa-crosshairs"></i> 📍 Auto-Detect My Shop GPS Location';
+                    btn.innerHTML = oldText || '<i class="fa-solid fa-crosshairs"></i> 📍 Capture & Lock My Shop GPS Location';
                 }
-                alert('GPS location permission denied or timed out. Please allow location access in your browser settings.');
+                alert('GPS Permission Denied. Please enable location access in your browser settings to lock your shop location.');
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     }
-    window.captureCurrentDealerGPS = captureCurrentDealerGPS;
+    window.captureAndLockShopGPS = captureAndLockShopGPS;
+
+    function requestDealerLocationChange() {
+        if (!dealerMerchant) return;
+
+        const adminPhone = (state && state.settings && state.settings.companyPhone) ? state.settings.companyPhone.replace(/\D/g, '') : '919876543210';
+        const firm = dealerMerchant.name || dealerMerchant.shopName || 'Dealer';
+        const uid = dealerMerchant.uid || dealerMerchant.id || '';
+        const city = dealerMerchant.city || (dealerMerchant.address ? dealerMerchant.address.split(',')[0].trim() : '');
+
+        dealerMerchant.locationChangeRequested = true;
+        if (state && state.merchants) {
+            const idx = state.merchants.findIndex(m => m.id === dealerMerchant.id);
+            if (idx !== -1) {
+                state.merchants[idx].locationChangeRequested = true;
+            }
+        }
+        saveState();
+        if (typeof syncToCloud === 'function') syncToCloud();
+
+        const msg = `*📍 REQUEST FOR SHOP LOCATION UPDATE*\n\n` +
+                    `*Firm Name:* ${firm}\n` +
+                    `*Dealer UID:* ${uid}\n` +
+                    `*City:* ${city}\n\n` +
+                    `Hello Rabbit World Admin, we have relocated / need to update our official shop GPS coordinates. Please unlock our GPS setting from your Admin Portal.`;
+
+        const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(msg)}`;
+        window.open(waUrl, '_blank');
+        alert("Your location change request has been submitted to the admin. Once approved in the Admin Portal, you will be able to re-detect your shop location here.");
+    }
+    window.requestDealerLocationChange = requestDealerLocationChange;
 
     function captureNewDealerRegistrationGPS() {
         if (!navigator.geolocation) {

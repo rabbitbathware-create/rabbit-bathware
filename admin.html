@@ -92,7 +92,7 @@
             <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i> Accounts Ledger</button>
             <button class="nav-item" data-tab="party-performance-tab"><i class="fa-solid fa-chart-line"></i> Party Performance <span id="sidebar-perf-badge" style="display:none; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">0</span></button>
             <button class="nav-item" data-tab="dealer-analytics-tab"><i class="fa-solid fa-chart-user"></i> Dealer Analytics &amp; Activity <span id="sidebar-analytics-badge" style="background:#2563eb; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">LIVE</span></button>
-            <button class="nav-item" data-tab="dealer-map-tab"><i class="fa-solid fa-map-location-dot"></i> Dealer Territory Map <span id="sidebar-map-badge" style="background:#10b981; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">MAP</span></button>
+            <button class="nav-item" data-tab="dealer-map-tab"><i class="fa-solid fa-map-location-dot"></i> Dealer Territory Map <span id="sidebar-map-req-badge" style="display:none; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:10px; margin-left:auto;">0</span><span id="sidebar-map-badge" style="background:#10b981; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:4px;">MAP</span></button>
             <button class="nav-item" data-tab="offers-tab"><i class="fa-solid fa-fire" style="color:#ef4444;"></i> Special Offers <span id="sidebar-offers-badge" style="display:none; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">0</span></button>
             <button class="nav-item" data-tab="banners-tab"><i class="fa-solid fa-images"></i> Home Banners</button>
             <button class="nav-item" data-tab="settings-tab"><i class="fa-solid fa-gear"></i> Settings</button>
@@ -782,11 +782,31 @@
                     </div>
                     <div style="display:flex; align-items:center; gap:0.6rem;">
                         <span style="display:inline-flex; align-items:center; gap:0.4rem; background:#ecfdf5; border:1px solid #a7f3d0; color:#059669; font-size:0.75rem; font-weight:700; padding:0.35rem 0.75rem; border-radius:20px;">
-                            <span class="dot green" style="width:8px; height:8px; background:#10b981; border-radius:50%; display:inline-block; box-shadow:0 0 6px #10b981;"></span> Free OpenStreetMap
+                            <span class="dot green" style="width:8px; height:8px; background:#10b981; border-radius:50%; display:inline-block; box-shadow:0 0 6px #10b981;"></span> Esri Street Map
                         </span>
                         <span id="map-dealers-count" style="background:#0e254f; color:#fff; font-size:0.75rem; font-weight:700; padding:0.35rem 0.75rem; border-radius:6px;">
                             0 Dealers Mapped
                         </span>
+                    </div>
+                </div>
+
+                <!-- DEALER LOCATION CHANGE REQUESTS QUEUE (ADMIN APPROVAL) -->
+                <div id="map-location-requests-section" style="display:none; background:#ffffff; border:2px solid #f87171; border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; box-shadow:0 4px 12px rgba(239,68,68,0.12);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="width:30px; height:30px; background:#fee2e2; color:#dc2626; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.95rem;">
+                                <i class="fa-solid fa-bell"></i>
+                            </span>
+                            <div>
+                                <h3 style="margin:0; font-size:0.96rem; font-weight:800; color:#991b1b;">
+                                    Dealer Location Update Requests (<span id="map-loc-req-count">0</span>)
+                                </h3>
+                                <div style="font-size:0.75rem; color:#64748b;">Dealers who requested permission to re-detect their shop GPS location or relocate on map.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="map-loc-req-list" style="display:flex; flex-direction:column; gap:0.6rem;">
+                        <!-- Injected via renderDealerLocationRequests() -->
                     </div>
                 </div>
 
@@ -822,6 +842,36 @@
 
                 <!-- Main Map Container with Floating Measure Info Box -->
                 <div style="position:relative; width:100%; margin-bottom:1.5rem;">
+                    <!-- INTERACTIVE MANUAL PIN DROP ACTIVE BANNER -->
+                    <div id="manual-pin-bar" style="display:none; background:linear-gradient(135deg, #1e3a8a 0%, #0e254f 100%); color:#fff; border-radius:8px; padding:0.85rem 1.25rem; margin-bottom:0.75rem; box-shadow:0 4px 14px rgba(14,37,79,0.25); align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="width:34px; height:34px; background:#f59e0b; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem; box-shadow:0 0 10px rgba(245,158,11,0.5);">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </span>
+                            <div>
+                                <div style="font-weight:800; font-size:0.95rem; letter-spacing:-0.2px;">
+                                    Manual Pin Placement: <span id="manual-pin-dealer-name" style="color:#fcd34d;">Dealer Name</span>
+                                </div>
+                                <div style="font-size:0.78rem; color:#cbd5e1;">
+                                    👉 Click anywhere on the map or drag the orange pin to place the exact shop location.
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                            <div style="display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.15); padding:4px 8px; border-radius:6px;">
+                                <span style="font-size:0.75rem; font-weight:700;">Protected Radius:</span>
+                                <input type="number" id="manual-pin-radius-input" min="0" max="100" step="0.5" value="5" oninput="updateManualPinPreviewCircle()" style="width:55px; padding:3px 6px; border:1px solid #93c5fd; border-radius:4px; font-size:0.8rem; font-weight:800; color:#0e254f; background:#fff; text-align:center; outline:none;">
+                                <span style="font-size:0.75rem; font-weight:700;">KM</span>
+                            </div>
+                            <button type="button" class="btn" onclick="saveManualDealerPinPlacement()" style="background:#16a34a; color:#fff; border:none; padding:0.5rem 1rem; border-radius:6px; font-weight:800; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Location
+                            </button>
+                            <button type="button" class="btn" onclick="cancelManualDealerPinPlacement()" style="background:#ef4444; color:#fff; border:none; padding:0.5rem 0.85rem; border-radius:6px; font-weight:700; font-size:0.82rem; cursor:pointer;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Floating Distance Measurement Result Box -->
                     <div id="map-measure-infobox" style="display:none; position:absolute; top:12px; right:12px; z-index:1000; background:rgba(255,255,255,0.95); backdrop-filter:blur(6px); border:1.5px solid #2563eb; border-radius:8px; padding:12px 16px; box-shadow:0 8px 24px rgba(0,0,0,0.18); max-width:320px; width:90%;">
                         <!-- Dynamic measure info injected here -->
@@ -849,7 +899,7 @@
                                 <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0; font-size:12px; color:#475569; text-transform:uppercase;">
                                     <th style="padding:8px 12px;">Dealer / Firm</th>
                                     <th style="padding:8px 12px;">GPS Status</th>
-                                    <th style="padding:8px 12px;">Protected Radius (કુંડાળું)</th>
+                                    <th style="padding:8px 12px;">Protected Territory Radius</th>
                                     <th style="padding:8px 12px; text-align:right;">Actions</th>
                                 </tr>
                             </thead>
@@ -2303,8 +2353,8 @@
         <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i><span>Ledger</span></button>
     </nav>
 
-<script src="core.js?v=4.9.10"></script>
-<script src="admin.js?v=4.9.10"></script>
+<script src="core.js?v=4.9.12"></script>
+<script src="admin.js?v=4.9.12"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {

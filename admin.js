@@ -7768,6 +7768,15 @@ let measurePoints = []; // [{ lat, lng, name }]
 let showRadiusCircles = true;
 let defaultRadiusKm = 5; // Standard exclusive territory radius
 
+// Manual Pin Placement state
+let isManualPinMode = false;
+let activeManualPinMerchantId = null;
+let manualPinMarker = null;
+let manualPinCircle = null;
+let manualPinLat = null;
+let manualPinLng = null;
+let manualPinLayer = null;
+
 function initDealerTerritoryMap() {
     const mapEl = document.getElementById('territory-map-view');
     if (!mapEl) return;
@@ -7802,9 +7811,10 @@ function initDealerTerritoryMap() {
         radiusCirclesLayer = L.layerGroup().addTo(territoryMap);
         measureMarkersLayer = L.layerGroup().addTo(territoryMap);
         measureLineLayer = L.layerGroup().addTo(territoryMap);
+        manualPinLayer = L.layerGroup().addTo(territoryMap);
 
-        // Map Click Listener for Distance Measure Mode
-        territoryMap.on('click', handleMapClickForMeasure);
+        // General click listener handling both measure and manual pin drop
+        territoryMap.on('click', handleMapGeneralClick);
     }
 
     // Leaflet needs invalidateSize() when rendered in a tab that was hidden
@@ -7815,7 +7825,19 @@ function initDealerTerritoryMap() {
         }
     }, 250);
 
+    if (typeof renderDealerLocationRequests === 'function') renderDealerLocationRequests();
     renderDealerMapDirectoryTable();
+}
+
+function handleMapGeneralClick(e) {
+    if (isManualPinMode) {
+        handleMapClickForManualPin(e);
+        return;
+    }
+    if (isMeasureModeActive) {
+        handleMapClickForMeasure(e);
+        return;
+    }
 }
 window.initDealerTerritoryMap = initDealerTerritoryMap;
 
@@ -8008,7 +8030,7 @@ function handleMapClickForMeasure(e) {
         } else {
             conflictWarning = `
                 <div style="background:#ecfdf5; border:1px solid #a7f3d0; color:#059669; padding:6px 8px; border-radius:4px; font-size:11px; font-weight:700; margin-top:6px;">
-                    âœ… Safe Territory: Distance is ${distKm} km (Beyond ${defaultRadiusKm} km buffer). Good location for new dealership!
+                    ✅ Safe Territory: Distance is ${distKm} km (Beyond ${defaultRadiusKm} km buffer). Good location for new dealership!
                 </div>
             `;
         }
@@ -8125,26 +8147,266 @@ function updateDealerRadius(merchantId, newRadiusKm) {
 }
 window.updateDealerRadius = updateDealerRadius;
 
+// ==========================================
+// DEALER LOCATION REQUESTS QUEUE (ADMIN APPROVAL)
+// ==========================================
+function renderDealerLocationRequests() {
+    const section = document.getElementById('map-location-requests-section');
+    const listEl = document.getElementById('map-loc-req-list');
+    const countEl = document.getElementById('map-loc-req-count');
+    const badgeEl = document.getElementById('sidebar-map-req-badge');
+
+    const merchants = (state && state.merchants) ? state.merchants : [];
+    const pendingMerchants = merchants.filter(m => m.locationChangeRequested === true);
+
+    const count = pendingMerchants.length;
+    if (badgeEl) {
+        if (count > 0) {
+            badgeEl.textContent = count;
+            badgeEl.style.display = 'inline-block';
+        } else {
+            badgeEl.style.display = 'none';
+        }
+    }
+
+    if (countEl) countEl.textContent = count;
+
+    if (!section || !listEl) return;
+
+    if (count === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    listEl.innerHTML = pendingMerchants.map(m => {
+        const coords = (typeof getMerchantCoordinates === 'function') ? getMerchantCoordinates(m) : { lat: 22.8, lng: 70.8 };
+        const city = m.city || (m.address ? m.address.split(',')[0].trim() : 'Gujarat');
+
+        return `
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem;">
+                <div>
+                    <div style="font-weight:800; font-size:0.9rem; color:#991b1b; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-store"></i> ${m.name} 
+                        <span style="background:#fee2e2; color:#b91c1c; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:700;">UID: ${m.uid || m.id}</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:#475569; margin-top:3px;">
+                        <span><i class="fa-solid fa-location-dot" style="color:#ef4444;"></i> Current: <b>${city}</b> (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})</span> • 
+                        <span><i class="fa-solid fa-phone"></i> ${m.phone || 'N/A'}</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn" onclick="approveDealerLocationRequest('${m.id}')" style="background:#16a34a; color:#fff; border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer;" title="Allow dealer to re-detect GPS on their phone">
+                        <i class="fa-solid fa-unlock"></i> Approve & Unlock GPS
+                    </button>
+                    <button type="button" class="btn" onclick="startManualDealerPinPlacement('${m.id}')" style="background:#f59e0b; color:#fff; border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer;" title="Manually place/drag pin on map">
+                        <i class="fa-solid fa-map-pin"></i> Set Manually on Map
+                    </button>
+                    <button type="button" class="btn" onclick="rejectDealerLocationRequest('${m.id}')" style="background:#ef4444; color:#fff; border:none; padding:5px 10px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer;" title="Dismiss request and keep current location locked">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+window.renderDealerLocationRequests = renderDealerLocationRequests;
+
+function approveDealerLocationRequest(merchantId) {
+    const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
+    if (!m) return;
+
+    m.gpsUnlocked = true;
+    m.gpsLocked = false;
+    m.locationChangeRequested = false;
+
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+
+    renderDealerLocationRequests();
+    renderDealerMapDirectoryTable();
+
+    alert(`✅ Request Approved!\n\nDealer "${m.name}" has been granted permission to re-detect their GPS location from their dealer portal.`);
+}
+window.approveDealerLocationRequest = approveDealerLocationRequest;
+
+function rejectDealerLocationRequest(merchantId) {
+    const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
+    if (!m) return;
+
+    if (!confirm(`Dismiss location change request for "${m.name}" and keep existing location locked?`)) return;
+
+    m.locationChangeRequested = false;
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+
+    renderDealerLocationRequests();
+    renderDealerMapDirectoryTable();
+}
+window.rejectDealerLocationRequest = rejectDealerLocationRequest;
+
+// ==========================================
+// INTERACTIVE MANUAL PIN DROP & TERRITORY PLACEMENT
+// ==========================================
+function startManualDealerPinPlacement(merchantId) {
+    const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
+    if (!m) return;
+
+    isManualPinMode = true;
+    activeManualPinMerchantId = merchantId;
+
+    if (isMeasureModeActive) toggleMeasureMode();
+
+    const coords = (typeof getMerchantCoordinates === 'function') ? getMerchantCoordinates(m) : { lat: 22.8, lng: 70.8 };
+    manualPinLat = coords.lat;
+    manualPinLng = coords.lng;
+
+    const bar = document.getElementById('manual-pin-bar');
+    const nameEl = document.getElementById('manual-pin-dealer-name');
+    const radiusInput = document.getElementById('manual-pin-radius-input');
+
+    if (bar) bar.style.display = 'flex';
+    if (nameEl) nameEl.textContent = `${m.name} (${m.uid || m.id})`;
+    if (radiusInput) radiusInput.value = (m.territoryRadiusKm !== undefined) ? m.territoryRadiusKm : 5;
+
+    const mapContainer = document.getElementById('territory-map-view');
+    if (mapContainer) mapContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    if (territoryMap) {
+        territoryMap.flyTo([manualPinLat, manualPinLng], 13);
+    }
+
+    renderManualPinPreview();
+}
+window.startManualDealerPinPlacement = startManualDealerPinPlacement;
+
+function renderManualPinPreview() {
+    if (!territoryMap || !manualPinLayer) return;
+    manualPinLayer.clearLayers();
+
+    const m = (state.merchants || []).find(x => x.id === activeManualPinMerchantId);
+    const radiusKm = parseFloat(document.getElementById('manual-pin-radius-input').value) || 5;
+
+    const pinIcon = L.divIcon({
+        className: 'custom-manual-pin',
+        html: `
+            <div style="position:relative; width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#f59e0b; color:#fff; border-radius:50%; border:3px solid #ffffff; box-shadow:0 6px 16px rgba(0,0,0,0.4); font-size:18px; cursor:move;">
+                <i class="fa-solid fa-location-crosshairs"></i>
+            </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+    });
+
+    manualPinMarker = L.marker([manualPinLat, manualPinLng], { icon: pinIcon, draggable: true }).addTo(manualPinLayer);
+    manualPinMarker.bindTooltip(`📍 Drag / Click anywhere to place ${m ? m.name : 'Dealer'}`, { permanent: true, direction: 'top' }).openTooltip();
+
+    manualPinMarker.on('dragend', function (e) {
+        const pos = e.target.getLatLng();
+        manualPinLat = pos.lat;
+        manualPinLng = pos.lng;
+        if (manualPinCircle) {
+            manualPinCircle.setLatLng(pos);
+        }
+    });
+
+    if (radiusKm > 0) {
+        manualPinCircle = L.circle([manualPinLat, manualPinLng], {
+            radius: radiusKm * 1000,
+            color: '#f59e0b',
+            fillColor: '#f59e0b',
+            fillOpacity: 0.18,
+            weight: 2,
+            dashArray: '6, 6'
+        }).addTo(manualPinLayer);
+    }
+}
+
+function handleMapClickForManualPin(e) {
+    if (!isManualPinMode) return;
+    manualPinLat = e.latlng.lat;
+    manualPinLng = e.latlng.lng;
+    renderManualPinPreview();
+}
+
+function updateManualPinPreviewCircle() {
+    if (!isManualPinMode) return;
+    const radiusKm = parseFloat(document.getElementById('manual-pin-radius-input').value) || 0;
+    if (manualPinCircle) {
+        manualPinCircle.setRadius(radiusKm * 1000);
+    } else if (radiusKm > 0 && territoryMap && manualPinLayer) {
+        renderManualPinPreview();
+    }
+}
+window.updateManualPinPreviewCircle = updateManualPinPreviewCircle;
+
+function saveManualDealerPinPlacement() {
+    if (!activeManualPinMerchantId) return;
+    const m = (state.merchants || []).find(x => x.id === activeManualPinMerchantId);
+    if (!m) return;
+
+    const radiusKm = parseFloat(document.getElementById('manual-pin-radius-input').value) || 5;
+
+    m.lat = manualPinLat;
+    m.lng = manualPinLng;
+    m.isGps = true;
+    m.territoryRadiusKm = radiusKm;
+    m.gpsLocked = true;
+    m.gpsUnlocked = false;
+    m.locationChangeRequested = false;
+
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+
+    cancelManualDealerPinPlacement();
+    renderDealerMapMarkersAndCircles();
+    renderDealerLocationRequests();
+    renderDealerMapDirectoryTable();
+
+    alert(`✅ Success!\n\nDealer "${m.name}" location has been saved at (${manualPinLat.toFixed(5)}, ${manualPinLng.toFixed(5)}) with a ${radiusKm} KM protected exclusive buffer.`);
+}
+window.saveManualDealerPinPlacement = saveManualDealerPinPlacement;
+
+function cancelManualDealerPinPlacement() {
+    isManualPinMode = false;
+    activeManualPinMerchantId = null;
+    manualPinLat = null;
+    manualPinLng = null;
+
+    if (manualPinLayer) manualPinLayer.clearLayers();
+
+    const bar = document.getElementById('manual-pin-bar');
+    if (bar) bar.style.display = 'none';
+}
+window.cancelManualDealerPinPlacement = cancelManualDealerPinPlacement;
+
+// ==========================================
+// DEALER DIRECTORY TABLE
+// ==========================================
 function renderDealerMapDirectoryTable() {
     const tbody = document.getElementById('map-dealers-tbody');
     if (!tbody) return;
 
     const merchants = (state && state.merchants) ? state.merchants : [];
     if (merchants.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:1.5rem; color:#64748b;">No dealers registered.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:1.5rem; color:#64748b;">No dealers registered.</td></tr>';
         return;
     }
 
     tbody.innerHTML = merchants.map(m => {
         const coords = (typeof getMerchantCoordinates === 'function') ? getMerchantCoordinates(m) : { lat: 22.8, lng: 70.8, isGps: false };
         const radius = m.territoryRadiusKm !== undefined ? m.territoryRadiusKm : defaultRadiusKm;
-        const city = m.address ? m.address.split(',')[0].trim() : 'Gujarat';
+        const city = m.city || (m.address ? m.address.split(',')[0].trim() : 'Gujarat');
+        const hasReq = m.locationChangeRequested === true;
 
         return `
             <tr style="border-bottom:1px solid #f1f5f9; font-size:13px;">
                 <td style="padding:10px 12px; font-weight:700; color:#0e254f;">
-                    <div>${m.name}</div>
-                    <small style="color:#64748b; font-size:11px;">UID: ${m.uid || m.id} • ${city}</small>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span>${m.name}</span>
+                        ${hasReq ? '<span style="background:#fee2e2; color:#dc2626; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;"><i class="fa-solid fa-clock"></i> Req Pending</span>' : ''}
+                    </div>
+                    <small style="color:#64748b; font-size:11px;">UID: ${m.uid || m.id} • ${city} • Ph: ${m.phone || 'N/A'}</small>
                 </td>
                 <td style="padding:10px 12px; color:#475569;">
                     <div style="display:flex; align-items:center; gap:5px;">
@@ -8155,23 +8417,27 @@ function renderDealerMapDirectoryTable() {
                     <small style="font-size:10px; color:#94a3b8;">${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}</small>
                 </td>
                 <td style="padding:10px 12px;">
-                    <select onchange="updateDealerRadius('${m.id}', this.value)" style="padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; font-weight:700; color:#0e254f; background:#f8fafc; outline:none;">
-                        <option value="3" ${radius === 3 ? 'selected' : ''}>3 KM Buffer</option>
-                        <option value="5" ${radius === 5 ? 'selected' : ''}>5 KM Buffer</option>
-                        <option value="8" ${radius === 8 ? 'selected' : ''}>8 KM Buffer</option>
-                        <option value="10" ${radius === 10 ? 'selected' : ''}>10 KM Buffer</option>
-                        <option value="15" ${radius === 15 ? 'selected' : ''}>15 KM Buffer</option>
-                        <option value="0" ${radius === 0 ? 'selected' : ''}>No Protection</option>
-                    </select>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <input type="number" min="0" max="100" step="0.5" value="${radius}" onchange="updateDealerRadius('${m.id}', this.value)" style="width:58px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; font-weight:700; color:#0e254f; text-align:center; background:#f8fafc; outline:none;">
+                        <span style="font-size:11px; font-weight:700; color:#64748b;">KM</span>
+                    </div>
                 </td>
                 <td style="padding:10px 12px; text-align:right;">
-                    <div style="display:inline-flex; gap:4px;">
+                    <div style="display:inline-flex; gap:4px; align-items:center;">
+                        <button type="button" class="btn" onclick="startManualDealerPinPlacement('${m.id}')" style="padding:4px 8px; font-size:11px; font-weight:700; background:#f59e0b; color:#fff; border:none; border-radius:4px; cursor:pointer;" title="Place or adjust pin manually on map">
+                            <i class="fa-solid fa-location-dot"></i> Set Pin
+                        </button>
                         <button type="button" class="btn btn-secondary" onclick="flyToDealer('${m.id}')" style="padding:4px 8px; font-size:11px; font-weight:700;" title="Zoom on Map">
                             <i class="fa-solid fa-crosshairs"></i> Locate
                         </button>
                         <button type="button" class="btn" onclick="setMeasureStartPoint(${coords.lat}, ${coords.lng}, '${m.name.replace(/'/g, "\\'")}')" style="padding:4px 8px; font-size:11px; font-weight:700; background:#2563eb; color:#fff; border:none; border-radius:4px; cursor:pointer;" title="Measure distance from this dealer">
                             <i class="fa-solid fa-ruler"></i>
                         </button>
+                        ${hasReq ? `
+                            <button type="button" class="btn" onclick="approveDealerLocationRequest('${m.id}')" style="padding:4px 8px; font-size:11px; font-weight:700; background:#16a34a; color:#fff; border:none; border-radius:4px; cursor:pointer;" title="Approve Dealer GPS Request">
+                                <i class="fa-solid fa-check"></i>
+                            </button>
+                        ` : ''}
                     </div>
                 </td>
             </tr>
@@ -8179,4 +8445,3 @@ function renderDealerMapDirectoryTable() {
     }).join('');
 }
 window.renderDealerMapDirectoryTable = renderDealerMapDirectoryTable;
-

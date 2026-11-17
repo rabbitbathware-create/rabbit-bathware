@@ -1527,10 +1527,10 @@
                 <!-- LOCKED ACCOUNT HELP BOX (Shown when 5 failed attempts reached) -->
                 <div id="dealer-locked-box" style="display:none; margin-top:1rem; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:0.85rem; text-align:center;">
                     <div style="color:#dc2626; font-weight:800; font-size:0.88rem; margin-bottom:0.35rem;">
-                        <i class="fa-solid fa-shield-halved"></i> Account Locked / એકાઉન્ટ લૉક થયેલ છે
+                        <i class="fa-solid fa-shield-halved"></i> Account Locked Due to Security
                     </div>
                     <div style="font-size:0.75rem; color:#64748b; margin-bottom:0.75rem; line-height:1.4;">
-                        ૫ વખત ખોટો PIN નાખવાથી સુરક્ષા માટે એકાઉન્ટ લૉક થયું છે. PIN મેળવવા કે અનલૉક કરવા નીચે બટન દબાવી કંપની એડમિનનો વ્હોટ્સએપ પર સંપર્ક કરો.
+                        Your account has been locked after 5 consecutive incorrect PIN attempts. To unlock or reset your PIN, please contact company admin via WhatsApp.
                     </div>
                     <button type="button" class="btn" onclick="handleForgotPin()" style="width:100%; background:#25d366; color:#fff; font-weight:700; font-size:0.85rem; padding:0.6rem; border:none; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
                         <i class="fa-brands fa-whatsapp" style="font-size:1.15rem;"></i> Request PIN Reset on WhatsApp
@@ -1540,7 +1540,7 @@
         </div>
     </div>
 
-    <!-- PROFILE / ACCOUNT MODAL -->
+    <!-- PROFILE / ACCOUNT MODAL (DAILY ROUTINE TOOLS) -->
     <div id="profile-modal" class="modal-overlay">
         <div class="modal-content" style="max-width: 400px; text-align: center; padding: 1.5rem;">
             <div class="modal-header" style="border-bottom:none; padding-bottom: 0;">
@@ -1549,15 +1549,7 @@
             <i class="fa-solid fa-circle-user" style="font-size: 3.5rem; color: #0e254f; margin-bottom: 0.75rem;"></i>
             <h2 id="profile-modal-name" style="margin-bottom: 0.25rem; color: #0e254f; font-size:1.15rem;"></h2>
             <p id="profile-modal-address" style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.2rem;"></p>
-            <p id="profile-modal-phone" style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.85rem;"></p>
-            
-            <div id="profile-modal-gps-badge" style="display:none; align-items:center; justify-content:center; gap:6px; margin-bottom: 0.85rem; font-size:0.8rem; font-weight:700; color:#15803d; background:#dcfce7; padding:6px 10px; border-radius:6px; border:1px solid #86efac;">
-                <i class="fa-solid fa-location-dot"></i> <span id="profile-modal-gps-text">Shop GPS Location Saved</span>
-            </div>
-            
-            <button id="profile-btn-detect-gps" class="btn" style="width: 100%; margin-bottom: 0.6rem; font-weight: 700; padding:0.6rem; background: #f0fdf4; color:#15803d; border:1px solid #86efac; border-radius: 8px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;" onclick="captureCurrentDealerGPS()">
-                <i class="fa-solid fa-crosshairs"></i> 📍 Auto-Detect My Shop GPS Location
-            </button>
+            <p id="profile-modal-phone" style="color: #64748b; font-size: 0.85rem; margin-bottom: 1.25rem;"></p>
             
             <button class="btn" style="width: 100%; margin-bottom: 0.6rem; font-weight: 700; padding:0.65rem; background: linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%); color:#ffffff; border-radius: 8px; border:none; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow: 0 4px 12px rgba(14,37,79,0.2); cursor:pointer;" onclick="closeModal('profile-modal'); openShareCatalogModal();">
                 <i class="fa-solid fa-file-pdf" style="color:#f59e0b;"></i> Customer Catalog & PDF Generator
@@ -1565,9 +1557,135 @@
             <button class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem; font-weight: 700; padding:0.6rem;" onclick="closeModal('profile-modal'); openDealerOrdersModal();">
                 <i class="fa-solid fa-box-archive"></i> My Past Orders
             </button>
+            <button class="btn" style="width: 100%; margin-bottom: 0.5rem; font-weight: 700; padding:0.6rem; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:8px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;" onclick="closeModal('profile-modal'); openShopProfileModal();">
+                <i class="fa-solid fa-id-card"></i> View Complete Shop Profile
+            </button>
             <button class="btn btn-outline" style="width: 100%; border-color: #ef4444; color: #ef4444; font-weight: 700; padding:0.6rem;" onclick="closeModal('profile-modal'); dealerLogout();">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout / Switch Dealer
             </button>
+        </div>
+    </div>
+
+    <!-- COMPREHENSIVE DEALER SHOP PROFILE MODAL -->
+    <div id="dealer-shop-profile-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 520px; padding: 0; border-radius: 14px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;">
+            <!-- Modal Header with Brand Navy -->
+            <div style="background: linear-gradient(135deg, #0e254f 0%, #1e3a8a 100%); padding: 1.25rem 1.5rem; color: #ffffff; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <div>
+                    <h2 style="font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-store" style="color: #60a5fa;"></i> Authorized Dealer Profile
+                    </h2>
+                    <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 2px;">Rabbit World Verified Partner Information</div>
+                </div>
+                <button class="close-btn" onclick="closeModal('dealer-shop-profile-modal')" style="color: #ffffff; font-size: 1.5rem; background: transparent; border: none; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+
+            <!-- Modal Scrollable Body -->
+            <div style="padding: 1.25rem; overflow-y: auto; flex: 1; background: #f8fafc;">
+                <!-- Status & UID Badge Banner -->
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="background: #dcfce7; color: #15803d; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #86efac;">
+                            <i class="fa-solid fa-circle-check"></i> Verified Dealer
+                        </span>
+                        <span id="dsp-territory-badge" style="background: #e0e7ff; color: #3730a3; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid #c7d2fe;">
+                            <i class="fa-solid fa-shield-halved"></i> 5 KM Buffer
+                        </span>
+                    </div>
+                    <div style="font-size: 0.82rem; font-weight: 800; color: #0e254f;">
+                        UID: <span id="dsp-uid" style="color: #2563eb; letter-spacing: 0.5px;">-</span>
+                    </div>
+                </div>
+
+                <!-- Info Grid (Two Columns) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Shop / Firm Name</div>
+                        <div id="dsp-firm-name" style="font-size: 0.88rem; font-weight: 700; color: #0e254f; margin-top: 2px;">-</div>
+                    </div>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Owner / Contact</div>
+                        <div id="dsp-owner-name" style="font-size: 0.88rem; font-weight: 700; color: #0e254f; margin-top: 2px;">-</div>
+                    </div>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase;">WhatsApp Number</div>
+                        <div id="dsp-whatsapp" style="font-size: 0.85rem; font-weight: 700; color: #15803d; margin-top: 2px;">-</div>
+                    </div>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Calling Phone</div>
+                        <div id="dsp-calling" style="font-size: 0.85rem; font-weight: 700; color: #0e254f; margin-top: 2px;">-</div>
+                    </div>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase;">City / District</div>
+                        <div id="dsp-city" style="font-size: 0.85rem; font-weight: 700; color: #0e254f; margin-top: 2px;">-</div>
+                    </div>
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Area PIN Code</div>
+                        <div id="dsp-pincode" style="font-size: 0.85rem; font-weight: 700; color: #0e254f; margin-top: 2px;">-</div>
+                    </div>
+                </div>
+
+                <!-- Full Address Card -->
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase;">Full Shop Address</div>
+                    <div id="dsp-full-address" style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-top: 2px; line-height: 1.4;">-</div>
+                </div>
+
+                <!-- GST Card -->
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase;">GSTIN / Tax ID</div>
+                        <div id="dsp-gst" style="font-size: 0.85rem; font-weight: 700; color: #0e254f; margin-top: 2px;">-</div>
+                    </div>
+                    <span id="dsp-gst-badge" style="font-size: 0.7rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px;">Registered</span>
+                </div>
+
+                <!-- GPS TERRITORY & LOCATION SECTION -->
+                <div style="border-top: 1px dashed #cbd5e1; padding-top: 1rem;">
+                    <div style="font-size: 0.82rem; font-weight: 800; color: #0e254f; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-map-location-dot" style="color: #2563eb;"></i> Shop GPS & Territory Protection
+                    </div>
+
+                    <!-- State A: GPS Locked & Protected -->
+                    <div id="dsp-gps-locked-box" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 0.85rem 1rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+                            <div style="color: #15803d; font-weight: 800; font-size: 0.84rem; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-lock"></i> Shop Location Verified & Locked
+                            </div>
+                            <span style="background: #16a34a; color: #ffffff; font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">ACTIVE</span>
+                        </div>
+                        <div id="dsp-gps-coords-text" style="font-size: 0.78rem; color: #166534; font-family: monospace; font-weight: 600; margin-bottom: 0.5rem;">
+                            Coordinates: 22.8200° N, 70.8138° E
+                        </div>
+                        <div style="font-size: 0.74rem; color: #475569; line-height: 1.4; margin-bottom: 0.75rem;">
+                            Your official shop location is permanently mapped in our Territory System for exclusive area protection. Direct edits are disabled to prevent accidental modifications.
+                        </div>
+                        <button type="button" class="btn" onclick="requestDealerLocationChange()" style="width: 100%; font-size: 0.78rem; font-weight: 700; padding: 0.45rem; background: #ffffff; color: #0e254f; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <i class="fa-solid fa-paper-plane" style="color: #2563eb;"></i> Request Location Change to Admin
+                        </button>
+                    </div>
+
+                    <!-- State B: GPS Not Set / Unlocked by Admin -->
+                    <div id="dsp-gps-unlocked-box" style="display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 0.85rem 1rem;">
+                        <div style="color: #b45309; font-weight: 800; font-size: 0.84rem; display: flex; align-items: center; gap: 6px; margin-bottom: 0.4rem;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Shop GPS Not Yet Locked
+                        </div>
+                        <div style="font-size: 0.75rem; color: #92400e; line-height: 1.4; margin-bottom: 0.75rem; background: #fef3c7; padding: 6px 8px; border-radius: 6px;">
+                            ⚠️ <strong>Important Note:</strong> Please click the button below <u>only when you are physically present at your shop / showroom</u> so your exact business location is locked accurately.
+                        </div>
+                        <button type="button" id="dsp-btn-capture-gps" class="btn" onclick="captureAndLockShopGPS()" style="width: 100%; font-size: 0.84rem; font-weight: 700; padding: 0.65rem; background: #16a34a; color: #ffffff; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(22,163,74,0.3);">
+                            <i class="fa-solid fa-crosshairs"></i> 📍 Capture & Lock My Shop GPS Location
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div style="padding: 0.75rem 1.25rem; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; flex-shrink: 0;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('dealer-shop-profile-modal')" style="font-size: 0.85rem; font-weight: 700; padding: 0.5rem 1.25rem;">
+                    Close
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1941,8 +2059,8 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="core.js?v=4.9.10"></script>
-    <script src="dealer.js?v=4.9.10"></script>
+    <script src="core.js?v=4.9.12"></script>
+    <script src="dealer.js?v=4.9.12"></script>
 
     <!-- PWA Registration -->
     <script>
