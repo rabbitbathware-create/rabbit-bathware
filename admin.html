@@ -1801,6 +1801,15 @@
                 <h3 style="margin:0 0 0.4rem 0; color:#0e254f;">Dealer Security PIN</h3>
                 <p style="font-size:0.8rem; color:#64748b; margin:0 0 1.25rem 0;">This 6-digit PIN is required for this dealer to login to their portal.</p>
 
+                <!-- Account Locked Alert & Instant Unlock Button -->
+                <div id="pmodal-lock-status-box" style="display:none; background:#fee2e2; border:1px solid #fca5a5; border-radius:6px; padding:0.75rem; margin-bottom:1.25rem; text-align:center;">
+                    <div style="color:#dc2626; font-weight:800; font-size:0.88rem;"><i class="fa-solid fa-lock"></i> Account is LOCKED (5 Failed PIN Attempts)</div>
+                    <div style="font-size:0.75rem; color:#64748b; margin:0.3rem 0 0.6rem 0;">Dealer cannot log in to the portal until unlocked.</div>
+                    <button type="button" class="btn btn-success" onclick="unlockCurrentModalParty()" style="padding:0.4rem 1rem; font-size:0.85rem; font-weight:700; background:#16a34a; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+                        <i class="fa-solid fa-lock-open"></i> Unlock Account Now
+                    </button>
+                </div>
+
                 <div style="margin-bottom:1.25rem;">
                     <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; color:#334155;">New 6-Digit Security PIN</label>
                     <input type="text" id="pmodal-edit-pin" maxlength="6" placeholder="123456" style="width:190px; height:45px; font-size:1.5rem; text-align:center; font-weight:800; letter-spacing:6px; border:2px solid #2563eb; border-radius:6px; margin:auto;">
@@ -1814,8 +1823,12 @@
 
                 <hr style="border:0; border-top:1px dashed #cbd5e1; margin:1.25rem 0;">
 
-                <button type="button" class="btn btn-secondary" onclick="copyDealerLinkFromModal()" style="width:100%; padding:0.5rem; font-size:0.85rem;">
+                <button type="button" class="btn btn-secondary" onclick="copyDealerLinkFromModal()" style="width:100%; padding:0.5rem; font-size:0.85rem; margin-bottom:0.5rem;">
                     <i class="fa-solid fa-link"></i> Copy Dealer Portal Link with PIN
+                </button>
+
+                <button type="button" class="btn" onclick="sendCurrentPartyPinWhatsApp()" style="width:100%; padding:0.55rem; font-size:0.85rem; background:#25d366; color:#fff; font-weight:700; border:none; border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                    <i class="fa-brands fa-whatsapp" style="font-size:1.1rem;"></i> Send Portal Link & PIN on WhatsApp
                 </button>
             </div>
         </div>
@@ -2005,7 +2018,7 @@
     </nav>
 
 <script src="core.js?v=4.9.1"></script>
-<script src="admin.js?v=4.9.1"></script>
+<script src="admin.js?v=4.9.2"></script>
 <!-- PWA Registration -->
 <script>
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {

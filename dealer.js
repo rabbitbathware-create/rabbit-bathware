@@ -269,35 +269,37 @@
     function onDealerIdInput() {
         const val = document.getElementById('dealer-login-id').value.trim();
         const banner = document.getElementById('merchant-welcome-banner');
-        if (!banner) return;
+        const lockedBox = document.getElementById('dealer-locked-box');
+        const pinInput = document.getElementById('dealer-pin-input');
+        const loginBtn = document.getElementById('btn-dealer-login');
+        const errEl = document.getElementById('dealer-pin-error-msg');
+        
+        if (errEl) errEl.style.display = 'none';
         
         if (val.length >= 3) {
             const m = findDealerMerchant(val);
             if (m) {
-                document.getElementById('banner-merch-name').textContent = m.name;
-                document.getElementById('banner-merch-addr').textContent = m.address || '';
-                document.getElementById('banner-merch-phone').textContent = '+' + m.phone;
-                banner.style.display = 'block';
+                if (document.getElementById('banner-merch-name')) document.getElementById('banner-merch-name').textContent = m.name;
+                if (document.getElementById('banner-merch-addr')) document.getElementById('banner-merch-addr').textContent = m.address || '';
+                if (document.getElementById('banner-merch-phone')) document.getElementById('banner-merch-phone').textContent = '+' + m.phone;
+                if (banner) banner.style.display = 'block';
+
+                if (m.isLocked === true || (m.failedAttempts || 0) >= 5) {
+                    if (lockedBox) lockedBox.style.display = 'block';
+                    if (pinInput) pinInput.disabled = true;
+                    if (loginBtn) loginBtn.disabled = true;
+                } else {
+                    if (lockedBox) lockedBox.style.display = 'none';
+                    if (pinInput) pinInput.disabled = false;
+                    if (loginBtn) loginBtn.disabled = false;
+                }
                 return;
             }
         }
-        banner.style.display = 'none';
-    }
-
-    // Switch between PIN and OTP in auth modal
-    function switchAuthTab(mode) {
-        activeAuthMode = mode;
-        if (mode === 'pin') {
-            document.getElementById('btn-tab-pin').classList.add('active');
-            document.getElementById('btn-tab-otp').classList.remove('active');
-            document.getElementById('auth-panel-pin').style.display = 'block';
-            document.getElementById('auth-panel-otp').style.display = 'none';
-        } else {
-            document.getElementById('btn-tab-otp').classList.add('active');
-            document.getElementById('btn-tab-pin').classList.remove('active');
-            document.getElementById('auth-panel-otp').style.display = 'block';
-            document.getElementById('auth-panel-pin').style.display = 'none';
-        }
+        if (banner) banner.style.display = 'none';
+        if (lockedBox) lockedBox.style.display = 'none';
+        if (pinInput) pinInput.disabled = false;
+        if (loginBtn) loginBtn.disabled = false;
     }
 
 
@@ -661,7 +663,26 @@
         alert(`🎉 Thank you, ${ownerName}!\nYour Dealer Registration Request has been sent via WhatsApp.\nOur team will review your area and contact you shortly.`);
     }
 
-    function openDealerLoginModal() { openModal('dealer-auth-modal'); }
+    function openDealerLoginModal() {
+        const errEl = document.getElementById('dealer-pin-error-msg');
+        if (errEl) errEl.style.display = 'none';
+        const pinInput = document.getElementById('dealer-pin-input');
+        if (pinInput) {
+            pinInput.value = '';
+            pinInput.disabled = false;
+        }
+        const loginBtn = document.getElementById('btn-dealer-login');
+        if (loginBtn) loginBtn.disabled = false;
+        const lockedBox = document.getElementById('dealer-locked-box');
+        if (lockedBox) lockedBox.style.display = 'none';
+        openModal('dealer-auth-modal');
+        setTimeout(() => {
+            const idInput = document.getElementById('dealer-login-id');
+            if (idInput && !idInput.value) idInput.focus();
+            else if (pinInput) pinInput.focus();
+        }, 100);
+    }
+    window.openDealerLoginModal = openDealerLoginModal;
 
     function findDealerMerchant(inputVal) {
         if (!inputVal) return null;
@@ -679,7 +700,6 @@
                 if (mDigits.endsWith(digitsOnly) && digitsOnly.length >= 10) return true;
                 if (digitsOnly.endsWith(mDigits) && mDigits.length >= 10) return true;
             }
-            // Name matching disabled to prevent duplicate name conflicts (login restricted to UID / Mobile No.)
             return false;
         });
     }
@@ -687,6 +707,10 @@
     function dealerLoginViaPIN() {
         const idInput = document.getElementById('dealer-login-id');
         const pinInput = document.getElementById('dealer-pin-input');
+        const errEl = document.getElementById('dealer-pin-error-msg');
+        const lockedBox = document.getElementById('dealer-locked-box');
+        const loginBtn = document.getElementById('btn-dealer-login');
+
         const idVal = idInput ? idInput.value.trim() : '';
         const pinVal = pinInput ? pinInput.value.trim() : '';
 
@@ -695,6 +719,26 @@
             if (idInput) idInput.focus();
             return;
         }
+
+        const merchant = findDealerMerchant(idVal);
+        if (!merchant) {
+            alert(`❌ Dealer account not found for "${idVal}".\nPlease enter your registered 10-digit mobile number or Dealer UID (e.g. MEH811).\nNote: Login by shop or owner name is not supported.`);
+            return;
+        }
+
+        // Check if account is locked
+        if (merchant.isLocked === true || (merchant.failedAttempts || 0) >= 5) {
+            if (lockedBox) lockedBox.style.display = 'block';
+            if (pinInput) pinInput.disabled = true;
+            if (loginBtn) loginBtn.disabled = true;
+            if (errEl) {
+                errEl.innerHTML = `<i class="fa-solid fa-shield-halved"></i> <b>Account Locked!</b> 5 incorrect attempts made. Contact Admin to reset.`;
+                errEl.style.display = 'block';
+            }
+            alert(`🔒 Account Locked!\n\nThis account (${merchant.name}) is locked due to 5 consecutive incorrect PIN attempts.\n\nPlease click "Request PIN Reset on WhatsApp" to contact Admin.`);
+            return;
+        }
+
         if (!pinVal) {
             alert('Please enter your 6-digit Security PIN.');
             if (pinInput) pinInput.focus();
@@ -706,14 +750,15 @@
             return;
         }
 
-        const merchant = findDealerMerchant(idVal);
-        if (!merchant) {
-            alert(`❌ Dealer account not found for "${idVal}".\nPlease enter your registered 10-digit mobile number or Dealer UID (e.g. MEH811).\nNote: Login by shop or owner name is not supported.`);
-            return;
-        }
-
         const correctPin = String(merchant.pin || '').trim();
         if (correctPin && pinVal === correctPin) {
+            // SUCCESS: Reset failed attempts counter
+            merchant.failedAttempts = 0;
+            merchant.isLocked = false;
+            merchant.lastLoginAt = Date.now();
+            saveState();
+            if (typeof syncToCloud === 'function') syncToCloud();
+
             dealerMerchant = merchant;
             sessionStorage.setItem("bms_dealer_session", merchant.id);
             closeModal('dealer-auth-modal');
@@ -724,64 +769,75 @@
             renderDealerCart();
             alert(`🎉 Welcome back, ${merchant.name}!\nYour custom wholesale rates and permitted quality tiers are now active.`);
         } else {
-            alert('❌ Incorrect Security PIN. Please enter your correct 6-digit PIN or log in using WhatsApp OTP.');
-            if (pinInput) {
-                pinInput.value = '';
-                pinInput.focus();
+            // INCORRECT PIN: Increment failed counter
+            merchant.failedAttempts = (merchant.failedAttempts || 0) + 1;
+            const remaining = 5 - merchant.failedAttempts;
+
+            if (remaining > 0) {
+                saveState();
+                if (typeof syncToCloud === 'function') syncToCloud();
+
+                if (errEl) {
+                    errEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Incorrect PIN! <b>${remaining} attempt(s) remaining</b> before security lockout.`;
+                    errEl.style.display = 'block';
+                }
+                alert(`❌ Incorrect Security PIN!\n\nYou have ${remaining} attempt(s) remaining before your account gets locked for security.\n\nIf you forgot your PIN, click "Forgot PIN?".`);
+                if (pinInput) {
+                    pinInput.value = '';
+                    pinInput.focus();
+                }
+            } else {
+                // 5th failed attempt -> LOCK ACCOUNT
+                merchant.isLocked = true;
+                merchant.failedAttempts = 5;
+                merchant.lockedAt = Date.now();
+                saveState();
+                if (typeof syncToCloud === 'function') syncToCloud();
+
+                if (errEl) {
+                    errEl.innerHTML = `<i class="fa-solid fa-shield-halved"></i> <b>Account Locked!</b> 5 incorrect attempts made. Contact Admin to reset.`;
+                    errEl.style.display = 'block';
+                }
+                if (lockedBox) lockedBox.style.display = 'block';
+                if (pinInput) {
+                    pinInput.value = '';
+                    pinInput.disabled = true;
+                }
+                if (loginBtn) loginBtn.disabled = true;
+
+                alert(`🔒 Account Locked for Security!\n\n5 consecutive incorrect PIN attempts were made.\nTo protect your pricing and confidential orders, this account is locked.\n\nPlease contact Company Admin on WhatsApp to unlock and reset your PIN.`);
             }
         }
     }
+    window.dealerLoginViaPIN = dealerLoginViaPIN;
 
-    function requestDealerOTP() {
-        const val = document.getElementById('dealer-login-id').value.trim();
-        if (!val) { alert('Please enter Mobile No. or User ID first.'); return; }
-        
-        const m = findDealerMerchant(val);
-        if (!m) { alert('Account not found! Contact Admin.'); return; }
-        
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        if (!state.otpRequests) state.otpRequests = [];
-        
-        state.otpRequests.push({
-            id: "otp-" + Date.now(),
-            merchantId: m.id,
-            merchantName: m.name,
-            code: otpCode,
-            expiresAt: Date.now() + 10 * 60 * 1000
-        });
-        saveState();
-
-        const msg = `🔐 *BMS LOGIN OTP REQUEST*\n-----------------------------\n*Business:* ${m.name}\n*OTP Code:* *${otpCode}*\n(Valid for 10 minutes)`;
-        const adminWA = (state.settings && state.settings.adminWA) ? state.settings.adminWA : "919876543210";
-        window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
-        alert(`OTP request sent to Admin via WhatsApp!\nEnter code ${otpCode} once verified.`);
-    }
-
-    function dealerLoginViaOTP() {
-        const val = document.getElementById('dealer-login-id').value.trim();
-        const enteredOtp = document.getElementById('dealer-otp-input').value.trim();
-
-        if (!val) { alert('Please enter Mobile No. or User ID.'); return; }
-        if (!enteredOtp) { alert('Please enter the 6-digit OTP.'); return; }
-
-        const m = findDealerMerchant(val);
-        if (!m) { alert('Account not found!'); return; }
-
-        const validOtp = (state.otpRequests || []).find(r => r.merchantId === m.id && r.code === enteredOtp && r.expiresAt > Date.now());
-        if (validOtp) {
-            dealerMerchant = m;
-            sessionStorage.setItem("bms_dealer_session", m.id);
-            closeModal('dealer-auth-modal');
-            updateTopBarAuth();
-            renderCategoryPills();
-            renderDealerGradePills();
-            renderDealerCatalog();
-            renderDealerCart();
-            alert(`🎉 Verified! Welcome, ${m.name}!`);
-        } else {
-            alert('Invalid or expired OTP code. Please request a new one.');
+    function handleForgotPin() {
+        const idInput = document.getElementById('dealer-login-id');
+        const idVal = idInput ? idInput.value.trim() : '';
+        if (!idVal) {
+            alert('Please enter your 10-digit registered Mobile Number or Dealer UID first.');
+            if (idInput) idInput.focus();
+            return;
         }
+        const m = findDealerMerchant(idVal);
+        const firmName = m ? m.name : 'Dealer Account';
+        const phone = m ? m.phone : idVal;
+        const uid = (m && m.uid) ? m.uid : idVal;
+
+        const adminWA = (state.settings && state.settings.adminWA) ? state.settings.adminWA.replace(/\D/g, '') : "919876543210";
+        const msg = `🔒 *RABBIT WORLD — PIN RESET REQUEST*\n` +
+                    `-----------------------------------------\n` +
+                    `*Dealer / Firm:* ${firmName}\n` +
+                    `*Mobile No.:* ${phone}\n` +
+                    `*Dealer UID:* ${uid}\n` +
+                    `*Reason:* Forgot PIN / 5 Failed Attempts\n` +
+                    `-----------------------------------------\n` +
+                    `Hello Admin, please provide or reset my 6-digit login PIN for the Rabbit Bathware Dealer Portal.`;
+
+        window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
+        alert(`WhatsApp opened to contact Company Admin!\n\nAdmin will verify your firm (${firmName}) and send your 6-digit PIN on WhatsApp.`);
     }
+    window.handleForgotPin = handleForgotPin;
 
     function dealerLogout() {
         dealerMerchant = null;

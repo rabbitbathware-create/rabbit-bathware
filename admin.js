@@ -1897,6 +1897,16 @@ function renderMerchantsGrid() {
                 <h3>${m.name}</h3>
                 <p class="merchant-address-text"><i class="fa-solid fa-location-dot"></i> ${m.address}</p>
                 <p class="merchant-address-text" style="margin-top:0.2rem;"><i class="fa-brands fa-whatsapp"></i> +${m.phone} | PIN: <span style="font-weight:700;">${pinDisplay}</span></p>
+                ${(m.isLocked === true || (m.failedAttempts || 0) >= 5) ? `
+                <div style="margin-top:0.35rem; display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                    <span style="font-size:0.72rem; padding:0.15rem 0.5rem; border-radius:4px; background:#fee2e2; color:#dc2626; font-weight:800; border:1px solid #fca5a5;">
+                        <i class="fa-solid fa-lock"></i> LOCKED (${m.failedAttempts || 5} Failed PINs)
+                    </span>
+                    <button type="button" class="btn" onclick="event.stopPropagation(); window.unlockMerchantAccount('${m.id}')" style="font-size:0.72rem; padding:0.15rem 0.6rem; border-radius:4px; background:#16a34a; color:#fff; font-weight:700; border:none; cursor:pointer;" title="Click to unlock this dealer">
+                        <i class="fa-solid fa-lock-open"></i> Unlock
+                    </button>
+                </div>
+                ` : ''}
                 <div style="margin-top:0.35rem; display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap;">
                     <small style="font-size:0.7rem; color:#64748b; font-weight:600;">Grades:</small>
                     ${allowedGradesHtml} ${(m.allowOffers === true) ? `<button type="button" class="btn" onclick="event.stopPropagation(); window.togglePartyOfferDirect('${m.id}')" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:4px; background:#fef2f2; color:#dc2626; font-weight:700; border:1px solid #fecaca; cursor:pointer;" title="Toggle Offers for this party"><i class="fa-solid fa-fire"></i> Offers ON</button>` : `<button type="button" class="btn" onclick="event.stopPropagation(); window.togglePartyOfferDirect('${m.id}')" style="font-size:0.68rem; padding:0.15rem 0.45rem; border-radius:4px; background:#f1f5f9; color:#64748b; font-weight:600; border:1px solid #cbd5e1; cursor:pointer;" title="Toggle Offers for this party"><i class="fa-solid fa-ban"></i> Offers OFF</button>`}
@@ -1998,13 +2008,65 @@ function savePartyModalPin() {
         return;
     }
     m.pin = pin;
+    m.failedAttempts = 0;
+    m.isLocked = false;
+    m.lockedAt = null;
     if (document.getElementById("pdetail-pin")) document.getElementById("pdetail-pin").value = pin;
+    const lockBox = document.getElementById("pmodal-lock-status-box");
+    if (lockBox) lockBox.style.display = "none";
     saveState();
     if (typeof syncToCloud === 'function') syncToCloud();
     renderMerchantsGrid();
-    alert(`Security PIN successfully updated to "${pin}" for ${m.name}`);
+    alert(`Security PIN successfully updated to "${pin}" for ${m.name} (Account is UNLOCKED).`);
 }
 window.savePartyModalPin = savePartyModalPin;
+
+function unlockMerchantAccount(merchantId) {
+    const m = (state.merchants || []).find(x => x.id === merchantId || String(x.id) === String(merchantId));
+    if (!m) return;
+    m.failedAttempts = 0;
+    m.isLocked = false;
+    m.lockedAt = null;
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderMerchantsGrid();
+    const lockBox = document.getElementById("pmodal-lock-status-box");
+    if (lockBox) lockBox.style.display = "none";
+    alert(`🎉 Account for "${m.name}" has been successfully UNLOCKED!\nFailed PIN attempts have been reset to 0.`);
+}
+window.unlockMerchantAccount = unlockMerchantAccount;
+
+function unlockCurrentModalParty() {
+    if (editingMerchantId) {
+        unlockMerchantAccount(editingMerchantId);
+    }
+}
+window.unlockCurrentModalParty = unlockCurrentModalParty;
+
+function sendCurrentPartyPinWhatsApp() {
+    const m = (state.merchants || []).find(x => x.id === editingMerchantId || String(x.id) === String(editingMerchantId));
+    if (!m) return;
+    const phone = (m.phone || '').replace(/\D/g, '');
+    if (!phone) {
+        alert("No registered mobile number found for this party.");
+        return;
+    }
+    const pin = m.pin || "123456";
+    const dealerUrl = window.location.href.replace(/(admin|staff|index)\.html/i, `dealer.html`);
+    const msg = `*Rabbit World — Authorized Dealer Portal Access*\n` +
+                `-----------------------------------------\n` +
+                `Dear ${m.name},\n` +
+                `Your dealer portal account has been updated.\n\n` +
+                `🌐 *Portal Link:* ${dealerUrl}\n` +
+                `📱 *Registered Mobile:* ${m.phone}\n` +
+                `🆔 *Dealer UID:* ${m.uid || m.id}\n` +
+                `🔐 *6-Digit Security PIN:* *${pin}*\n` +
+                `-----------------------------------------\n` +
+                `Use your mobile number and this 6-digit PIN to login. Keep this PIN confidential.`;
+
+    window.open(`https://api.whatsapp.com/send?phone=91${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+}
+window.sendCurrentPartyPinWhatsApp = sendCurrentPartyPinWhatsApp;
 
 function saveMerchantPin() {
     savePartyModalPin();
@@ -5625,6 +5687,11 @@ function openPartyDetailsModal(merchantId, initialTab = 'profile') {
         try {
             const pmodalPinInput = document.getElementById("pmodal-edit-pin");
             if (pmodalPinInput) pmodalPinInput.value = m.pin || '123456';
+            const lockBox = document.getElementById("pmodal-lock-status-box");
+            if (lockBox) {
+                const isLocked = (m.isLocked === true || (m.failedAttempts || 0) >= 5);
+                lockBox.style.display = isLocked ? "block" : "none";
+            }
         } catch (pinErr) {
             console.error("Error updating pin modal input:", pinErr);
         }

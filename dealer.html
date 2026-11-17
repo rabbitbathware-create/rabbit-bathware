@@ -1497,33 +1497,34 @@
                 <div style="font-size:0.72rem; color:#16a34a;" id="banner-merch-phone"></div>
             </div>
 
-            <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
-                <button class="cat-btn active" id="btn-tab-pin" style="flex:1; padding:0.4rem; font-size:0.8rem;" onclick="switchAuthTab('pin')"><i class="fa-solid fa-key"></i> 6-Digit PIN</button>
-                <button class="cat-btn" id="btn-tab-otp" style="flex:1; padding:0.4rem; font-size:0.8rem;" onclick="switchAuthTab('otp')"><i class="fa-brands fa-whatsapp"></i> WhatsApp OTP</button>
-            </div>
-
+            <!-- PIN Login Form -->
             <div id="auth-panel-pin">
-                <div class="form-group" style="margin-bottom:1rem;">
-                    <label style="font-size:0.8rem; font-weight:700; color:#0e254f;">6-Digit Security PIN</label>
-                    <input type="password" id="dealer-pin-input" maxlength="6" placeholder="••••••" style="width:100%; padding:0.55rem; border:1px solid #cbd5e1; border-radius:4px; font-size:1.1rem; text-align:center; letter-spacing:4px;">
+                <div class="form-group" style="margin-bottom:0.75rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                        <label style="font-size:0.8rem; font-weight:700; color:#0e254f;">6-Digit Security PIN</label>
+                        <button type="button" onclick="handleForgotPin()" style="background:none; border:none; color:#2563eb; font-size:0.75rem; font-weight:700; cursor:pointer; padding:0; display:flex; align-items:center; gap:3px;">
+                            <i class="fa-solid fa-key"></i> Forgot PIN?
+                        </button>
+                    </div>
+                    <input type="password" id="dealer-pin-input" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter') dealerLoginViaPIN()" style="width:100%; padding:0.6rem; border:1.5px solid #cbd5e1; border-radius:6px; font-size:1.3rem; text-align:center; letter-spacing:6px; font-weight:800; color:#0e254f; box-sizing:border-box;">
+                    <div id="dealer-pin-error-msg" style="display:none; font-size:0.75rem; color:#dc2626; font-weight:700; margin-top:0.35rem; line-height:1.3;"></div>
                 </div>
-                <button class="btn btn-primary" style="width:100%; font-weight:700; padding:0.65rem;" onclick="dealerLoginViaPIN()">
+                <button class="btn btn-primary" id="btn-dealer-login" style="width:100%; font-weight:700; padding:0.7rem; font-size:0.95rem; border-radius:6px;" onclick="dealerLoginViaPIN()">
                     <i class="fa-solid fa-right-to-bracket"></i> Login to Portal
                 </button>
-            </div>
 
-            <div id="auth-panel-otp" style="display:none;">
-                <p style="font-size:0.75rem; color:#64748b; margin-bottom:0.75rem;">Click below to request OTP on WhatsApp.</p>
-                <button class="btn btn-secondary" style="width:100%; margin-bottom:1rem; padding:0.55rem; font-size:0.85rem;" onclick="requestDealerOTP()">
-                    <i class="fa-brands fa-whatsapp"></i> Request OTP via WhatsApp
-                </button>
-                <div class="form-group" style="margin-bottom:1rem;">
-                    <label style="font-size:0.8rem; font-weight:700; color:#0e254f;">Enter 6-Digit OTP</label>
-                    <input type="text" id="dealer-otp-input" maxlength="6" placeholder="123456" style="width:100%; padding:0.55rem; border:1px solid #cbd5e1; border-radius:4px; font-size:1rem; text-align:center; letter-spacing:3px;">
+                <!-- LOCKED ACCOUNT HELP BOX (Shown when 5 failed attempts reached) -->
+                <div id="dealer-locked-box" style="display:none; margin-top:1rem; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:0.85rem; text-align:center;">
+                    <div style="color:#dc2626; font-weight:800; font-size:0.88rem; margin-bottom:0.35rem;">
+                        <i class="fa-solid fa-shield-halved"></i> Account Locked / એકાઉન્ટ લૉક થયેલ છે
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748b; margin-bottom:0.75rem; line-height:1.4;">
+                        ૫ વખત ખોટો PIN નાખવાથી સુરક્ષા માટે એકાઉન્ટ લૉક થયું છે. PIN મેળવવા કે અનલૉક કરવા નીચે બટન દબાવી કંપની એડમિનનો વ્હોટ્સએપ પર સંપર્ક કરો.
+                    </div>
+                    <button type="button" class="btn" onclick="handleForgotPin()" style="width:100%; background:#25d366; color:#fff; font-weight:700; font-size:0.85rem; padding:0.6rem; border:none; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <i class="fa-brands fa-whatsapp" style="font-size:1.15rem;"></i> Request PIN Reset on WhatsApp
+                    </button>
                 </div>
-                <button class="btn btn-primary" style="width:100%; font-weight:700; padding:0.65rem;" onclick="dealerLoginViaOTP()">
-                    <i class="fa-solid fa-right-to-bracket"></i> Verify & Login
-                </button>
             </div>
         </div>
     </div>
@@ -1922,7 +1923,7 @@
 
     <!-- SCRIPTS -->
     <script src="core.js?v=4.9.1"></script>
-    <script src="dealer.js?v=4.9.0"></script>
+    <script src="dealer.js?v=4.9.2"></script>
 
     <!-- PWA Registration -->
     <script>
