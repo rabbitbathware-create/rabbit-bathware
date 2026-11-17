@@ -1534,6 +1534,113 @@ function escapeHtml(str) {
 }
 window.escapeHtml = escapeHtml;
 
+// Auto-convert Dimensions between Millimeters (mm) and Inches (in)
+function convertDimensionsMmToInches(mmStr) {
+    if (!mmStr || typeof mmStr !== 'string') return '';
+    const trimmed = mmStr.trim();
+    if (!trimmed) return '';
+    const matches = trimmed.match(/\d+(?:\.\d+)?/g);
+    if (!matches || matches.length === 0) return '';
+    const converted = matches.map(n => {
+        const val = parseFloat(n);
+        if (isNaN(val) || val <= 0) return null;
+        const inVal = val / 25.4;
+        return (Math.round(inVal * 10) / 10).toFixed(1) + '"';
+    }).filter(Boolean);
+    if (converted.length === 0) return '';
+    return converted.join(' x ');
+}
+window.convertDimensionsMmToInches = convertDimensionsMmToInches;
+
+function convertDimensionsInchesToMm(inchStr) {
+    if (!inchStr || typeof inchStr !== 'string') return '';
+    const trimmed = inchStr.trim();
+    if (!trimmed) return '';
+    const matches = trimmed.match(/\d+(?:\.\d+)?/g);
+    if (!matches || matches.length === 0) return '';
+    const converted = matches.map(n => {
+        const val = parseFloat(n);
+        if (isNaN(val) || val <= 0) return null;
+        return Math.round(val * 25.4);
+    }).filter(v => v !== null && v > 0);
+    if (converted.length === 0) return '';
+    return converted.join(' x ') + ' mm';
+}
+window.convertDimensionsInchesToMm = convertDimensionsInchesToMm;
+
+function setupDimensionAutoConverter() {
+    const mmInput = document.getElementById("stock-spec-dimensionsMm");
+    const inInput = document.getElementById("stock-spec-dimensionsInches");
+    if (!mmInput || !inInput) return;
+
+    if (mmInput._hasDimListener) return;
+    mmInput._hasDimListener = true;
+    inInput._hasDimListener = true;
+
+    let isConverting = false;
+
+    // Typing in Millimeters -> Auto-update Inches in real time
+    mmInput.addEventListener("input", () => {
+        if (isConverting) return;
+        if (document.activeElement !== mmInput) return;
+        const val = mmInput.value;
+        if (!val.trim()) {
+            inInput.value = "";
+            return;
+        }
+        const converted = convertDimensionsMmToInches(val);
+        if (converted) {
+            isConverting = true;
+            inInput.value = converted;
+            isConverting = false;
+        }
+    });
+
+    mmInput.addEventListener("blur", () => {
+        const val = mmInput.value.trim();
+        if (!val) return;
+        const matches = val.match(/\d+(?:\.\d+)?/g);
+        if (matches && matches.length > 0 && !val.toLowerCase().includes("mm")) {
+            mmInput.value = matches.join(" x ") + " mm";
+        }
+        const converted = convertDimensionsMmToInches(mmInput.value);
+        if (converted) {
+            inInput.value = converted;
+        }
+    });
+
+    // Typing in Inches -> Auto-update Millimeters in real time
+    inInput.addEventListener("input", () => {
+        if (isConverting) return;
+        if (document.activeElement !== inInput) return;
+        const val = inInput.value;
+        if (!val.trim()) {
+            mmInput.value = "";
+            return;
+        }
+        const converted = convertDimensionsInchesToMm(val);
+        if (converted) {
+            isConverting = true;
+            mmInput.value = converted;
+            isConverting = false;
+        }
+    });
+
+    inInput.addEventListener("blur", () => {
+        const val = inInput.value.trim();
+        if (!val) return;
+        const matches = val.match(/\d+(?:\.\d+)?/g);
+        if (matches && matches.length > 0 && !val.includes('"')) {
+            inInput.value = matches.map(n => parseFloat(n).toFixed(1) + '"').join(" x ");
+        }
+        const converted = convertDimensionsInchesToMm(inInput.value);
+        if (converted) {
+            mmInput.value = converted;
+        }
+    });
+}
+window.setupDimensionAutoConverter = setupDimensionAutoConverter;
+
 function renderStockSpecFields(templateId, values = {}) {
     const container = document.getElementById("stock-specs-dynamic-fields");
     if (!container) return;
@@ -1551,18 +1658,36 @@ function renderStockSpecFields(templateId, values = {}) {
         html += `<div class="form-row-two" style="margin-bottom:0.5rem;">`;
         if (f1) {
             const v1 = values[f1.key] !== undefined ? values[f1.key] : "";
+            let hint1 = "";
+            if (f1.key === 'dimensionsMm') {
+                hint1 = `<span style="font-size:0.68rem; color:#38bdf8; font-weight:600;"><i class="fa-solid fa-arrows-rotate"></i> Auto-converts to Inches</span>`;
+            } else if (f1.key === 'dimensionsInches') {
+                hint1 = `<span style="font-size:0.68rem; color:#38bdf8; font-weight:600;"><i class="fa-solid fa-arrows-rotate"></i> Auto-converts to mm</span>`;
+            }
             html += `
                 <div class="form-group">
-                    <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">${f1.label}</label>
+                    <label style="font-weight:600; font-size:0.75rem; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">
+                        <span>${f1.label}</span>
+                        ${hint1}
+                    </label>
                     <input type="text" data-spec-key="${f1.key}" id="stock-spec-${f1.key}" value="${escapeHtml(String(v1))}" placeholder="${escapeHtml(f1.placeholder)}" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px; width:100%; box-sizing:border-box;">
                 </div>
             `;
         }
         if (f2) {
             const v2 = values[f2.key] !== undefined ? values[f2.key] : "";
+            let hint2 = "";
+            if (f2.key === 'dimensionsMm') {
+                hint2 = `<span style="font-size:0.68rem; color:#38bdf8; font-weight:600;"><i class="fa-solid fa-arrows-rotate"></i> Auto-converts to Inches</span>`;
+            } else if (f2.key === 'dimensionsInches') {
+                hint2 = `<span style="font-size:0.68rem; color:#38bdf8; font-weight:600;"><i class="fa-solid fa-arrows-rotate"></i> Auto-converts to mm</span>`;
+            }
             html += `
                 <div class="form-group">
-                    <label style="font-weight:600; font-size:0.75rem; color:#94a3b8;">${f2.label}</label>
+                    <label style="font-weight:600; font-size:0.75rem; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">
+                        <span>${f2.label}</span>
+                        ${hint2}
+                    </label>
                     <input type="text" data-spec-key="${f2.key}" id="stock-spec-${f2.key}" value="${escapeHtml(String(v2))}" placeholder="${escapeHtml(f2.placeholder)}" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:0.4rem; border-radius:4px; width:100%; box-sizing:border-box;">
                 </div>
             `;
@@ -1570,6 +1695,7 @@ function renderStockSpecFields(templateId, values = {}) {
         html += `</div>`;
     }
     container.innerHTML = html;
+    setupDimensionAutoConverter();
 }
 window.renderStockSpecFields = renderStockSpecFields;
 

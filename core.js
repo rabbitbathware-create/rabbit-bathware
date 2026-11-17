@@ -2595,7 +2595,8 @@ const SPECS_TEMPLATES = {
         id: 'general',
         label: 'General & Other Products',
         fields: [
-            { key: 'dimensionsMm', label: 'Dimensions (Millimeters)', placeholder: 'e.g. Standard Dimensions', default: 'Standard Dimensions' },
+            { key: 'dimensionsMm', label: 'Dimensions (Millimeters)', placeholder: 'e.g. 600 x 400 mm', default: '600 x 400 mm' },
+            { key: 'dimensionsInches', label: 'Dimensions (Inches)', placeholder: 'e.g. 23.6" x 15.7"', default: '23.6" x 15.7"' },
             { key: 'materialGrade', label: 'Material & Construction', placeholder: 'e.g. Premium High-Density Material', default: 'Premium High-Density Material' },
             { key: 'installation', label: 'Installation / Usage', placeholder: 'e.g. Standard Surface Mount', default: 'Standard Surface Mount' },
             { key: 'colorFinish', label: 'Color & Finish', placeholder: 'e.g. Standard Finish', default: 'Standard Finish' },
