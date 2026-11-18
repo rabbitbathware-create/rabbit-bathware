@@ -2035,17 +2035,12 @@
                             <span><i class="fa-solid fa-fire"></i> Allow Special Offers Access (Party Offer Access)</span>
                         </label>
                     </div>
-                    <div class="form-group" style="margin-bottom:0.5rem;">
-                        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.85rem; color:#16a34a;">
-                            <input type="checkbox" id="pdetail-hide-amount" style="width:16px; height:16px; accent-color:#16a34a; cursor:pointer;">
-                            Bill Amount = Base Price (No Cash Split)
+                    <div class="form-group" style="margin-bottom:0.5rem; display:flex; align-items:center; gap:0.6rem;">
+                        <label for="pdetail-bill-pct" style="font-weight:600; font-size:0.85rem; color:#0e254f; white-space:nowrap;">
+                            <i class="fa-solid fa-percent" style="color:#2563eb;"></i> Default Bill Percentage (%):
                         </label>
-                    </div>
-                    <div class="form-group">
-                        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.85rem; color:#2563eb;">
-                            <input type="checkbox" id="pdetail-hide-totals" style="width:16px; height:16px; accent-color:#2563eb; cursor:pointer;">
-                            Hide Order Totals on Dealer Portal (Show Only Items &amp; Rates)
-                        </label>
+                        <input type="number" id="pdetail-bill-pct" min="0" max="100" step="1" placeholder="50" style="width:80px; padding:0.3rem 0.5rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; height:30px; font-weight:600;">
+                        <span style="font-size:0.78rem; color:#64748b;">(Auto-calculates bill rates for this party)</span>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #cbd5e1; padding-top:0.75rem; margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center;">
@@ -2070,12 +2065,14 @@
                             <button type="button" class="btn btn-primary" onclick="applyGlobalAdjustment()" style="padding:0.2rem 0.65rem; font-size:0.78rem; height:28px;">Apply</button>
                         </div>
                     </div>
-                    <label style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.78rem; font-weight:600; cursor:pointer; color:#16a34a;">
-                        <input type="checkbox" id="rate-hide-amount" style="width:15px; height:15px; accent-color:#16a34a; cursor:pointer;" onchange="applyHideAmount()"> Full Bill (No Cash Split)
-                    </label>
-                    <label style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.78rem; font-weight:600; cursor:pointer; color:#2563eb;">
-                        <input type="checkbox" id="rate-hide-totals" style="width:15px; height:15px; accent-color:#2563eb; cursor:pointer;" onchange="applyHideTotals()"> Hide Totals
-                    </label>
+                    <div style="display:flex; align-items:center; gap:0.35rem; background:#eff6ff; padding:2px 8px; border-radius:5px; border:1px solid #bfdbfe;">
+                        <label for="rate-bill-pct" style="font-size:0.78rem; font-weight:700; white-space:nowrap; color:#1d4ed8;" title="Auto-calculate Bill Rate based on percentage of Price"><i class="fa-solid fa-percent"></i> Bill Rate (%):</label>
+                        <div style="display:flex; gap:0.25rem; align-items:center;">
+                            <input type="number" id="rate-bill-pct" min="0" max="100" step="1" placeholder="50" style="width:65px; padding:0.25rem 0.45rem; font-size:0.82rem; font-weight:700; border:1px solid #93c5fd; border-radius:4px; height:28px; color:#1e40af; text-align:center;">
+                            <button type="button" class="btn btn-primary" onclick="applyBillPercentageToAll()" style="padding:0.2rem 0.65rem; font-size:0.78rem; height:28px; background:#2563eb; font-weight:600;" title="Auto-calculate Bill Rates for all products at this %"><i class="fa-solid fa-wand-magic-sparkles"></i> Apply %</button>
+                            <button type="button" class="btn btn-outline-success" onclick="applyQuickBillPct(100)" style="padding:0.2rem 0.6rem; font-size:0.78rem; height:28px; font-weight:700; border:1px solid #16a34a; color:#16a34a; background:#fff; border-radius:4px; cursor:pointer;" title="Set Bill Rate = 100% of Price for all products"><i class="fa-solid fa-check-double"></i> 100% Full Bill</button>
+                        </div>
+                    </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:0.4rem;">
                     <div style="position:relative; width:220px;">
@@ -2223,17 +2220,12 @@
                     If unchecked, this party will not see special offers or discounted products on the portal.
                 </small>
             </div>
-            <div class="form-group" style="margin-bottom:0.5rem;">
-                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:#16a34a;">
-                    <input type="checkbox" id="merchant-hide-amount" style="width:18px; height:18px; accent-color:#16a34a; cursor:pointer;" onchange="onFullBillChange(true)">
-                    Bill Amount = Base Price (No Cash)
+            <div class="form-group" style="margin-bottom:1rem; display:flex; align-items:center; gap:0.6rem;">
+                <label for="merchant-bill-pct" style="font-weight:600; font-size:0.9rem; color:#0e254f; white-space:nowrap;">
+                    <i class="fa-solid fa-percent" style="color:#2563eb;"></i> Bill Percentage (%):
                 </label>
-            </div>
-            <div class="form-group" style="margin-bottom:1rem;">
-                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; font-size:0.9rem; color:#2563eb;">
-                    <input type="checkbox" id="merchant-hide-totals" style="width:18px; height:18px; accent-color:#2563eb; cursor:pointer;">
-                    Hide Order Totals (Show Only Items & Rates)
-                </label>
+                <input type="number" id="merchant-bill-pct" min="0" max="100" step="1" value="50" placeholder="50" style="width:80px; padding:0.35rem 0.5rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; height:32px; font-weight:600;">
+                <span style="font-size:0.75rem; color:#64748b;">(Default: 50%)</span>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('add-merchant-modal')">Cancel</button>

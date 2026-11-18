@@ -1090,8 +1090,11 @@ function getMerchantPricing(merchant, product, unit = 'pcs') {
             resBoxBillRate = Math.round(baseBoxBillRate * factor);
         }
 
-        // Full Bill (No Cash Split): Bill rate is 100% of price
-        if (merchant.hideAmount || merchant.fullBill || merchant.isFullBill) {
+        // Bill Percentage / Full Bill: calculate bill rate
+        if (merchant.billPercentage !== undefined && merchant.billPercentage !== null && merchant.billPercentage > 0 && (!merchant.specialRates || !merchant.specialRates[product.id] || merchant.specialRates[product.id].billRate === undefined)) {
+            resBillRate = Math.round(resPrice * (merchant.billPercentage / 100));
+            resBoxBillRate = Math.round(resBoxPrice * (merchant.billPercentage / 100));
+        } else if (merchant.hideAmount || merchant.fullBill || merchant.isFullBill) {
             resBillRate = resPrice;
             resBoxBillRate = resBoxPrice;
         }

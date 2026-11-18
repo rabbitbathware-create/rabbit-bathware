@@ -2111,8 +2111,7 @@ function handleNewMerchant(e) {
         globalDiscount: parseFloat(document.getElementById("merchant-discount").value) || 0,
         specialRates: {},
         allowOffers: document.getElementById("merchant-allow-offers") ? document.getElementById("merchant-allow-offers").checked : false,
-        hideAmount: document.getElementById("merchant-hide-amount").checked,
-        hideTotals: document.getElementById("merchant-hide-totals") ? document.getElementById("merchant-hide-totals").checked : false
+        billPercentage: parseFloat(document.getElementById("merchant-bill-pct")?.value) || 50
     });
     saveState();
     closeModal("add-merchant-modal");
@@ -2191,11 +2190,8 @@ function populateRateConfigTable(merchant) {
     const globalAdjEl = document.getElementById("rate-global-adj");
     if (globalAdjEl) globalAdjEl.value = (merchant.globalDiscount !== undefined && merchant.globalDiscount !== null) ? merchant.globalDiscount : 0;
 
-    const hideAmtEl = document.getElementById("rate-hide-amount");
-    if (hideAmtEl) hideAmtEl.checked = !!merchant.hideAmount;
-
-    const hideTotEl = document.getElementById("rate-hide-totals");
-    if (hideTotEl) hideTotEl.checked = !!merchant.hideTotals;
+    const billPctEl = document.getElementById("rate-bill-pct");
+    if (billPctEl) billPctEl.value = (merchant.billPercentage !== undefined && merchant.billPercentage !== null) ? merchant.billPercentage : 50;
 
     const perfBanner = document.getElementById("rate-modal-perf-banner");
     if (perfBanner) {
@@ -2345,29 +2341,75 @@ function applyGlobalAdjustment() {
     }
 }
 
-function onFullBillChange(isAddModal) {
-    if (!isAddModal) {
-        applyHideAmount();
-    }
-}
-
-function applyHideAmount() {
+function applyBillPercentageToAll(explicitPct) {
     const m = (state.merchants || []).find(x => x.id === editingMerchantId);
-    if (m) {
-        m.hideAmount = document.getElementById("rate-hide-amount").checked;
-        saveState();
-        if (typeof syncToCloud === 'function') syncToCloud();
-    }
-}
+    const billPctInput = document.getElementById("rate-bill-pct");
+    let pct = (explicitPct !== undefined && explicitPct !== null) 
+        ? parseFloat(explicitPct) 
+        : (billPctInput ? parseFloat(billPctInput.value) : 50);
 
-function applyHideTotals() {
-    const m = (state.merchants || []).find(x => x.id === editingMerchantId);
-    if (m) {
-        m.hideTotals = document.getElementById("rate-hide-totals") ? document.getElementById("rate-hide-totals").checked : false;
-        saveState();
-        if (typeof syncToCloud === 'function') syncToCloud();
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+        alert("Please enter a valid percentage between 0% and 100% (e.g. 50, 60, or 100).");
+        return;
+    }
+    if (billPctInput) billPctInput.value = pct;
+    if (m) m.billPercentage = pct;
+
+    let updatedCount = 0;
+    document.querySelectorAll(".cbr-rate").forEach(cbrInput => {
+        const prodId = cbrInput.getAttribute("data-id");
+        const p = (state.products || []).find(x => x.id === prodId);
+        if (!p) return;
+
+        const cpInput = document.querySelector(`.cp-rate[data-id="${prodId}"]`);
+        let effectivePrice = (cpInput && !isNaN(parseFloat(cpInput.value)) && parseFloat(cpInput.value) > 0)
+            ? parseFloat(cpInput.value)
+            : (p.price || 0);
+
+        const calculatedBillRate = Math.round(effectivePrice * (pct / 100));
+        cbrInput.value = calculatedBillRate;
+
+        cbrInput.style.borderColor = "#16a34a";
+        cbrInput.style.backgroundColor = "#f0fdf4";
+        setTimeout(() => {
+            cbrInput.style.borderColor = "#cbd5e1";
+            cbrInput.style.backgroundColor = "#ffffff";
+        }, 800);
+
+        updatedCount++;
+    });
+
+    document.querySelectorAll(".cbr-box-rate").forEach(cbrBoxInput => {
+        const prodId = cbrBoxInput.getAttribute("data-id");
+        const p = (state.products || []).find(x => x.id === prodId);
+        if (!p) return;
+
+        const cpBoxInput = document.querySelector(`.cp-box-rate[data-id="${prodId}"]`);
+        let effectiveBoxPrice = (cpBoxInput && !isNaN(parseFloat(cpBoxInput.value)) && parseFloat(cpBoxInput.value) > 0)
+            ? parseFloat(cpBoxInput.value)
+            : (p.boxPrice !== undefined ? p.boxPrice : (p.price || 0));
+
+        const calculatedBoxBillRate = Math.round(effectiveBoxPrice * (pct / 100));
+        cbrBoxInput.value = calculatedBoxBillRate;
+
+        cbrBoxInput.style.borderColor = "#16a34a";
+        cbrBoxInput.style.backgroundColor = "#f0fdf4";
+        setTimeout(() => {
+            cbrBoxInput.style.borderColor = "#93c5fd";
+            cbrBoxInput.style.backgroundColor = "#ffffff";
+        }, 800);
+    });
+
+    if (typeof showToast === 'function') {
+        showToast('Calculated ' + pct + '% Bill Rate across all ' + updatedCount + ' products! You can still adjust individual rates manually before saving.', 'success');
     }
 }
+window.applyBillPercentageToAll = applyBillPercentageToAll;
+
+function applyQuickBillPct(pct) {
+    applyBillPercentageToAll(pct);
+}
+window.applyQuickBillPct = applyQuickBillPct;
 
 function resetProductOverride(merchantId, prodId) {
     const m = (state.merchants || []).find(x => x.id === merchantId);
@@ -2387,11 +2429,9 @@ function saveMerchantRates() {
     if (!m) return;
 
     m.globalDiscount = parseFloat(document.getElementById("rate-global-adj").value) || 0;
-    if (document.getElementById("rate-hide-amount")) {
-        m.hideAmount = document.getElementById("rate-hide-amount").checked;
-    }
-    if (document.getElementById("rate-hide-totals")) {
-        m.hideTotals = document.getElementById("rate-hide-totals").checked;
+    const billPctEl = document.getElementById("rate-bill-pct");
+    if (billPctEl) {
+        m.billPercentage = parseFloat(billPctEl.value) || 50;
     }
 
     const specialRates = {};
@@ -2448,9 +2488,8 @@ window.openRateConfigModal = openRateConfigModal;
 window.filterRateModalProducts = filterRateModalProducts;
 window.clearRateModalSearch = clearRateModalSearch;
 window.applyGlobalAdjustment = applyGlobalAdjustment;
-window.onFullBillChange = onFullBillChange;
-window.applyHideAmount = applyHideAmount;
-window.applyHideTotals = applyHideTotals;
+window.applyBillPercentageToAll = applyBillPercentageToAll;
+window.applyQuickBillPct = applyQuickBillPct;
 window.resetProductOverride = resetProductOverride;
 window.saveMerchantRates = saveMerchantRates;
 window.openSetPinModal = openSetPinModal;
@@ -5247,8 +5286,7 @@ function approveDealerRequest(reqId) {
         pin: "123456",
         globalDiscount: 0,
         specialRates: {},
-        hideAmount: false,
-        hideTotals: true
+        billPercentage: 50
     };
 
     if (!state.merchants) state.merchants = [];
@@ -5635,8 +5673,7 @@ function openPartyDetailsModal(merchantId, initialTab = 'profile') {
                 pCycleInput.value = (m.orderCycleDays !== undefined && m.orderCycleDays !== null) ? String(m.orderCycleDays) : '15';
             }
             if (document.getElementById("pdetail-allow-offers")) document.getElementById("pdetail-allow-offers").checked = (m.allowOffers === true);
-            if (document.getElementById("pdetail-hide-amount")) document.getElementById("pdetail-hide-amount").checked = !!m.hideAmount;
-            if (document.getElementById("pdetail-hide-totals")) document.getElementById("pdetail-hide-totals").checked = !!m.hideTotals;
+            if (document.getElementById("pdetail-bill-pct")) document.getElementById("pdetail-bill-pct").value = (m.billPercentage !== undefined && m.billPercentage !== null) ? m.billPercentage : 50;
 
             // Allowed quality grades checkboxes
             const allowed = m.allowedGrades || ['Premium', 'ROK'];
@@ -5755,8 +5792,9 @@ function savePartyDetails(e) {
         if (isNaN(m.orderCycleDays)) m.orderCycleDays = 15;
     }
     m.allowOffers = document.getElementById("pdetail-allow-offers") ? document.getElementById("pdetail-allow-offers").checked : false;
-    m.hideAmount = document.getElementById("pdetail-hide-amount").checked;
-    m.hideTotals = document.getElementById("pdetail-hide-totals").checked;
+    if (document.getElementById("pdetail-bill-pct")) {
+        m.billPercentage = parseFloat(document.getElementById("pdetail-bill-pct").value) || 50;
+    }
 
     const allowedGrades = ['Premium'];
     if (document.getElementById("pdetail-grade-rok") && document.getElementById("pdetail-grade-rok").checked) allowedGrades.push('ROK');

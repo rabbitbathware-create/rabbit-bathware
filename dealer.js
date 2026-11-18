@@ -1141,7 +1141,7 @@
             if (o.status === 'Completed' || o.status === 'Delivered' || o.status === 'Dispatched') statusClass = 'badge-success';
             else if (o.status === 'Cancelled') statusClass = 'badge-danger';
             
-            const isHideTotals = !!dealerMerchant.hideTotals;
+            const isHideTotals = true;
             const grandTotal = o.totalBill || 0;
 
             const card = document.createElement('div');
@@ -1797,12 +1797,11 @@
         container.innerHTML = '';
 
         // If party has NOT logged in (!dealerMerchant), NEVER show internal billing/cash breakdown!
-        // If logged in, respect the dealer's hideTotals preference.
-        const isHideTotals = !dealerMerchant || !!dealerMerchant.hideTotals;
+        const isHideTotals = true; // PERMANENT HARDCODED: Zero cash or tax breakdown in dealer portal
 
         const breakdownEl = document.getElementById('dealer-cart-breakdown');
         if (breakdownEl) {
-            breakdownEl.style.display = isHideTotals ? 'none' : 'block';
+            breakdownEl.style.display = 'none';
         }
         
         const payWrapper = document.getElementById('dealer-cart-total-payment-wrapper');
@@ -2006,20 +2005,22 @@
         const totalBill = totalCheque + gst;
         const totalPayment = totalBill + totalCash;
 
-        document.getElementById('dealer-sum-basic').textContent = `₹${totalCheque.toLocaleString('en-IN')}`;
-        document.getElementById('dealer-sum-gst').textContent = `₹${gst.toLocaleString('en-IN')}`;
-        document.getElementById('dealer-sum-bill').textContent = `₹${totalBill.toLocaleString('en-IN')}`;
-        document.getElementById('dealer-sum-cash').textContent = `₹${totalCash.toLocaleString('en-IN')}`;
-        document.getElementById('dealer-sum-payment').textContent = `₹${(isHideTotals ? grandTotal : totalPayment).toLocaleString('en-IN')}`;
+        const bBasic = document.getElementById('dealer-sum-basic');
+        if (bBasic) bBasic.textContent = `₹${totalCheque.toLocaleString('en-IN')}`;
+        const bGst = document.getElementById('dealer-sum-gst');
+        if (bGst) bGst.textContent = `₹${gst.toLocaleString('en-IN')}`;
+        const bBill = document.getElementById('dealer-sum-bill');
+        if (bBill) bBill.textContent = `₹${totalBill.toLocaleString('en-IN')}`;
+        const bCash = document.getElementById('dealer-sum-cash');
+        if (bCash) bCash.textContent = `₹0`;
+        const bPay = document.getElementById('dealer-sum-payment');
+        if (bPay) bPay.textContent = `₹${grandTotal.toLocaleString('en-IN')}`;
         
         const totalLabel = document.getElementById('dealer-cart-total-label');
-        if (totalLabel) {
-            totalLabel.textContent = (!dealerMerchant || isHideTotals) ? 'Total Amount:' : 'Total Payment:';
-        }
+        if (totalLabel) totalLabel.textContent = 'Total Amount:';
         const cashRow = document.getElementById('dealer-cart-cash-row');
-        if (cashRow) {
-            cashRow.style.display = (!dealerMerchant || isHideTotals || totalCash <= 0) ? 'none' : 'flex';
-        }
+        if (cashRow) cashRow.style.display = 'none';
+        if (breakdownEl) breakdownEl.style.display = 'none';
         
         const weightEl = document.getElementById('dealer-cart-total-weight');
         if (weightEl) weightEl.textContent = totalWeight.toFixed(2);
@@ -2043,7 +2044,7 @@
 
         const remark = document.getElementById('dealer-remark').value;
         const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const isHideTotals = !!(dealerMerchant && dealerMerchant.hideTotals);
+        const isHideTotals = true; // PERMANENT: Never expose cash breakdown or bill rates in dealer portal
 
         let orderItems = [];
         let totalCheque = 0;
@@ -2165,67 +2166,34 @@
                 const qtyText = item.unit === 'box' ? `<b>${item.orderQty} Box</b><br><small style="color:#1d4ed8;">(${item.qty} pcs)</small>` : `${item.qty}`;
                 const rateText = item.unit === 'box' ? `₹${item.price.toLocaleString('en-IN')}<br><small style="color:#64748b;">/pc in box</small>` : `₹${item.price.toLocaleString('en-IN')}`;
                 const specText = `<small style="color:#64748b;">${item.grade || 'Premium'}${item.material ? ' • ' + item.material : ''} | ${item.colour}</small>`;
-                if (isHideTotals) {
-                    return `
-                        <tr style="border-bottom:1px dashed #e2e8f0;">
-                            <td style="padding:0.3rem 0;"><b>${item.model}</b><br>${specText}</td>
-                            <td>${qtyText}</td>
-                            <td style="text-align:right;">${rateText}</td>
-                        </tr>
-                    `;
-                }
                 return `
                     <tr style="border-bottom:1px dashed #e2e8f0;">
                         <td style="padding:0.3rem 0;"><b>${item.model}</b><br>${specText}</td>
                         <td>${qtyText}</td>
-                        <td>${rateText}</td>
-                        ${(totalCash > 0) ? `<td style="color:#16a34a; font-size:0.85rem;">₹${(item.billRate || 0).toLocaleString('en-IN')}</td>` : ''}
-                        <td style="text-align:right;">₹${(item.qty * item.price).toLocaleString('en-IN')}</td>
+                        <td style="text-align:right;">${rateText}</td>
                     </tr>
                 `;
             }).join('');
 
-            const colSpan = isHideTotals ? '3' : (totalCash > 0 ? '4' : '3');
             tableHtml += `
                 <tr style="background:#f1f5f9; border-top:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">
-                    <td colspan="${isHideTotals ? '3' : colSpan}" style="padding:0.4rem; font-weight:700; font-size:0.8rem; color:#0e254f;">${cat}</td>
-                    ${!isHideTotals ? `<td style="padding:0.4rem; font-weight:700; font-size:0.8rem; color:#0e254f; text-align:right;">₹${catTotal.toLocaleString('en-IN')}</td>` : ''}
+                    <td colspan="3" style="padding:0.4rem; font-weight:700; font-size:0.8rem; color:#0e254f;">${cat}</td>
                 </tr>
                 ${itemsHtml}
             `;
         });
 
-        let receiptSummaryHtml = '';
-        if (isHideTotals) {
-            receiptSummaryHtml = `
-                <div style="border-top:1px solid #0e254f; padding-top:0.5rem; font-size:0.85rem;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Total Items:</span><b>${totalItems} pcs</b></div>
-                    ${totalWeight > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Total Order Weight:</span><b>${totalWeight.toFixed(2)} kg</b></div>` : ''}
+        const receiptSummaryHtml = `
+            <div style="border-top:1px solid #0e254f; padding-top:0.5rem; font-size:0.85rem;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Total Items:</span><b>${totalItems} pcs</b></div>
+                ${totalWeight > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Total Order Weight:</span><b>${totalWeight.toFixed(2)} kg</b></div>` : ''}
+                <div style="display:flex; justify-content:space-between; font-size:1rem; font-weight:800; color:#0e254f; border-top:1px dashed #cbd5e1; margin-top:0.3rem; padding-top:0.3rem;">
+                    <span>Total Amount:</span><b>₹${grandTotal.toLocaleString('en-IN')}</b>
                 </div>
-            `;
-        } else {
-            receiptSummaryHtml = `
-                <div style="border-top:1px solid #0e254f; padding-top:0.5rem; font-size:0.85rem;">
-                    <div style="display:flex; justify-content:space-between;"><span>Bill Basic:</span><b>₹${totalCheque.toLocaleString('en-IN')}</b></div>
-                    <div style="display:flex; justify-content:space-between;"><span>GST (${gstRate}%):</span><b>₹${gst.toLocaleString('en-IN')}</b></div>
-                    <div style="display:flex; justify-content:space-between; font-weight:700;"><span>Total Bill Amount:</span><b>₹${(totalCheque + gst).toLocaleString('en-IN')}</b></div>
-                    <div style="display:flex; justify-content:space-between; color:#64748b;"><span>Freight:</span><b>Added later</b></div>
-                    ${totalCash > 0 ? `<div style="display:flex; justify-content:space-between; font-weight:700;">
-                        <span>Total Cash Amount:</span><span>₹${totalCash.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:1rem; font-weight:700; border-top:1px dashed #cbd5e1; margin-top:0.3rem; padding-top:0.3rem;">
-                        <span>Total Payment:</span><span>₹${(totalCheque + gst + totalCash).toLocaleString('en-IN')}</span>
-                    </div>` : `
-                    <div style="display:flex; justify-content:space-between; font-size:1rem; font-weight:700; border-top:1px dashed #cbd5e1; margin-top:0.3rem; padding-top:0.3rem;">
-                        <span>Total Payment:</span><span>₹${(totalCheque + gst).toLocaleString('en-IN')}</span>
-                    </div>`}
-                </div>
-            `;
-        }
+            </div>
+        `;
 
-        const tableHeaderCols = isHideTotals ? 
-            '<th>Item</th><th>Qty</th><th style="text-align:right;">Rate</th>' : 
-            `<th>Item</th><th>Qty</th><th>Rate</th>${(totalCash > 0) ? '<th>Bill Rate</th>' : ''}<th style="text-align:right;">Amt</th>`;
+        const tableHeaderCols = '<th>Item</th><th>Qty</th><th style="text-align:right;">Rate</th>';
 
         receiptBody.innerHTML = `
             <div style="border-bottom:1px solid #cbd5e1; padding-bottom:0.5rem; margin-bottom:0.75rem;">
@@ -2268,20 +2236,9 @@
             }
         });
         msg += `-----------------------------\n`;
-        if (isHideTotals) {
-            msg += `*Total Items:* ${totalItems} pcs\n`;
-            if (totalWeight > 0) msg += `*Total Weight:* ${totalWeight.toFixed(2)} kg\n`;
-        } else {
-            msg += `*Bill Basic:* ₹${totalCheque.toLocaleString('en-IN')}\n`;
-            msg += `*GST (${gstRate}%):* ₹${gst.toLocaleString('en-IN')}\n`;
-            msg += `*TOTAL BILL AMOUNT:* ₹${(totalCheque + gst).toLocaleString('en-IN')}\n`;
-            if (totalCash > 0) {
-                msg += `*TOTAL CASH AMOUNT:* ₹${totalCash.toLocaleString('en-IN')}\n`;
-                msg += `*TOTAL PAYMENT:* ₹${(totalCheque + gst + totalCash).toLocaleString('en-IN')}\n`;
-            } else {
-                msg += `*TOTAL PAYMENT:* ₹${(totalCheque + gst).toLocaleString('en-IN')}\n`;
-            }
-        }
+        msg += `*Total Items:* ${totalItems} pcs\n`;
+        if (totalWeight > 0) msg += `*Total Weight:* ${totalWeight.toFixed(2)} kg\n`;
+        msg += `*Total Order Value:* ₹${grandTotal.toLocaleString('en-IN')}\n`;
 
         const adminWA = (state.settings && state.settings.adminWA) ? state.settings.adminWA : "919876543210";
         document.getElementById('receipt-wa-btn').onclick = () => {
@@ -2307,7 +2264,7 @@
         if (!order) return;
         
         lastSubmittedOrder = order;
-        const isHideTotals = !!(dealerMerchant && dealerMerchant.hideTotals);
+        const isHideTotals = true; // PERMANENT: Never expose cash breakdown or bill rates in dealer portal
 
         const receiptBody = document.getElementById('receipt-modal-body');
         const groupedOrderItems = {};
@@ -2355,47 +2312,25 @@
                 `;
             }).join('');
 
-            const colSpan = isHideTotals ? '3' : (totalCash > 0 ? '4' : '3');
             tableHtml += `
                 <tr style="background:#f1f5f9; border-top:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">
-                    <td colspan="${isHideTotals ? '3' : colSpan}" style="padding:0.4rem; font-weight:700; font-size:0.8rem; color:#0e254f;">${cat}</td>
-                    ${!isHideTotals ? `<td style="padding:0.4rem; font-weight:700; font-size:0.8rem; color:#0e254f; text-align:right;">₹${catTotal.toLocaleString('en-IN')}</td>` : ''}
+                    <td colspan="3" style="padding:0.4rem; font-weight:700; font-size:0.8rem; color:#0e254f;">${cat}</td>
                 </tr>
                 ${itemsHtml}
             `;
         });
 
-        let receiptSummaryHtml = '';
-        if (isHideTotals) {
-            receiptSummaryHtml = `
-                <div style="border-top:1px solid #0e254f; padding-top:0.5rem; font-size:0.85rem;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Total Items:</span><b>${totalItems} pcs</b></div>
-                    ${totalWeight > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Total Order Weight:</span><b>${totalWeight.toFixed(2)} kg</b></div>` : ''}
+        const receiptSummaryHtml = `
+            <div style="border-top:1px solid #0e254f; padding-top:0.5rem; font-size:0.85rem;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Total Items:</span><b>${totalItems} pcs</b></div>
+                ${totalWeight > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;"><span>Total Order Weight:</span><b>${totalWeight.toFixed(2)} kg</b></div>` : ''}
+                <div style="display:flex; justify-content:space-between; font-size:1rem; font-weight:800; color:#0e254f; border-top:1px dashed #cbd5e1; margin-top:0.3rem; padding-top:0.3rem;">
+                    <span>Total Amount:</span><b>₹${(order.total || grandTotal).toLocaleString('en-IN')}</b>
                 </div>
-            `;
-        } else {
-            receiptSummaryHtml = `
-                <div style="border-top:1px solid #0e254f; padding-top:0.5rem; font-size:0.85rem;">
-                    <div style="display:flex; justify-content:space-between;"><span>Bill Basic:</span><b>₹${totalCheque.toLocaleString('en-IN')}</b></div>
-                    <div style="display:flex; justify-content:space-between;"><span>GST (${gstRate}%):</span><b>₹${(order.gst || 0).toLocaleString('en-IN')}</b></div>
-                    <div style="display:flex; justify-content:space-between; font-weight:700;"><span>Total Bill Amount:</span><b>₹${(order.totalBill || totalCheque).toLocaleString('en-IN')}</b></div>
-                    <div style="display:flex; justify-content:space-between; color:#64748b;"><span>Freight:</span><b>${order.freight ? '₹' + order.freight.toLocaleString('en-IN') : 'None'}</b></div>
-                    ${totalCash > 0 ? `<div style="display:flex; justify-content:space-between; font-weight:700;">
-                        <span>Total Cash Amount:</span><span>₹${totalCash.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:1rem; font-weight:700; border-top:1px dashed #cbd5e1; margin-top:0.3rem; padding-top:0.3rem;">
-                        <span>Total Payment:</span><span>₹${((order.totalBill || totalCheque) + totalCash).toLocaleString('en-IN')}</span>
-                    </div>` : `
-                    <div style="display:flex; justify-content:space-between; font-size:1rem; font-weight:700; border-top:1px dashed #cbd5e1; margin-top:0.3rem; padding-top:0.3rem;">
-                        <span>Total Payment:</span><span>₹${(order.totalBill || (totalCheque + (order.gst || 0))).toLocaleString('en-IN')}</span>
-                    </div>`}
-                </div>
-            `;
-        }
+            </div>
+        `;
 
-        const tableHeaderCols = isHideTotals ? 
-            '<th>Item</th><th>Qty</th><th style="text-align:right;">Rate</th>' : 
-            `<th>Item</th><th>Qty</th><th>Rate</th>${(totalCash > 0) ? '<th>Bill Rate</th>' : ''}<th style="text-align:right;">Amt</th>`;
+        const tableHeaderCols = '<th>Item</th><th>Qty</th><th style="text-align:right;">Rate</th>';
 
         receiptBody.innerHTML = `
             <div style="border-bottom:1px solid #cbd5e1; padding-bottom:0.5rem; margin-bottom:0.75rem;">
@@ -2438,20 +2373,9 @@
             }
         });
         msg += `-----------------------------\n`;
-        if (isHideTotals) {
-            msg += `*Total Items:* ${totalItems} pcs\n`;
-            if (totalWeight > 0) msg += `*Total Weight:* ${totalWeight.toFixed(2)} kg\n`;
-        } else {
-            msg += `*Bill Basic:* ₹${totalCheque.toLocaleString('en-IN')}\n`;
-            msg += `*GST (${gstRate}%):* ₹${(order.gst || 0).toLocaleString('en-IN')}\n`;
-            msg += `*TOTAL BILL AMOUNT:* ₹${(order.totalBill || totalCheque).toLocaleString('en-IN')}\n`;
-            if (totalCash > 0) {
-                msg += `*TOTAL CASH AMOUNT:* ₹${totalCash.toLocaleString('en-IN')}\n`;
-                msg += `*TOTAL PAYMENT:* ₹${((order.totalBill || totalCheque) + totalCash).toLocaleString('en-IN')}\n`;
-            } else {
-                msg += `*TOTAL PAYMENT:* ₹${(order.totalBill || totalCheque).toLocaleString('en-IN')}\n`;
-            }
-        }
+        msg += `*Total Items:* ${totalItems} pcs\n`;
+        if (totalWeight > 0) msg += `*Total Weight:* ${totalWeight.toFixed(2)} kg\n`;
+        msg += `*Total Order Value:* ₹${(order.total || grandTotal).toLocaleString('en-IN')}\n`;
         const adminWA = (state.settings && state.settings.adminWA) ? state.settings.adminWA : "919876543210";
         document.getElementById('receipt-wa-btn').onclick = () => {
             window.open(`https://api.whatsapp.com/send?phone=${adminWA}&text=${encodeURIComponent(msg)}`, '_blank');
@@ -2528,13 +2452,7 @@
                 </table>
                 <table class="items-table">
                     <thead>
-                        ${m.hideTotals ? `
-                            <tr><th>#</th><th>Model Name</th><th>Grade</th><th>Colour</th><th class="num">Qty</th><th class="num">Rate</th></tr>
-                        ` : (order.totalCash === 0) ? `
-                            <tr><th>#</th><th>Model Name</th><th>Grade</th><th>Colour</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Bill Rate</th><th class="num">Bill Amt</th></tr>
-                        ` : `
-                            <tr><th>#</th><th>Model Name</th><th>Grade</th><th>Colour</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Bill Rate</th><th class="num">Bill Amt</th><th class="num">Cash Amt</th></tr>
-                        `}
+                        <tr><th>#</th><th>Model Name</th><th>Grade</th><th>Colour</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Total</th></tr>
                     </thead>
                     <tbody>
                         ${(() => {
@@ -2547,81 +2465,41 @@
                             
                             let html = '';
                             let index = 1;
+                            let totalOrderQty = 0;
                             getOrderedCategories(groupedItems).forEach(cat => {
-                                let catBill = 0, catCash = 0;
+                                let catSub = 0;
                                 const rows = groupedItems[cat].map(item => {
-                                    catBill += (item.qty * item.billRate);
-                                    catCash += (item.qty * (item.price - item.billRate));
-                                    if (m.hideTotals) {
-                                        return `
-                                            <tr>
-                                                <td>${index++}</td>
-                                                <td><b>${item.model}</b></td>
-                                                <td>${item.grade}</td>
-                                                <td>${item.colour}</td>
-                                                <td class="num">${item.qty}</td>
-                                                <td class="num">₹${item.price}</td>
-                                            </tr>
-                                        `;
-                                    } else if (order.totalCash === 0) {
-                                        return `
-                                            <tr>
-                                                <td>${index++}</td>
-                                                <td><b>${item.model}</b></td>
-                                                <td>${item.grade}</td>
-                                                <td>${item.colour}</td>
-                                                <td class="num">${item.qty}</td>
-                                                <td class="num">₹${item.price}</td>
-                                                <td class="num">₹${item.billRate}</td>
-                                                <td class="num">₹${(item.qty * item.billRate).toLocaleString('en-IN')}</td>
-                                            </tr>
-                                        `;
-                                    } else {
-                                        return `
-                                            <tr>
-                                                <td>${index++}</td>
-                                                <td><b>${item.model}</b></td>
-                                                <td>${item.grade}</td>
-                                                <td>${item.colour}</td>
-                                                <td class="num">${item.qty}</td>
-                                                <td class="num">₹${item.price}</td>
-                                                <td class="num">₹${item.billRate}</td>
-                                                <td class="num">₹${(item.qty * item.billRate).toLocaleString('en-IN')}</td>
-                                                <td class="num">₹${(item.qty * (item.price - item.billRate)).toLocaleString('en-IN')}</td>
-                                            </tr>
-                                        `;
-                                    }
+                                    const itemSub = (item.qty * item.price);
+                                    catSub += itemSub;
+                                    totalOrderQty += (item.qty || 0);
+                                    return `
+                                        <tr>
+                                            <td>${index++}</td>
+                                            <td><b>${item.model}</b></td>
+                                            <td>${item.grade}</td>
+                                            <td>${item.colour}</td>
+                                            <td class="num">${item.qty}</td>
+                                            <td class="num">₹${item.price.toLocaleString('en-IN')}</td>
+                                            <td class="num">₹${itemSub.toLocaleString('en-IN')}</td>
+                                        </tr>
+                                    `;
                                 }).join("");
-                                if (m.hideTotals) {
-                                    html += `
-                                        <tr style="background:#f1f5f9;"><td colspan="6"><b>${cat}</b></td></tr>
-                                        ${rows}
-                                    `;
-                                } else if (order.totalCash === 0) {
-                                    html += `
-                                        <tr style="background:#f1f5f9;"><td colspan="7"><b>${cat}</b></td><td class="num"><b>₹${catBill.toLocaleString('en-IN')}</b></td></tr>
-                                        ${rows}
-                                    `;
-                                } else {
-                                    html += `
-                                        <tr style="background:#f1f5f9;"><td colspan="7"><b>${cat}</b></td><td class="num"><b>₹${catBill.toLocaleString('en-IN')}</b></td><td class="num"><b>₹${catCash.toLocaleString('en-IN')}</b></td></tr>
-                                        ${rows}
-                                    `;
-                                }
+                                html += `
+                                    <tr style="background:#f1f5f9;"><td colspan="6"><b>${cat}</b></td><td class="num"><b>₹${catSub.toLocaleString('en-IN')}</b></td></tr>
+                                    ${rows}
+                                `;
                             });
                             return html;
                         })()}
                     </tbody>
-                    ${!m.hideTotals ? `
                     <tfoot>
-                        <tr class="totals-row" style="border-top: 2px solid #000;"><td colspan="${order.totalCash === 0 ? '7' : '7'}">BILL BASIC</td><td colspan="${order.totalCash === 0 ? '1' : '2'}" class="num" style="text-align: center;">₹${order.billBasic.toLocaleString('en-IN')}</td></tr>
-                        <tr class="totals-row"><td colspan="${order.totalCash === 0 ? '7' : '7'}">GST ${gstRate}%</td><td colspan="${order.totalCash === 0 ? '1' : '2'}" class="num" style="text-align: center;">₹${order.gst.toLocaleString('en-IN')}</td></tr>
-                        <tr class="totals-row" style="font-weight:700;"><td colspan="${order.totalCash === 0 ? '7' : '7'}">TOTAL BILL AMOUNT</td><td colspan="${order.totalCash === 0 ? '1' : '2'}" class="num" style="text-align: center;">₹${order.totalBill.toLocaleString('en-IN')}</td></tr>
-                        <tr class="totals-row"><td colspan="${order.totalCash === 0 ? '7' : '7'}">FREIGHT</td><td colspan="${order.totalCash === 0 ? '1' : '2'}" class="num" style="text-align: center;">₹${order.freight.toLocaleString('en-IN')}</td></tr>
-                        ${order.totalCash > 0 ? `<tr class="totals-row final-bill-row" style="font-size:inherit;"><td colspan="7">TOTAL CASH AMOUNT</td><td colspan="2" class="num" style="text-align: center;">₹${order.totalCash.toLocaleString('en-IN')}</td></tr>
-                        <tr><td colspan="9" style="border-top:none; border-bottom:none; border-left:1px solid #000; border-right:1px solid #000; height:10px;"></td></tr>
-                        <tr class="totals-row" style="background-color:#cbd5e1; font-weight:900; font-size:18px;"><td colspan="7">TOTAL PAYMENT</td><td colspan="2" class="num" style="text-align: center;">₹${(order.totalBill + order.totalCash).toLocaleString('en-IN')}</td></tr>` : ''}
-                    </tfoot>` : ''}
+                        <tr class="totals-row" style="border-top: 2px solid #000; font-weight:900; font-size:14px;">
+                            <td colspan="4">TOTAL</td>
+                            <td class="num" style="text-align: center;">${order.totalItems || order.items.reduce((s,x)=>s+(x.qty||0),0)} pcs</td>
+                            <td colspan="2" class="num" style="text-align: right; padding-right:12px;">₹${(order.total || 0).toLocaleString('en-IN')}</td>
+                        </tr>
+                        ${(order.weight || order.totalWeight) ? `<tr class="totals-row"><td colspan="4">TOTAL WEIGHT</td><td colspan="3" class="num" style="text-align: right; padding-right:12px;">${(order.weight || order.totalWeight).toFixed(2)} kg</td></tr>` : ''}
+                    </tfoot>
                 </table>
                 ${order.remark ? `<p style="margin-top:15px; font-size:13px;"><b>Remark:</b> ${order.remark}</p>` : ''}
                 <script>window.print();<\/script>
