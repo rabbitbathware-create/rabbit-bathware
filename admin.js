@@ -2191,7 +2191,7 @@ function populateRateConfigTable(merchant) {
     if (globalAdjEl) globalAdjEl.value = (merchant.globalDiscount !== undefined && merchant.globalDiscount !== null) ? merchant.globalDiscount : 0;
 
     const billPctEl = document.getElementById("rate-bill-pct");
-    if (billPctEl) billPctEl.value = (merchant.billPercentage !== undefined && merchant.billPercentage !== null) ? merchant.billPercentage : 50;
+    if (billPctEl) billPctEl.value = (merchant.billPercentage !== undefined && merchant.billPercentage !== null && merchant.billPercentage !== '') ? merchant.billPercentage : '';
 
     const perfBanner = document.getElementById("rate-modal-perf-banner");
     if (perfBanner) {
@@ -2240,10 +2240,18 @@ function populateRateConfigTable(merchant) {
     if (!tbody) return;
     tbody.innerHTML = "";
 
+    const discount = (merchant.globalDiscount !== undefined && merchant.globalDiscount !== null) ? merchant.globalDiscount : 0;
+
     (state.products || []).forEach(p => {
         if (!p) return;
         const ovr = (merchant.specialRates || {})[p.id] || {};
         const isDual = (p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1));
+
+        const mrp = (p.specifications && p.specifications.mrp) ? p.specifications.mrp : (p.mrp !== undefined ? p.mrp : (p.price || 0));
+        const basePrice = (p.price !== undefined ? p.price : 0);
+        const partyPrice = discount !== 0 ? Math.round(basePrice * (1 + discount / 100)) : basePrice;
+        const baseBillRate = (p.billRate !== undefined && p.billRate !== null) ? p.billRate : 0;
+
         const tr = document.createElement("tr");
         tr.setAttribute("data-model", (p.model || "").toLowerCase());
         tr.setAttribute("data-category", (p.category || "").toLowerCase());
@@ -2252,15 +2260,21 @@ function populateRateConfigTable(merchant) {
                 <b style="color:#0f172a; font-size:0.83rem;">${p.model}</b> ${isDual ? `<span class="badge" style="font-size:0.65rem; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 4px; border-radius:3px; font-weight:600;">Loose</span>` : ''}
                 <span style="color:#64748b; font-size:0.75rem; margin-left:0.35rem;">(${p.category})</span>
             </td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#334155; font-size:0.82rem;">₹${p.price}</td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#334155; font-size:0.82rem;">₹${p.billRate || 0}</td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cp-rate" data-id="${p.id}" value="${ovr.price !== undefined ? ovr.price : ''}" step="0.01" placeholder="Custom Price" style="width:125px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-rate" data-id="${p.id}" value="${ovr.billRate !== undefined ? ovr.billRate : ''}" step="0.01" placeholder="Custom Bill Rate" style="width:125px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
+            <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#64748b; font-size:0.82rem;" title="Catalog Base / MRP Price">₹${mrp}</td>
+            <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:700; color:#0e254f; font-size:0.82rem;" title="Party price after Global Discount">₹${partyPrice}${discount !== 0 ? `<br><small style="color:${discount < 0 ? '#16a34a' : '#dc2626'}; font-size:0.68rem; font-weight:700;">(${discount > 0 ? '+' : ''}${discount}%)</small>` : ''}</td>
+            <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#334155; font-size:0.82rem;" title="Catalog default base Bill Rate">₹${baseBillRate}</td>
+            <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cp-rate" data-id="${p.id}" value="${ovr.price !== undefined ? ovr.price : ''}" step="0.01" placeholder="Custom Price" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
+            <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-rate" data-id="${p.id}" value="${ovr.billRate !== undefined ? ovr.billRate : ''}" step="0.01" placeholder="Custom Bill Rate" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
             <td style="padding:0.25rem 0.55rem; vertical-align:middle; text-align:center;"><button type="button" class="btn btn-danger" style="padding:0.15rem 0.45rem; font-size:0.72rem; line-height:1;" onclick="resetProductOverride('${merchant.id}','${p.id}')" title="Reset override"><i class="fa-solid fa-rotate-left"></i> Reset</button></td>
         `;
         tbody.appendChild(tr);
 
         if (isDual) {
+            const boxMrp = (p.boxMrp !== undefined ? p.boxMrp : (p.specifications && p.specifications.boxMrp ? p.specifications.boxMrp : (p.boxPrice !== undefined ? p.boxPrice : mrp)));
+            const baseBoxPrice = (p.boxPrice !== undefined ? p.boxPrice : basePrice);
+            const partyBoxPrice = discount !== 0 ? Math.round(baseBoxPrice * (1 + discount / 100)) : baseBoxPrice;
+            const baseBoxBillRate = (p.boxBillRate !== undefined ? p.boxBillRate : baseBillRate);
+
             const trBox = document.createElement("tr");
             trBox.classList.add("box-pack-row");
             trBox.setAttribute("data-model", (p.model || "").toLowerCase());
@@ -2271,10 +2285,11 @@ function populateRateConfigTable(merchant) {
                     <span style="font-size:0.75rem; font-weight:700; color:#1d4ed8;">📦 Box Pack (${p.boxQty || 1} pcs/box)</span>
                     <span style="color:#64748b; font-size:0.72rem; margin-left:0.25rem;">Rate/pc</span>
                 </td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#475569; font-size:0.82rem;">₹${p.boxPrice !== undefined ? p.boxPrice : p.price}</td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#475569; font-size:0.82rem;">₹${p.boxBillRate !== undefined ? p.boxBillRate : (p.billRate || 0)}</td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cp-box-rate" data-id="${p.id}" value="${ovr.boxPrice !== undefined ? ovr.boxPrice : ''}" step="0.01" placeholder="Box Rate/pc" style="width:125px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-box-rate" data-id="${p.id}" value="${ovr.boxBillRate !== undefined ? ovr.boxBillRate : ''}" step="0.01" placeholder="Box Bill Rate" style="width:125px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
+                <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#64748b; font-size:0.82rem;">₹${boxMrp}</td>
+                <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#1e40af; font-weight:700; font-size:0.82rem;">₹${partyBoxPrice}${discount !== 0 ? `<br><small style="color:${discount < 0 ? '#16a34a' : '#dc2626'}; font-size:0.68rem; font-weight:700;">(${discount > 0 ? '+' : ''}${discount}%)</small>` : ''}</td>
+                <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#475569; font-size:0.82rem;">₹${baseBoxBillRate}</td>
+                <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cp-box-rate" data-id="${p.id}" value="${ovr.boxPrice !== undefined ? ovr.boxPrice : ''}" step="0.01" placeholder="Box Rate/pc" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
+                <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-box-rate" data-id="${p.id}" value="${ovr.boxBillRate !== undefined ? ovr.boxBillRate : ''}" step="0.01" placeholder="Box Bill Rate" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
                 <td style="padding:0.2rem 0.55rem; vertical-align:middle; text-align:center;"></td>
             `;
             tbody.appendChild(trBox);
@@ -2356,15 +2371,20 @@ function applyBillPercentageToAll(explicitPct) {
     if (m) m.billPercentage = pct;
 
     let updatedCount = 0;
+    const discount = (m && m.globalDiscount !== undefined && m.globalDiscount !== null) ? m.globalDiscount : 0;
+
     document.querySelectorAll(".cbr-rate").forEach(cbrInput => {
         const prodId = cbrInput.getAttribute("data-id");
         const p = (state.products || []).find(x => x.id === prodId);
         if (!p) return;
 
-        const cpInput = document.querySelector(`.cp-rate[data-id="${prodId}"]`);
+        const cpInput = document.querySelector('.cp-rate[data-id="' + prodId + '"]');
+        const basePrice = (p.price !== undefined ? p.price : 0);
+        const partyPrice = discount !== 0 ? Math.round(basePrice * (1 + discount / 100)) : basePrice;
+
         let effectivePrice = (cpInput && !isNaN(parseFloat(cpInput.value)) && parseFloat(cpInput.value) > 0)
             ? parseFloat(cpInput.value)
-            : (p.price || 0);
+            : partyPrice;
 
         const calculatedBillRate = Math.round(effectivePrice * (pct / 100));
         cbrInput.value = calculatedBillRate;
@@ -2384,10 +2404,13 @@ function applyBillPercentageToAll(explicitPct) {
         const p = (state.products || []).find(x => x.id === prodId);
         if (!p) return;
 
-        const cpBoxInput = document.querySelector(`.cp-box-rate[data-id="${prodId}"]`);
+        const cpBoxInput = document.querySelector('.cp-box-rate[data-id="' + prodId + '"]');
+        const baseBoxPrice = (p.boxPrice !== undefined ? p.boxPrice : (p.price || 0));
+        const partyBoxPrice = discount !== 0 ? Math.round(baseBoxPrice * (1 + discount / 100)) : baseBoxPrice;
+
         let effectiveBoxPrice = (cpBoxInput && !isNaN(parseFloat(cpBoxInput.value)) && parseFloat(cpBoxInput.value) > 0)
             ? parseFloat(cpBoxInput.value)
-            : (p.boxPrice !== undefined ? p.boxPrice : (p.price || 0));
+            : partyBoxPrice;
 
         const calculatedBoxBillRate = Math.round(effectiveBoxPrice * (pct / 100));
         cbrBoxInput.value = calculatedBoxBillRate;
@@ -2431,7 +2454,7 @@ function saveMerchantRates() {
     m.globalDiscount = parseFloat(document.getElementById("rate-global-adj").value) || 0;
     const billPctEl = document.getElementById("rate-bill-pct");
     if (billPctEl) {
-        m.billPercentage = parseFloat(billPctEl.value) || 50;
+        const bVal = billPctEl.value.trim(); m.billPercentage = bVal !== '' ? (parseFloat(bVal) || 0) : null;
     }
 
     const specialRates = {};
