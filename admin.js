@@ -2146,8 +2146,12 @@ function switchPartyModalTab(tabName) {
         btnProfile.setAttribute("style", inactiveStyle);
     }
     if (btnRates) {
-        btnRates.className = "btn btn-outline";
-        btnRates.setAttribute("style", inactiveStyle);
+        if (isStaff) {
+            btnRates.style.display = "none";
+        } else {
+            btnRates.className = "btn btn-outline";
+            btnRates.setAttribute("style", inactiveStyle);
+        }
     }
     if (btnPin) {
         btnPin.className = "btn btn-outline";
