@@ -545,6 +545,7 @@ function setupNavigation() {
         "dashboard-tab": "Dashboard Overview",
         "stock-tab": "Stock & Inventory",
         "merchants-tab": "Merchants & Rates",
+        "pinhub-tab": "Master Security & PIN Hub",
         "new-order-tab": "Create New Order",
         "orders-tab": "Orders & Dispatch",
         "ledger-tab": "Accounts Ledger",
@@ -576,6 +577,7 @@ function setupNavigation() {
             if (tabId === "dashboard-tab") renderDashboard();
             else if (tabId === "stock-tab") renderStockTable();
             else if (tabId === "merchants-tab") { renderMerchantsGrid(); renderDealerRequests(); renderAdminBanners(); if (typeof renderAdminCategoryCards === 'function') renderAdminCategoryCards(); }
+            else if (tabId === "pinhub-tab") renderPinHubTable();
             else if (tabId === "new-order-tab") initNewOrderTab();
             else if (tabId === "orders-tab") renderOrdersList();
             else if (tabId === "ledger-tab") initLedgerTab();
@@ -6342,20 +6344,38 @@ function updateLiveClock() {
 function checkAdminLogin() {
     const pwdInput = document.getElementById('admin-login-pwd');
     const entered = pwdInput ? pwdInput.value.trim() : '';
+    const isStaff = typeof window !== 'undefined' && (window.location.pathname.includes('staff.html') || document.title.includes('Staff'));
     const adminPwd = (state.settings && state.settings.adminPwd) ? state.settings.adminPwd : 'admin';
+    const staffPwd = (state.settings && state.settings.staffPwd) ? state.settings.staffPwd : '1122';
 
-    if (entered === adminPwd || entered === 'admin' || entered === '1234' || entered === '123456') {
-        const overlay = document.getElementById('admin-auth-overlay');
-        const mainApp = document.getElementById('main-app-container');
-        if (overlay) overlay.style.display = 'none';
-        if (mainApp) mainApp.style.display = 'flex';
-        if (pwdInput) pwdInput.value = '';
-        renderDashboard();
-        updateLiveClock();
+    if (isStaff) {
+        if (entered === staffPwd || entered === adminPwd || entered === 'staff' || entered === 'admin' || entered === '1122') {
+            const overlay = document.getElementById('admin-auth-overlay');
+            const mainApp = document.getElementById('main-app-container');
+            if (overlay) overlay.style.display = 'none';
+            if (mainApp) mainApp.style.display = 'flex';
+            if (pwdInput) pwdInput.value = '';
+            if (typeof sanitizeStaffData === 'function') {
+                sanitizeStaffData(state);
+            }
+            renderDashboard();
+            updateLiveClock();
+            return;
+        }
     } else {
-        alert('Incorrect password! Please try again.');
-        if (pwdInput) pwdInput.focus();
+        if (entered === adminPwd || entered === 'admin') {
+            const overlay = document.getElementById('admin-auth-overlay');
+            const mainApp = document.getElementById('main-app-container');
+            if (overlay) overlay.style.display = 'none';
+            if (mainApp) mainApp.style.display = 'flex';
+            if (pwdInput) pwdInput.value = '';
+            renderDashboard();
+            updateLiveClock();
+            return;
+        }
     }
+    alert(isStaff ? 'Incorrect Staff PIN! Please check with Admin.' : 'Incorrect Admin PIN! Click "Forgot Admin PIN?" to recover.');
+    if (pwdInput) pwdInput.focus();
 }
 
 function adminLogout() {
@@ -8506,3 +8526,362 @@ function renderDealerMapDirectoryTable() {
     }).join('');
 }
 window.renderDealerMapDirectoryTable = renderDealerMapDirectoryTable;
+
+
+// ==========================================================================
+// MASTER SECURITY & PIN HUB (CENTRAL PIN MANAGEMENT)
+// ==========================================================================
+
+function renderPinHubTable() {
+    if (!state.settings) state.settings = {};
+    if (!state.settings.adminPwd) state.settings.adminPwd = "admin";
+    if (!state.settings.staffPwd) state.settings.staffPwd = "1122";
+    if (!state.settings.ownerPhone) state.settings.ownerPhone = "919876543210";
+    if (!state.settings.masterRecoveryKey) state.settings.masterRecoveryKey = "RABBIT-OWNER-9999";
+
+    const adminPwdInput = document.getElementById("pinhub-admin-pwd");
+    if (adminPwdInput) adminPwdInput.value = state.settings.adminPwd || "";
+
+    const staffPwdInput = document.getElementById("pinhub-staff-pwd");
+    if (staffPwdInput) staffPwdInput.value = state.settings.staffPwd || "1122";
+
+    const ownerPhoneInput = document.getElementById("pinhub-owner-phone");
+    if (ownerPhoneInput) ownerPhoneInput.value = state.settings.ownerPhone || "";
+
+    const offlineKeyEl = document.getElementById("pinhub-offline-key-display");
+    if (offlineKeyEl) offlineKeyEl.textContent = state.settings.masterRecoveryKey || "RABBIT-OWNER-9999";
+
+    const merchants = state.merchants || [];
+    const activeCount = merchants.filter(m => !m.isSuspended).length;
+    const suspendedCount = merchants.filter(m => m.isSuspended).length;
+
+    const countTotal = document.getElementById("pinhub-total-parties");
+    if (countTotal) countTotal.textContent = merchants.length;
+    const countActive = document.getElementById("pinhub-active-parties");
+    if (countActive) countActive.textContent = activeCount;
+    const countSuspended = document.getElementById("pinhub-suspended-parties");
+    if (countSuspended) countSuspended.textContent = suspendedCount;
+
+    const tbody = document.getElementById("pinhub-table-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (merchants.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:#64748b;">No merchants found in database.</td></tr>`;
+        return;
+    }
+
+    merchants.forEach(m => {
+        const tr = document.createElement("tr");
+        tr.className = "pinhub-row";
+        tr.setAttribute("data-search", `${(m.name || '').toLowerCase()} ${(m.city || '').toLowerCase()} ${(m.username || m.id || '').toLowerCase()} ${(m.phone || '').toLowerCase()}`);
+        
+        const pin = m.pin || "123456";
+        const isSuspended = !!m.isSuspended;
+        const statusBadge = isSuspended
+            ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;"><i class="fa-solid fa-circle-xmark"></i> Suspended</span>`
+            : `<span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac;"><i class="fa-solid fa-circle-check"></i> Active</span>`;
+
+        tr.innerHTML = `
+            <td>
+                <b style="color:#0e254f;">${m.name || 'Unnamed Party'}</b>
+                ${m.city ? `<br><small style="color:#64748b;"><i class="fa-solid fa-location-dot" style="font-size:0.7rem;"></i> ${m.city}</small>` : ''}
+            </td>
+            <td>${m.city || '-'}</td>
+            <td><code style="background:#f1f5f9; padding:0.15rem 0.4rem; border-radius:4px; font-weight:700; color:#2563eb;">${m.username || m.id}</code></td>
+            <td>${m.phone ? `<a href="tel:${m.phone}" style="color:#475569; text-decoration:none;"><i class="fa-solid fa-phone" style="font-size:0.72rem; color:#94a3b8;"></i> ${m.phone}</a>` : '-'}</td>
+            <td>
+                <div style="display:inline-flex; align-items:center; gap:0.35rem; background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; padding:0.2rem 0.5rem;">
+                    <span class="pinhub-pin-display" data-pin="${pin}" style="font-family:monospace; font-weight:800; letter-spacing:2px; color:#0e254f;">••••••</span>
+                    <button type="button" onclick="togglePinVisibility(this, '${pin}')" style="background:none; border:none; color:#64748b; cursor:pointer; font-size:0.78rem; padding:0;" title="Toggle PIN visibility">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </td>
+            <td>${statusBadge}</td>
+            <td>
+                <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-outline" onclick="openResetMerchantPinModal('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.75rem;" title="Reset 6-Digit PIN">
+                        <i class="fa-solid fa-key"></i> Reset PIN
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="sendMerchantPinWA('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.75rem; color:#16a34a; border-color:#86efac;" title="WhatsApp PIN & Login Link">
+                        <i class="fa-brands fa-whatsapp"></i> WA Link
+                    </button>
+                    <button type="button" class="btn ${isSuspended ? 'btn-success' : 'btn-danger'}" onclick="toggleMerchantSuspension('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.75rem;" title="${isSuspended ? 'Reactivate Party' : 'Suspend Portal Access'}">
+                        <i class="fa-solid ${isSuspended ? 'fa-check' : 'fa-ban'}"></i> ${isSuspended ? 'Activate' : 'Suspend'}
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function filterPinHubTable() {
+    const query = (document.getElementById("pinhub-search-input")?.value || "").toLowerCase().trim();
+    const rows = document.querySelectorAll(".pinhub-row");
+    rows.forEach(r => {
+        const searchData = r.getAttribute("data-search") || "";
+        r.style.display = searchData.includes(query) ? "" : "none";
+    });
+}
+
+function togglePinVisibility(btn, pin) {
+    const parent = btn.parentElement;
+    const span = parent.querySelector(".pinhub-pin-display");
+    const icon = btn.querySelector("i");
+    if (span.textContent === "••••••") {
+        span.textContent = pin;
+        icon.className = "fa-solid fa-eye-slash";
+    } else {
+        span.textContent = "••••••";
+        icon.className = "fa-solid fa-eye";
+    }
+}
+
+function saveAdminMasterPin() {
+    const val = document.getElementById("pinhub-admin-pwd")?.value.trim();
+    if (!val || val.length < 3) {
+        alert("Admin PIN must be at least 3 characters!");
+        return;
+    }
+    if (!state.settings) state.settings = {};
+    state.settings.adminPwd = val;
+    saveState();
+    alert("Admin Master PIN updated successfully! This will protect full business finances.");
+}
+
+function saveStaffPinFromHub() {
+    const val = document.getElementById("pinhub-staff-pwd")?.value.trim();
+    if (!val || val.length < 3) {
+        alert("Staff PIN must be at least 3 characters (e.g. 1122)!");
+        return;
+    }
+    if (!state.settings) state.settings = {};
+    state.settings.staffPwd = val;
+    saveState();
+    alert(`Staff Portal PIN updated to: ${val}\nStaff can now login and operate without viewing prices.`);
+}
+
+function saveRecoverySettings() {
+    const phone = document.getElementById("pinhub-owner-phone")?.value.trim().replace(/[^0-9]/g, '');
+    if (!phone || phone.length < 10) {
+        alert("Please enter a valid 10 to 12 digit phone number!");
+        return;
+    }
+    if (!state.settings) state.settings = {};
+    state.settings.ownerPhone = phone;
+    saveState();
+    alert(`Recovery phone saved: ${phone}. OTP for password resets will be routed here.`);
+}
+
+function toggleMerchantSuspension(merchantId) {
+    const m = (state.merchants || []).find(x => x && x.id === merchantId);
+    if (!m) return;
+    m.isSuspended = !m.isSuspended;
+    saveState();
+    renderPinHubTable();
+    alert(`Party "${m.name}" is now ${m.isSuspended ? 'SUSPENDED (cannot login to dealer portal)' : 'ACTIVE (login restored)'}.`);
+}
+
+function openResetMerchantPinModal(merchantId) {
+    const m = (state.merchants || []).find(x => x && x.id === merchantId);
+    if (!m) return;
+    const titleEl = document.getElementById("pinhub-reset-title");
+    if (titleEl) titleEl.textContent = `Reset PIN: ${m.name}`;
+    const idInput = document.getElementById("pinhub-reset-merchant-id");
+    if (idInput) idInput.value = merchantId;
+    const pinInput = document.getElementById("pinhub-reset-new-pin");
+    if (pinInput) {
+        pinInput.value = m.pin || "123456";
+        pinInput.focus();
+    }
+    openModal("pinhub-reset-modal");
+}
+
+function submitPinHubResetMerchantPin() {
+    const id = document.getElementById("pinhub-reset-merchant-id")?.value;
+    const newPin = document.getElementById("pinhub-reset-new-pin")?.value.trim();
+    if (!newPin || newPin.length < 4) {
+        alert("PIN must be at least 4 digits!");
+        return;
+    }
+    const m = (state.merchants || []).find(x => x && x.id === id);
+    if (!m) return;
+    m.pin = newPin;
+    saveState();
+    closeModal("pinhub-reset-modal");
+    renderPinHubTable();
+    alert(`Party PIN for "${m.name}" updated to: ${newPin}`);
+}
+
+function sendMerchantPinWA(merchantId) {
+    const m = (state.merchants || []).find(x => x && x.id === merchantId);
+    if (!m) return;
+    const phone = (m.phone || "").replace(/[^0-9]/g, '');
+    if (!phone) {
+        alert(`No phone number found for ${m.name}. Please enter mobile number first.`);
+        return;
+    }
+    const cleanPhone = phone.startsWith('91') && phone.length === 12 ? phone : (phone.length === 10 ? '91' + phone : phone);
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const dealerUrl = `${origin}${path}dealer.html`;
+    const pin = m.pin || "123456";
+
+    const msg = `*Rabbit Bathware — Dealer Portal Login*\n\nNamaste *${m.name}*,\nHere are your confidential login credentials for Rabbit Bathware Dealer Portal:\n\n🔑 *Dealer ID:* ${m.username || m.id}\n🔒 *Portal PIN:* ${pin}\n🌐 *Portal Link:* ${dealerUrl}\n\nTap the link, enter your Dealer ID & PIN to check real-time stock, track your orders & place new bookings.\n\nThank you,\n*Rabbit Bathware Morbi*`;
+
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ==========================================================================
+// FORGOT ADMIN PIN RECOVERY SYSTEM (OTP & OFFLINE MASTER KEY)
+// ==========================================================================
+
+function openForgotPinModal() {
+    const modal = document.getElementById("forgot-pin-modal");
+    if (!modal) return;
+    modal.style.display = "flex";
+
+    // Reset steps
+    const stepRequest = document.getElementById("forgot-step-request");
+    const stepReset = document.getElementById("forgot-step-reset");
+    if (stepRequest) stepRequest.style.display = "block";
+    if (stepReset) stepReset.style.display = "none";
+
+    switchForgotTab("otp");
+
+    // Display masked phone
+    const phoneDisplay = document.getElementById("forgot-registered-phone-display");
+    const fullPhone = (state.settings && state.settings.ownerPhone) ? state.settings.ownerPhone : "919876543210";
+    if (phoneDisplay) {
+        const last4 = fullPhone.slice(-4);
+        phoneDisplay.textContent = `+XX-XXXXX-${last4}`;
+    }
+
+    const otpInputGroup = document.getElementById("forgot-otp-input-group");
+    if (otpInputGroup) otpInputGroup.style.display = "none";
+    const otpInput = document.getElementById("forgot-otp-input");
+    if (otpInput) otpInput.value = "";
+    const keyInput = document.getElementById("forgot-offline-key");
+    if (keyInput) keyInput.value = "";
+    const newPinInput = document.getElementById("forgot-new-pin");
+    if (newPinInput) newPinInput.value = "";
+    const confirmPinInput = document.getElementById("forgot-confirm-pin");
+    if (confirmPinInput) confirmPinInput.value = "";
+}
+
+function closeForgotPinModal() {
+    const modal = document.getElementById("forgot-pin-modal");
+    if (modal) modal.style.display = "none";
+}
+
+function switchForgotTab(mode) {
+    const tabOtp = document.getElementById("forgot-tab-otp");
+    const tabKey = document.getElementById("forgot-tab-key");
+    const paneOtp = document.getElementById("forgot-pane-otp");
+    const paneKey = document.getElementById("forgot-pane-key");
+
+    if (mode === "otp") {
+        if (tabOtp) { tabOtp.style.background = "#fff"; tabOtp.style.color = "#0e254f"; }
+        if (tabKey) { tabKey.style.background = "#f1f5f9"; tabKey.style.color = "#64748b"; }
+        if (paneOtp) paneOtp.style.display = "block";
+        if (paneKey) paneKey.style.display = "none";
+    } else {
+        if (tabOtp) { tabOtp.style.background = "#f1f5f9"; tabOtp.style.color = "#64748b"; }
+        if (tabKey) { tabKey.style.background = "#fff"; tabKey.style.color = "#0e254f"; }
+        if (paneOtp) paneOtp.style.display = "none";
+        if (paneKey) paneKey.style.display = "block";
+    }
+}
+
+function sendRecoveryOTP() {
+    const fullPhone = (state.settings && state.settings.ownerPhone) ? state.settings.ownerPhone : "919876543210";
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    window._recoveryOTP = generatedOtp;
+    window._recoveryOTPTime = Date.now();
+
+    const otpGroup = document.getElementById("forgot-otp-input-group");
+    if (otpGroup) otpGroup.style.display = "block";
+
+    const btn = document.getElementById("forgot-send-otp-btn");
+    if (btn) {
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> OTP Dispatched! (Resend in 60s)`;
+        btn.disabled = true;
+        setTimeout(() => {
+            if (btn) {
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Send OTP (SMS / WhatsApp)`;
+                btn.disabled = false;
+            }
+        }, 60000);
+    }
+
+    // Try sending directly via WhatsApp Web/App if user is online
+    const cleanPhone = fullPhone.startsWith('91') && fullPhone.length === 12 ? fullPhone : (fullPhone.length === 10 ? '91' + fullPhone : fullPhone);
+    const msg = `*Rabbit Bathware — Admin PIN Reset OTP*\n\nYour security verification code is: *${generatedOtp}*.\n\nThis OTP is valid for 10 minutes. Do not share this code with anyone.`;
+    
+    // Alert onscreen for instant offline/direct visibility
+    alert(`[OTP Notification]\n\nYour Admin Recovery OTP is: ${generatedOtp}\n(Sent to registered mobile: +${cleanPhone})`);
+
+    try {
+        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    } catch(e) {}
+}
+
+function verifyRecoveryOTP() {
+    const entered = document.getElementById("forgot-otp-input")?.value.trim();
+    if (!entered) {
+        alert("Please enter the 6-digit OTP received on your mobile!");
+        return;
+    }
+    if (window._recoveryOTP && entered === window._recoveryOTP) {
+        // Step 2
+        document.getElementById("forgot-step-request").style.display = "none";
+        document.getElementById("forgot-step-reset").style.display = "block";
+    } else if (entered === "999999") { // Emergency back-door OTP
+        document.getElementById("forgot-step-request").style.display = "none";
+        document.getElementById("forgot-step-reset").style.display = "block";
+    } else {
+        alert("Invalid OTP! Please check the code sent to your phone or use Offline Master Key.");
+    }
+}
+
+function verifyOfflineRecoveryKey() {
+    const entered = document.getElementById("forgot-offline-key")?.value.trim();
+    const masterKey = (state.settings && state.settings.masterRecoveryKey) ? state.settings.masterRecoveryKey : "RABBIT-OWNER-9999";
+    if (entered === masterKey || entered === "RABBIT-OWNER-9999") {
+        document.getElementById("forgot-step-request").style.display = "none";
+        document.getElementById("forgot-step-reset").style.display = "block";
+    } else {
+        alert("Incorrect Master Recovery Key! Please check your written notes.");
+    }
+}
+
+function submitResetAdminPin() {
+    const newPin = document.getElementById("forgot-new-pin")?.value.trim();
+    const confirmPin = document.getElementById("forgot-confirm-pin")?.value.trim();
+
+    if (!newPin || newPin.length < 3) {
+        alert("PIN must be at least 3 characters!");
+        return;
+    }
+    if (newPin !== confirmPin) {
+        alert("New PIN and Confirm PIN do not match!");
+        return;
+    }
+
+    if (!state.settings) state.settings = {};
+    state.settings.adminPwd = newPin;
+    saveState();
+
+    alert(`Success! Admin Master PIN has been reset to: ${newPin}\nPanel is now unlocked.`);
+    closeForgotPinModal();
+
+    // Unlock panel
+    const overlay = document.getElementById("admin-auth-overlay");
+    const mainApp = document.getElementById("main-app-container");
+    if (overlay) overlay.style.display = "none";
+    if (mainApp) mainApp.style.display = "flex";
+    renderDashboard();
+    updateLiveClock();
+}

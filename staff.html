@@ -34,12 +34,12 @@
 <div id="admin-auth-overlay" class="admin-auth-overlay">
     <div class="admin-auth-box">
         <div style="text-align:center; margin-bottom:1rem;"><img src="bms-logo.png" style="max-height:160px; width:auto;" alt="Rabbit World"></div>
-        <h2 style="display:none;">Admin Security</h2>
-        <p>Enter the master password to access the panel.</p>
+        <h2 style="display:block; font-size:1.15rem; color:#0e254f; margin-bottom:0.4rem;">Staff &amp; Warehouse Security</h2>
+        <p style="font-size:0.82rem; color:#64748b;">Enter Staff PIN to access the dispatch &amp; packing panel.</p>
         <div class="form-group" style="text-align:left; margin-bottom:1rem;">
-            <input type="password" id="admin-login-pwd" placeholder="Enter password..." class="pin-input-group" onkeypress="if(event.key === 'Enter') checkAdminLogin()">
+            <input type="password" id="admin-login-pwd" placeholder="Enter Staff PIN..." class="pin-input-group" onkeypress="if(event.key === 'Enter') checkAdminLogin()">
         </div>
-        <button class="btn btn-primary" style="width:100%;" onclick="checkAdminLogin()">Unlock Panel</button>
+        <button class="btn btn-primary" style="width:100%;" onclick="checkAdminLogin()">Unlock Staff Panel</button>
     </div>
 </div>
 

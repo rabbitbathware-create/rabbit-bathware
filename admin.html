@@ -66,6 +66,11 @@
             <input type="password" id="admin-login-pwd" placeholder="Enter password..." class="pin-input-group" onkeypress="if(event.key === 'Enter') checkAdminLogin()">
         </div>
         <button class="btn btn-primary" style="width:100%;" onclick="checkAdminLogin()">Unlock Panel</button>
+        <div style="margin-top:0.85rem; text-align:center;">
+            <button type="button" onclick="openForgotPinModal()" style="background:none; border:none; color:#2563eb; font-size:0.82rem; font-weight:700; cursor:pointer; text-decoration:underline;">
+                <i class="fa-solid fa-key"></i> Forgot Admin PIN? (OTP / Recovery Key)
+            </button>
+        </div>
     </div>
 </div>
 
@@ -87,6 +92,7 @@
             <button class="nav-item active" data-tab="dashboard-tab"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
             <button class="nav-item" data-tab="stock-tab"><i class="fa-solid fa-warehouse"></i> Stock &amp; Inventory</button>
             <button class="nav-item" data-tab="merchants-tab"><i class="fa-solid fa-users-gear"></i> Merchants &amp; Rates <span id="sidebar-merch-badge" style="display:none; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.4rem; border-radius:10px; margin-left:auto;">0</span></button>
+            <button class="nav-item" data-tab="pinhub-tab"><i class="fa-solid fa-key" style="color:#f59e0b;"></i> PIN &amp; Security Hub <span style="background:#f59e0b; color:#fff; font-size:0.68rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:10px; margin-left:auto;">HUB</span></button>
             <button class="nav-item" data-tab="new-order-tab"><i class="fa-solid fa-file-invoice-dollar"></i> New Order</button>
             <button class="nav-item" data-tab="orders-tab"><i class="fa-solid fa-truck-ramp-box"></i> Orders &amp; Dispatch</button>
             <button class="nav-item" data-tab="ledger-tab"><i class="fa-solid fa-book-bookmark"></i> Accounts Ledger</button>
@@ -916,6 +922,102 @@
             </section>
 
 
+
+            <!-- ============================================== -->
+            <!-- PIN & SECURITY COMMAND CENTER (MASTER PIN HUB) -->
+            <!-- ============================================== -->
+            <section id="pinhub-tab" class="tab-panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                    <div>
+                        <h2 style="font-size:1.15rem; color:#0e254f; margin:0; display:flex; align-items:center; gap:0.5rem;">
+                            <i class="fa-solid fa-shield-halved" style="color:#f59e0b;"></i> Master Security &amp; PIN Command Hub
+                        </h2>
+                        <p style="font-size:0.8rem; color:#64748b; margin:2px 0 0 0;">Manage Party Portal PINs, Staff PIN, Admin Master PIN, and Account Status from one central dashboard.</p>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="renderPinHubTable()" style="font-size:0.8rem; padding:0.35rem 0.8rem;">
+                        <i class="fa-solid fa-rotate"></i> Refresh
+                    </button>
+                </div>
+
+                <!-- Top 3 Quick Control Cards -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; margin-bottom:1.25rem;">
+                    <!-- Card 1: Admin Master PIN -->
+                    <div class="card" style="border-top:3px solid #0e254f; background:#fff; padding:1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                            <h3 style="font-size:0.92rem; color:#0e254f; margin:0;"><i class="fa-solid fa-user-shield" style="color:#0e254f;"></i> Admin Master PIN</h3>
+                            <span class="badge" style="background:#dbeafe; color:#1e40af; font-size:0.7rem; font-weight:700;">Owner Access</span>
+                        </div>
+                        <p style="font-size:0.78rem; color:#64748b; margin-bottom:0.75rem;">Protects full business data, margins, pricing &amp; ledger.</p>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <input type="password" id="pinhub-admin-pwd" placeholder="New Master PIN" style="flex:1; padding:0.35rem 0.5rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; height:32px;">
+                            <button type="button" class="btn btn-primary" onclick="saveAdminMasterPin()" style="font-size:0.78rem; padding:0.35rem 0.75rem; white-space:nowrap; height:32px;">
+                                <i class="fa-solid fa-floppy-disk"></i> Update
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Staff Portal Access & PIN -->
+                    <div class="card" style="border-top:3px solid #10b981; background:#fff; padding:1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                            <h3 style="font-size:0.92rem; color:#0e254f; margin:0;"><i class="fa-solid fa-id-badge" style="color:#10b981;"></i> Staff Portal PIN</h3>
+                            <span class="badge" style="background:#d1fae5; color:#065f46; font-size:0.7rem; font-weight:700;">Staff Access</span>
+                        </div>
+                        <p style="font-size:0.78rem; color:#64748b; margin-bottom:0.75rem;">Allows packing, dispatching &amp; stock entry without seeing rates.</p>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <input type="text" id="pinhub-staff-pwd" placeholder="Staff PIN (e.g. 1122)" style="flex:1; padding:0.35rem 0.5rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; height:32px;">
+                            <button type="button" class="btn btn-success" onclick="saveStaffPinFromHub()" style="font-size:0.78rem; padding:0.35rem 0.75rem; white-space:nowrap; height:32px; background:#10b981;">
+                                <i class="fa-solid fa-floppy-disk"></i> Save PIN
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Emergency Recovery Settings -->
+                    <div class="card" style="border-top:3px solid #f59e0b; background:#fff; padding:1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                            <h3 style="font-size:0.92rem; color:#0e254f; margin:0;"><i class="fa-solid fa-key" style="color:#f59e0b;"></i> Recovery &amp; OTP Mobile</h3>
+                            <span class="badge" style="background:#fef3c7; color:#92400e; font-size:0.7rem; font-weight:700;">Emergency Key</span>
+                        </div>
+                        <p style="font-size:0.78rem; color:#64748b; margin-bottom:0.75rem;">Mobile for OTP and secret key if admin PIN is forgotten.</p>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <input type="text" id="pinhub-recovery-phone" placeholder="Owner Mobile (e.g. 98250...)" style="flex:1; padding:0.35rem 0.5rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; height:32px;">
+                            <button type="button" class="btn btn-secondary" onclick="saveRecoverySettings()" style="font-size:0.78rem; padding:0.35rem 0.75rem; white-space:nowrap; height:32px;">
+                                <i class="fa-solid fa-check"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search & Filter Bar for Parties -->
+                <div class="card" style="padding:0.75rem 1rem; margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                    <div style="position:relative; width:340px; max-width:100%;">
+                        <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:0.8rem;"></i>
+                        <input type="text" id="pinhub-search" placeholder="Search party by name, city, UID or phone..." oninput="filterPinHubTable()" style="width:100%; padding:0.4rem 0.6rem 0.4rem 2rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+                    </div>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <span id="pinhub-count-badge" style="font-size:0.78rem; font-weight:700; color:#475569; background:#e2e8f0; padding:3px 10px; border-radius:12px;">0 Parties</span>
+                    </div>
+                </div>
+
+                <!-- Table: All Parties PIN & Status Directory -->
+                <div class="card" style="padding:0; overflow-x:auto;">
+                    <table class="data-table" style="width:100%; font-size:0.83rem;">
+                        <thead style="background:#f8fafc;">
+                            <tr>
+                                <th style="padding:0.6rem 0.8rem; text-align:left;">Party Name</th>
+                                <th style="padding:0.6rem 0.8rem; text-align:left;">City</th>
+                                <th style="padding:0.6rem 0.8rem; text-align:left;">Dealer UID</th>
+                                <th style="padding:0.6rem 0.8rem; text-align:left;">Mobile / WhatsApp</th>
+                                <th style="padding:0.6rem 0.8rem; text-align:center; width:150px;">Portal PIN</th>
+                                <th style="padding:0.6rem 0.8rem; text-align:center; width:110px;">Status</th>
+                                <th style="padding:0.6rem 0.8rem; text-align:center; width:260px;">Quick Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pinhub-table-body">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
             <!-- 7. SETTINGS & BACKUP -->
             <section id="settings-tab" class="tab-panel">
@@ -2455,6 +2557,117 @@
             </div>
         </div>
     </div>
+
+<!-- ============================================== -->
+<!-- MODAL: FORGOT ADMIN PIN RECOVERY               -->
+<!-- ============================================== -->
+<div id="forgot-pin-modal" class="modal" style="display:none; z-index:99999;">
+    <div class="modal-content" style="max-width:440px; border-radius:10px; padding:1.5rem; box-shadow:0 10px 25px rgba(0,0,0,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.75rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <div style="width:36px; height:36px; background:#eff6ff; color:#2563eb; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-size:1.05rem; color:#0e254f;">Admin PIN Recovery</h3>
+                    <p style="margin:0; font-size:0.72rem; color:#64748b;">Reset your master PIN safely</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeForgotPinModal()" style="background:none; border:none; font-size:1.2rem; color:#94a3b8; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- STEP 1: VERIFICATION (OTP OR MASTER KEY) -->
+        <div id="forgot-step-verify">
+            <div style="display:flex; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden; margin-bottom:1.25rem;">
+                <button type="button" id="forgot-tab-btn-otp" onclick="switchForgotTab('otp')" style="flex:1; padding:0.45rem; font-size:0.8rem; font-weight:700; border:none; background:#0e254f; color:#fff; cursor:pointer;">
+                    <i class="fa-solid fa-mobile-screen"></i> Online OTP
+                </button>
+                <button type="button" id="forgot-tab-btn-key" onclick="switchForgotTab('key')" style="flex:1; padding:0.45rem; font-size:0.8rem; font-weight:700; border:none; background:#f1f5f9; color:#475569; cursor:pointer;">
+                    <i class="fa-solid fa-shield"></i> Offline Master Key
+                </button>
+            </div>
+
+            <!-- OTP SECTION -->
+            <div id="forgot-pane-otp">
+                <p style="font-size:0.8rem; color:#475569; margin-bottom:0.75rem;">
+                    We will send a 6-digit OTP code to the Owner's registered mobile number:
+                </p>
+                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.75rem; margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span id="forgot-masked-phone" style="font-weight:700; color:#0e254f; font-size:0.9rem;">+91 98*** ***10</span>
+                    <button type="button" id="btn-send-recovery-otp" class="btn btn-primary" onclick="sendRecoveryOTP()" style="font-size:0.75rem; padding:0.25rem 0.65rem;">
+                        <i class="fa-solid fa-paper-plane"></i> Send OTP
+                    </button>
+                </div>
+
+                <div id="forgot-otp-input-group" style="display:none; margin-bottom:1rem;">
+                    <label style="font-size:0.8rem; font-weight:700; color:#0e254f; display:block; margin-bottom:0.35rem;">Enter 6-Digit OTP:</label>
+                    <input type="text" id="forgot-otp-val" maxlength="6" placeholder="e.g. 482910" style="width:100%; padding:0.5rem; font-size:1.1rem; font-weight:800; letter-spacing:4px; text-align:center; border:2px solid #2563eb; border-radius:6px; box-sizing:border-box;">
+                    <div id="forgot-otp-timer" style="font-size:0.72rem; color:#64748b; margin-top:0.25rem; text-align:center;"></div>
+                </div>
+
+                <button type="button" id="btn-verify-otp" class="btn btn-success" onclick="verifyRecoveryOTP()" style="width:100%; padding:0.55rem; font-weight:700; display:none; background:#16a34a;">
+                    <i class="fa-solid fa-check"></i> Verify OTP &amp; Continue
+                </button>
+            </div>
+
+            <!-- OFFLINE KEY SECTION -->
+            <div id="forgot-pane-key" style="display:none;">
+                <p style="font-size:0.8rem; color:#475569; margin-bottom:0.75rem;">
+                    No Internet? Enter your permanent <b>Secret Master Recovery Key</b> (stored safely in your notes/diary):
+                </p>
+                <div style="margin-bottom:1rem;">
+                    <input type="password" id="forgot-offline-key" placeholder="Enter Master Recovery Key..." style="width:100%; padding:0.5rem; font-size:0.88rem; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+                </div>
+                <button type="button" class="btn btn-primary" onclick="verifyOfflineRecoveryKey()" style="width:100%; padding:0.55rem; font-weight:700;">
+                    <i class="fa-solid fa-unlock"></i> Verify Master Key
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 2: SET NEW ADMIN PIN (SHOWN UPON VERIFICATION) -->
+        <div id="forgot-step-reset" style="display:none;">
+            <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:0.6rem 0.75rem; margin-bottom:1rem; color:#065f46; font-size:0.8rem; display:flex; align-items:center; gap:0.5rem;">
+                <i class="fa-solid fa-circle-check" style="font-size:1.1rem;"></i>
+                <span>Identity verified successfully! You can now set a new Admin Master PIN.</span>
+            </div>
+
+            <div style="margin-bottom:0.75rem;">
+                <label style="font-size:0.8rem; font-weight:700; color:#0e254f; display:block; margin-bottom:0.25rem;">New Admin Master PIN:</label>
+                <input type="password" id="forgot-new-pin" placeholder="Enter new PIN (e.g. 6 digits)" style="width:100%; padding:0.5rem; font-size:0.9rem; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:1.25rem;">
+                <label style="font-size:0.8rem; font-weight:700; color:#0e254f; display:block; margin-bottom:0.25rem;">Confirm New PIN:</label>
+                <input type="password" id="forgot-confirm-pin" placeholder="Re-enter new PIN" style="width:100%; padding:0.5rem; font-size:0.9rem; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="submitResetAdminPin()" style="width:100%; padding:0.6rem; font-weight:700; font-size:0.9rem;">
+                <i class="fa-solid fa-lock-open"></i> Save New PIN &amp; Unlock Panel
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- MODAL: PIN HUB RESET MERCHANT PIN              -->
+<!-- ============================================== -->
+<div id="pinhub-reset-modal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:380px; border-radius:8px; padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">
+            <h3 style="margin:0; font-size:1rem; color:#0e254f;" id="pinhub-reset-title">Reset Party PIN</h3>
+            <button type="button" onclick="closeModal('pinhub-reset-modal')" style="background:none; border:none; font-size:1.1rem; color:#94a3b8; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <input type="hidden" id="pinhub-reset-merchant-id">
+        <div style="margin-bottom:1rem;">
+            <label style="font-size:0.8rem; font-weight:700; color:#0e254f; display:block; margin-bottom:0.25rem;">Enter New 6-Digit PIN:</label>
+            <input type="text" id="pinhub-reset-new-pin" maxlength="6" placeholder="e.g. 123456" style="width:100%; padding:0.45rem; font-size:1rem; font-weight:700; text-align:center; letter-spacing:2px; border:1px solid #cbd5e1; border-radius:4px; box-sizing:border-box;">
+        </div>
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('pinhub-reset-modal')">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="submitPinHubResetMerchantPin()">Save PIN</button>
+        </div>
+    </div>
+</div>
 
 <script src="core.js?v=4.9.14"></script>
 <script src="admin.js?v=4.9.14"></script>

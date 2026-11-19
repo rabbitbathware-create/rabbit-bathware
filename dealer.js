@@ -755,6 +755,11 @@
             return;
         }
 
+        if (merchant.isSuspended) {
+            alert('Your dealer portal account has been temporarily suspended by management. Please contact Rabbit Bathware support.');
+            return;
+        }
+
         const correctPin = String(merchant.pin || '').trim();
         if (correctPin && pinVal === correctPin) {
             // SUCCESS: Reset failed attempts counter

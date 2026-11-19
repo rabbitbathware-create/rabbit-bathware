@@ -225,6 +225,10 @@ const DEFAULT_SETTINGS = {
     companyName: "Shree Ram Bathware",
     currencySymbol: "\u20B9",
     allAsPerOrder: false,
+    adminPwd: "admin",
+    staffPwd: "1122",
+    ownerPhone: "919876543210",
+    masterRecoveryKey: "RABBIT-OWNER-9999",
     firebaseConfigJSON: JSON.stringify(DEFAULT_FIREBASE_CONFIG)
 };
 
@@ -309,6 +313,55 @@ function getEffectiveFirebaseConfig() {
     }
     return DEFAULT_FIREBASE_CONFIG;
 }
+
+function sanitizeStaffData(target) {
+    if (!target) return;
+    try {
+        if (Array.isArray(target.products)) {
+            target.products.forEach(p => {
+                if (!p) return;
+                p.price = 0;
+                p.billRate = 0;
+                p.boxPrice = 0;
+                p.boxBillRate = 0;
+                if (p.specifications && p.specifications.mrp) {
+                    delete p.specifications.mrp;
+                }
+            });
+        }
+        if (Array.isArray(target.merchants)) {
+            target.merchants.forEach(m => {
+                if (!m) return;
+                m.specialRates = {};
+                m.balances = {};
+                m.openingBalance = 0;
+                m.currentBalance = 0;
+            });
+        }
+        if (Array.isArray(target.orders)) {
+            target.orders.forEach(o => {
+                if (!o) return;
+                o.totalBill = 0;
+                o.totalCash = 0;
+                o.totalAmount = 0;
+                delete o.financials;
+                if (Array.isArray(o.items)) {
+                    o.items.forEach(it => {
+                        it.price = 0;
+                        it.billRate = 0;
+                        it.total = 0;
+                        it.cashAmount = 0;
+                        it.billAmount = 0;
+                    });
+                }
+            });
+        }
+        target.ledger = [];
+    } catch(err) {
+        console.error("sanitizeStaffData error:", err);
+    }
+}
+window.sanitizeStaffData = sanitizeStaffData;
 
 function initFirebaseSync() {
     try {
@@ -456,6 +509,10 @@ function initFirebaseSync() {
                 }
 
                 state = remoteVal;
+                const isStaffSession = typeof window !== 'undefined' && (window.location.pathname.includes('staff.html') || document.title.includes('Staff'));
+                if (isStaffSession && typeof sanitizeStaffData === 'function') {
+                    sanitizeStaffData(state);
+                }
                 try {
                     localStorage.setItem("bms_state", JSON.stringify(state));
                 } catch(e) {}
@@ -490,6 +547,26 @@ window.initFirebaseSync = initFirebaseSync;
 const debouncedCloudPush = debounce(() => {
     if (_isSyncingFromRemote || !_firebaseInitialized || !window.firebaseDB) return;
     try {
+        const isStaff = typeof window !== 'undefined' && (window.location.pathname.includes('staff.html') || document.title.includes('Staff'));
+        if (isStaff) {
+            if (state.orders) window.firebaseDB.ref("bms_state/orders").set(JSON.parse(JSON.stringify(state.orders)));
+            if (state.dealerRequests) window.firebaseDB.ref("bms_state/dealerRequests").set(JSON.parse(JSON.stringify(state.dealerRequests)));
+            if (state.products && Array.isArray(state.products)) {
+                const stockMap = {};
+                state.products.forEach(p => { if (p && p.id) stockMap[p.id] = (p.stock || 0); });
+                window.firebaseDB.ref("bms_state/products").once('value').then(snap => {
+                    const cProds = snap.val();
+                    if (cProds && Array.isArray(cProds)) {
+                        cProds.forEach(cp => {
+                            if (cp && cp.id && stockMap[cp.id] !== undefined) cp.stock = stockMap[cp.id];
+                        });
+                        window.firebaseDB.ref("bms_state/products").set(cProds);
+                    }
+                }).catch(() => {});
+            }
+            return;
+        }
+
         const cleanState = JSON.parse(JSON.stringify(state));
         window.firebaseDB.ref("bms_state").set(cleanState).catch(err => {
             console.warn("Cloud sync push error:", err);
@@ -502,6 +579,26 @@ const debouncedCloudPush = debounce(() => {
 function instantCloudPush() {
     if (!_firebaseInitialized || !window.firebaseDB) return;
     try {
+        const isStaff = typeof window !== 'undefined' && (window.location.pathname.includes('staff.html') || document.title.includes('Staff'));
+        if (isStaff) {
+            if (state.orders) window.firebaseDB.ref("bms_state/orders").set(JSON.parse(JSON.stringify(state.orders)));
+            if (state.dealerRequests) window.firebaseDB.ref("bms_state/dealerRequests").set(JSON.parse(JSON.stringify(state.dealerRequests)));
+            if (state.products && Array.isArray(state.products)) {
+                const stockMap = {};
+                state.products.forEach(p => { if (p && p.id) stockMap[p.id] = (p.stock || 0); });
+                window.firebaseDB.ref("bms_state/products").once('value').then(snap => {
+                    const cProds = snap.val();
+                    if (cProds && Array.isArray(cProds)) {
+                        cProds.forEach(cp => {
+                            if (cp && cp.id && stockMap[cp.id] !== undefined) cp.stock = stockMap[cp.id];
+                        });
+                        window.firebaseDB.ref("bms_state/products").set(cProds);
+                    }
+                }).catch(() => {});
+            }
+            return;
+        }
+
         const cleanState = JSON.parse(JSON.stringify(state));
         window.firebaseDB.ref("bms_state").set(cleanState).catch(err => {
             console.warn("Instant cloud push error:", err);
@@ -645,6 +742,10 @@ function loadState() {
     }
     migrateProductCategories();
     invalidatePerformanceCache();
+    const isStaffSessionLocal = typeof window !== 'undefined' && (window.location.pathname.includes('staff.html') || document.title.includes('Staff'));
+    if (isStaffSessionLocal && typeof sanitizeStaffData === 'function') {
+        sanitizeStaffData(state);
+    }
     initFirebaseSync();
 }
 
