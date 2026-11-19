@@ -5651,7 +5651,21 @@ function renderPartyPrivateCategoryCheckboxes(m) {
 function openPartyDetailsModal(merchantId, initialTab = 'profile') {
     try {
         const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
-        if (isStaff) initialTab = 'profile';
+        if (isStaff) {
+            initialTab = 'profile';
+            const btnRates = document.getElementById("ptab-btn-rates");
+            if (btnRates) btnRates.style.display = "none";
+            const btnLedger = document.getElementById("party-modal-ledger-btn");
+            if (btnLedger) btnLedger.style.display = "none";
+            const paneRates = document.getElementById("ptab-pane-rates");
+            if (paneRates) paneRates.style.display = "none";
+            const whiteBalBox = document.getElementById("pdetail-white-balance") ? document.getElementById("pdetail-white-balance").parentElement : null;
+            if (whiteBalBox) whiteBalBox.style.display = "none";
+            const blackBalBox = document.getElementById("pdetail-black-balance") ? document.getElementById("pdetail-black-balance").parentElement : null;
+            if (blackBalBox) blackBalBox.style.display = "none";
+            const discGroup = document.getElementById("pdetail-discount") ? document.getElementById("pdetail-discount").parentElement : null;
+            if (discGroup) discGroup.style.display = "none";
+        }
 
         // 1. Immediately display the modal element and select the requested tab so UI opens without delay
         openModal("party-details-modal");
