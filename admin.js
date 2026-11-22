@@ -4395,150 +4395,300 @@ function printInvoice(orderId) {
     printWin.document.close();
 }
 
-// ---- LEDGER ----
-function initLedgerTab() {
-    const sel = document.getElementById("ledger-merchant-filter");
-    if (sel && sel.tagName === 'SELECT') {
-        sel.innerHTML = `<option value="all">All Merchants</option>`;
-        state.merchants.forEach(m => {
-            const o = document.createElement("option");
-            o.value = m.id; o.textContent = m.name;
-            sel.appendChild(o);
-        });
+// ==========================================================================
+// ACCOUNTS LEDGER — MULTI-BOOK & DATE RANGE FILTERED STATEMENT SYSTEM
+// ==========================================================================
+
+function parseLedgerDate(dStr) {
+    if (!dStr) return null;
+    let s = String(dStr).trim();
+    let parts = s.split('.');
+    if (parts.length !== 3) parts = s.split('/');
+    if (parts.length !== 3) parts = s.split('-');
+    if (parts.length === 3) {
+        if (parts[0].length === 4) {
+            return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else {
+            return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        }
     }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function setLedgerBookFilter(book) {
+    const hidden = document.getElementById("ledger-book-filter");
+    if (hidden) hidden.value = book;
+
+    const btnAll = document.getElementById("ledger-book-btn-all");
+    const btnWhite = document.getElementById("ledger-book-btn-white");
+    const btnBlack = document.getElementById("ledger-book-btn-black");
+
+    const activeBg = "#0e254f";
+    const activeColor = "#ffffff";
+    const inactiveBg = "transparent";
+    const inactiveColor = "#475569";
+
+    if (btnAll) {
+        btnAll.style.background = (book === 'all') ? activeBg : inactiveBg;
+        btnAll.style.color = (book === 'all') ? activeColor : inactiveColor;
+    }
+    if (btnWhite) {
+        btnWhite.style.background = (book === 'white') ? "#2563eb" : inactiveBg;
+        btnWhite.style.color = (book === 'white') ? activeColor : inactiveColor;
+    }
+    if (btnBlack) {
+        btnBlack.style.background = (book === 'black') ? "#1e293b" : inactiveBg;
+        btnBlack.style.color = (book === 'black') ? activeColor : inactiveColor;
+    }
+
+    renderLedger();
+}
+
+function setLedgerQuickDate(preset) {
+    const fromInput = document.getElementById("ledger-date-from");
+    const toInput = document.getElementById("ledger-date-to");
+    const today = new Date();
+
+    if (preset === 'month') {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        if (fromInput) fromInput.value = firstDay.toISOString().split('T')[0];
+        if (toInput) toInput.value = today.toISOString().split('T')[0];
+    } else if (preset === 'fy') {
+        const fin = getActiveFinYearDates();
+        if (fin) {
+            if (fromInput) fromInput.value = fin.startDate.toISOString().split('T')[0];
+            if (toInput) toInput.value = today.toISOString().split('T')[0];
+        }
+    } else if (preset === 'all') {
+        if (fromInput) fromInput.value = "";
+        if (toInput) toInput.value = "";
+    }
+    renderLedger();
+}
+
+function resetLedgerFilters() {
+    const merchantSearch = document.getElementById("ledger-merchant-search");
+    if (merchantSearch) merchantSearch.value = "";
+    const merchantFilter = document.getElementById("ledger-merchant-filter");
+    if (merchantFilter) merchantFilter.value = "all";
+    const fromInput = document.getElementById("ledger-date-from");
+    if (fromInput) fromInput.value = "";
+    const toInput = document.getElementById("ledger-date-to");
+    if (toInput) toInput.value = "";
+    setLedgerBookFilter('all');
+}
+
+function initLedgerTab() {
     renderLedger();
 }
 
 function renderLedger() {
     const tbody = document.getElementById("ledger-table-body");
+    if (!tbody) return;
     tbody.innerHTML = "";
-    const filter = document.getElementById("ledger-merchant-filter").value;
-    const finDates = getActiveFinYearDates();
 
-    let entries = filter === "all" ? state.ledger : state.ledger.filter(e => e.merchantId === filter);
+    const filterMerchant = document.getElementById("ledger-merchant-filter")?.value || "all";
+    const bookFilter = document.getElementById("ledger-book-filter")?.value || "all";
+    const fromDateStr = document.getElementById("ledger-date-from")?.value;
+    const toDateStr = document.getElementById("ledger-date-to")?.value;
 
-    if(finDates) {
-        entries = entries.filter(e => {
-            if(e.date) {
-                let parts = e.date.split('.');
-                if(parts.length !== 3) parts = e.date.split('/');
-                if(parts.length === 3) {
-                    const d = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
-                    return d >= finDates.startDate && d <= finDates.endDate;
-                }
-            }
-            return true;
-        });
+    let fromDate = fromDateStr ? new Date(fromDateStr + "T00:00:00") : null;
+    let toDate = toDateStr ? new Date(toDateStr + "T23:59:59") : null;
+
+    // Fallback to active financial year if no custom date is selected
+    if (!fromDate && !toDate) {
+        const finDates = getActiveFinYearDates();
+        if (finDates) {
+            fromDate = finDates.startDate;
+            toDate = finDates.endDate;
+        }
     }
 
-    // Sort entries by date (ascending)
-    entries.sort((a, b) => {
-        const parseDate = (dStr) => {
-            if(!dStr) return 0;
-            let p = dStr.split('.');
-            if(p.length !== 3) p = dStr.split('/');
-            if(p.length === 3) return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0])).getTime();
-            return 0;
-        };
-        return parseDate(a.date) - parseDate(b.date);
+    let allEntries = state.ledger || [];
+
+    // Filter by Merchant
+    let entriesForMerchant = filterMerchant === "all" 
+        ? allEntries 
+        : allEntries.filter(e => e && e.merchantId === filterMerchant);
+
+    // Filter by Book (White / Black / All)
+    const matchesBook = (e, book) => {
+        if (book === 'all') return true;
+        const isWhite = (e.whiteAmount && e.whiteAmount > 0) || (e.book === 'white') || (e.description && e.description.includes('White'));
+        const isBlack = (e.blackAmount && e.blackAmount > 0) || (e.book === 'black') || (e.description && e.description.includes('Black') || e.description.includes('Cash'));
+        if (book === 'white') return isWhite;
+        if (book === 'black') return isBlack;
+        return true;
+    };
+
+    // Calculate Global Totals across ALL records for Top Cards
+    let overallWhite = 0;
+    let overallBlack = 0;
+    entriesForMerchant.forEach(e => {
+        const isCredit = e.txnType === 'Credit';
+        const wDebit = isCredit ? 0 : (e.whiteAmount || 0);
+        const wCredit = isCredit ? (e.whiteAmount || 0) : 0;
+        const bDebit = isCredit ? 0 : (e.blackAmount || 0);
+        const bCredit = isCredit ? (e.blackAmount || 0) : 0;
+        overallWhite += (wDebit - wCredit);
+        overallBlack += (bDebit - bCredit);
     });
 
-    let totalWhiteBal = 0;
-    let totalBlackBal = 0;
+    // Opening balances configured on merchant
+    const selectedMerchant = filterMerchant !== 'all' ? (state.merchants || []).find(m => m.id === filterMerchant) : null;
+    if (selectedMerchant) {
+        overallWhite += (parseFloat(selectedMerchant.openingBalanceWhite) || 0);
+        overallBlack += (parseFloat(selectedMerchant.openingBalanceBlack) || 0);
+    }
 
-    if (entries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="placeholder-text">No ledger entries.</td></tr>`;
+    const overallCombined = overallWhite + overallBlack;
+    const lw = document.getElementById("ledger-total-white");
+    const lb = document.getElementById("ledger-total-black");
+    const lc = document.getElementById("ledger-total-combined");
+    const lpSub = document.getElementById("ledger-party-status-sub");
+
+    if (lw) {
+        lw.innerHTML = overallWhite >= 0 ? fmtCur(overallWhite) : `+${fmtCur(Math.abs(overallWhite))} (Adv)`;
+        lw.style.color = overallWhite > 0 ? "#ef4444" : "#10b981";
+    }
+    if (lb) {
+        lb.innerHTML = overallBlack >= 0 ? fmtCur(overallBlack) : `+${fmtCur(Math.abs(overallBlack))} (Adv)`;
+        lb.style.color = overallBlack > 0 ? "#d97706" : "#10b981";
+    }
+    if (lc) {
+        lc.innerHTML = overallCombined >= 0 ? fmtCur(overallCombined) : `+${fmtCur(Math.abs(overallCombined))} (Adv)`;
+        lc.style.color = overallCombined > 0 ? "#2563eb" : "#10b981";
+    }
+    if (lpSub) {
+        if (selectedMerchant) {
+            lpSub.innerHTML = `<b>${selectedMerchant.name}</b> ${selectedMerchant.city ? '· ' + selectedMerchant.city : ''} · UID: <code>${selectedMerchant.uid || selectedMerchant.id}</code>`;
+        } else {
+            lpSub.textContent = "All Merchants Combined";
+        }
+    }
+
+    // Calculate Opening Balance prior to fromDate
+    let openingWhite = selectedMerchant ? (parseFloat(selectedMerchant.openingBalanceWhite) || 0) : 0;
+    let openingBlack = selectedMerchant ? (parseFloat(selectedMerchant.openingBalanceBlack) || 0) : 0;
+    let inRangeEntries = [];
+
+    entriesForMerchant.forEach(e => {
+        const d = parseLedgerDate(e.date);
+        if (d && fromDate && d < fromDate) {
+            const isCredit = e.txnType === 'Credit';
+            const wDebit = isCredit ? 0 : (e.whiteAmount || 0);
+            const wCredit = isCredit ? (e.whiteAmount || 0) : 0;
+            const bDebit = isCredit ? 0 : (e.blackAmount || 0);
+            const bCredit = isCredit ? (e.blackAmount || 0) : 0;
+            openingWhite += (wDebit - wCredit);
+            openingBlack += (bDebit - bCredit);
+        } else if (!fromDate || (d && d >= fromDate && (!toDate || d <= toDate))) {
+            if (matchesBook(e, bookFilter)) {
+                inRangeEntries.push(e);
+            }
+        }
+    });
+
+    // Sort in-range entries by date ascending
+    inRangeEntries.sort((a, b) => {
+        const da = parseLedgerDate(a.date) || new Date(0);
+        const db = parseLedgerDate(b.date) || new Date(0);
+        return da.getTime() - db.getTime();
+    });
+
+    // Calculate initial running balance
+    let runningBalance = (bookFilter === 'white') 
+        ? openingWhite 
+        : (bookFilter === 'black' ? openingBlack : (openingWhite + openingBlack));
+
+    // Render Opening Balance Row if party selected or opening balance != 0
+    if (filterMerchant !== 'all' || Math.abs(runningBalance) > 0.01) {
+        const opTr = document.createElement("tr");
+        opTr.style.background = "#f8fafc";
+        opTr.style.fontWeight = "700";
+        opTr.style.borderBottom = "2px solid #cbd5e1";
+
+        const fromDateFormatted = fromDate ? fromDate.toLocaleDateString('en-GB') : "Start";
+        const opDr = runningBalance > 0 ? fmtCur(runningBalance) : '-';
+        const opCr = runningBalance < 0 ? fmtCur(Math.abs(runningBalance)) : '-';
+        const opDisplay = runningBalance > 0 ? `${fmtCur(runningBalance)} Dr` : (runningBalance < 0 ? `+${fmtCur(Math.abs(runningBalance))} Cr` : '₹0');
+
+        opTr.innerHTML = `
+            <td><span class="badge" style="background:#e0e7ff; color:#3730a3; font-weight:700;">Opening</span></td>
+            <td><b>${selectedMerchant ? selectedMerchant.name : 'All Parties'}</b></td>
+            <td>-</td>
+            <td><b>Opening Balance (B/F) as of ${fromDateFormatted}</b></td>
+            <td class="num-col" style="color:#ef4444; font-weight:800; text-align:right;">${opDr}</td>
+            <td class="num-col" style="color:#10b981; font-weight:800; text-align:right;">${opCr}</td>
+            <td class="num-col" style="font-weight:800; text-align:right;">${opDisplay}</td>
+            <td style="text-align:center;"><span class="badge" style="background:#f1f5f9; color:#475569;">B/F</span></td>
+            <td></td>
+        `;
+        tbody.appendChild(opTr);
+    }
+
+    if (inRangeEntries.length === 0 && Math.abs(runningBalance) < 0.01) {
+        tbody.innerHTML = `<tr><td colspan="9" class="placeholder-text" style="padding:1.5rem; text-align:center;">No ledger transactions found for the selected period and filters.</td></tr>`;
     } else {
-        const balances = {}; 
-
-        entries.forEach(e => {
+        inRangeEntries.forEach(e => {
             const isCredit = e.txnType === 'Credit';
             const wDebit = isCredit ? 0 : (e.whiteAmount || 0);
             const wCredit = isCredit ? (e.whiteAmount || 0) : 0;
             const bDebit = isCredit ? 0 : (e.blackAmount || 0);
             const bCredit = isCredit ? (e.blackAmount || 0) : 0;
 
-            if (!balances[e.merchantId]) balances[e.merchantId] = { w: 0, b: 0 };
-            
-            balances[e.merchantId].w += (wDebit - wCredit);
-            balances[e.merchantId].b += (bDebit - bCredit);
-            
-            const trDebit = wDebit > 0 ? wDebit : (bDebit > 0 ? bDebit : 0);
-            const trCredit = wCredit > 0 ? wCredit : (bCredit > 0 ? bCredit : 0);
-            const bookName = (wDebit > 0 || wCredit > 0) ? 'White' : 'Black';
-            const badgeColor = bookName === 'White' ? '#3b82f6' : '#1e293b';
+            const trDebit = (bookFilter === 'black') ? bDebit : ((bookFilter === 'white') ? wDebit : (wDebit + bDebit));
+            const trCredit = (bookFilter === 'black') ? bCredit : ((bookFilter === 'white') ? wCredit : (wCredit + bCredit));
 
-            // Running balance
-            const combBalance = balances[e.merchantId].w + balances[e.merchantId].b;
-            const rowBalance = filter === "all" ? '-' : (combBalance < 0 ? `+${fmtCur(Math.abs(combBalance))} (Adv)` : fmtCur(combBalance));
+            runningBalance += (trDebit - trCredit);
+
+            const isWhiteEntry = (wDebit > 0 || wCredit > 0);
+            const bookName = isWhiteEntry ? 'White' : 'Black';
+            const badgeBg = isWhiteEntry ? '#dbeafe' : '#f1f5f9';
+            const badgeColor = isWhiteEntry ? '#1e40af' : '#1e293b';
+
+            const rowBalDisplay = filterMerchant === "all" 
+                ? '-' 
+                : (runningBalance > 0 ? `${fmtCur(runningBalance)} Dr` : (runningBalance < 0 ? `+${fmtCur(Math.abs(runningBalance))} Cr` : '₹0'));
 
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td>${e.date}</td>
                 <td><b>${e.merchantName}</b></td>
-                <td>${e.refNo || '-'}</td>
-                <td>${e.description} <span style="font-size:0.65rem; background:${badgeColor}; color:white; padding:2px 4px; border-radius:3px; margin-left:4px;">${bookName}</span></td>
-                <td class="num-col" style="color:#ef4444; font-weight:bold;">${trDebit > 0 ? fmtCur(trDebit) : '-'}</td>
-                <td class="num-col" style="color:#10b981; font-weight:bold;">${trCredit > 0 ? fmtCur(trCredit) : '-'}</td>
-                <td class="num-col"><b>${rowBalance}</b></td>
-                <td><span class="badge badge-success">${e.status || 'Cleared'}</span></td>
+                <td><code style="background:#f8fafc; padding:2px 5px; border-radius:4px; font-weight:700; color:#0e254f;">${e.refNo || '-'}</code></td>
                 <td>
-                    ${!e.orderId ? `<button class="btn btn-danger" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="deleteLedgerEntry('${e.id}')" title="Delete Entry"><i class="fa-solid fa-trash"></i></button>` : `<span style="font-size:0.75rem; color:var(--text-muted);" title="Cannot delete invoice directly. Cancel the order instead."><i class="fa-solid fa-lock"></i></span>`}
+                    ${e.description}
+                    ${e.status === 'CreditNote' ? '<span class="badge" style="background:#fef3c7; color:#d97706; margin-left:4px;">Credit Note</span>' : ''}
+                    ${e.status === 'DebitNote' ? '<span class="badge" style="background:#fee2e2; color:#dc2626; margin-left:4px;">Debit Note</span>' : ''}
+                </td>
+                <td class="num-col" style="color:#ef4444; font-weight:bold; text-align:right;">${trDebit > 0 ? fmtCur(trDebit) : '-'}</td>
+                <td class="num-col" style="color:#10b981; font-weight:bold; text-align:right;">${trCredit > 0 ? fmtCur(trCredit) : '-'}</td>
+                <td class="num-col" style="font-weight:bold; text-align:right;"><b>${rowBalDisplay}</b></td>
+                <td style="text-align:center;"><span class="badge" style="background:${badgeBg}; color:${badgeColor}; font-weight:700;">${bookName}</span></td>
+                <td style="text-align:center;">
+                    ${!e.orderId ? `<button class="btn btn-danger" style="padding:0.2rem 0.5rem; font-size:0.72rem;" onclick="deleteLedgerEntry('${e.id}')" title="Delete Entry"><i class="fa-solid fa-trash"></i></button>` : `<span style="font-size:0.75rem; color:var(--text-muted);" title="Sales Invoice linked to Order #${e.refNo || ''}"><i class="fa-solid fa-lock"></i></span>`}
                 </td>
             `;
             tbody.appendChild(tr);
         });
-
-        for (let mId in balances) {
-            totalWhiteBal += balances[mId].w;
-            totalBlackBal += balances[mId].b;
-        }
     }
 
+    // Update WhatsApp reminder button text and state
     const remBtn = document.getElementById("btn-ledger-wa-reminder");
     if (remBtn) {
-        if (filter !== "all") {
-            const netDues = totalWhiteBal + totalBlackBal;
+        if (filterMerchant !== "all") {
+            const netDues = overallCombined;
             if (netDues > 0) {
                 remBtn.style.opacity = "1";
-                remBtn.title = `Send Payment Reminder for ₹${netDues.toLocaleString('en-IN')} pending`;
                 remBtn.innerHTML = `<i class="fa-solid fa-bell"></i> Payment Reminder (₹${Math.round(netDues).toLocaleString('en-IN')} Due)`;
             } else {
                 remBtn.style.opacity = "0.75";
-                remBtn.title = "No pending dues for this party";
                 remBtn.innerHTML = `<i class="fa-solid fa-bell"></i> Payment Reminder (Clear)`;
             }
         } else {
             remBtn.style.opacity = "0.85";
-            remBtn.title = "Select a party to send payment reminder";
             remBtn.innerHTML = `<i class="fa-solid fa-bell"></i> Payment Reminder`;
-        }
-    }
-
-    const lw = document.getElementById("ledger-total-white");
-    const lb = document.getElementById("ledger-total-black");
-    if (lw) {
-        if (totalWhiteBal < 0) {
-            lw.innerHTML = `+${fmtCur(Math.abs(totalWhiteBal))}`;
-            lw.style.color = "#10b981";
-        } else if (totalWhiteBal > 0) {
-            lw.innerHTML = fmtCur(totalWhiteBal);
-            lw.style.color = "#ef4444";
-        } else {
-            lw.innerHTML = fmtCur(totalWhiteBal);
-            lw.style.color = "";
-        }
-    }
-    if (lb) {
-        if (totalBlackBal < 0) {
-            lb.innerHTML = `+${fmtCur(Math.abs(totalBlackBal))}`;
-            lb.style.color = "#10b981";
-        } else if (totalBlackBal > 0) {
-            lb.innerHTML = fmtCur(totalBlackBal);
-            lb.style.color = "#ef4444";
-        } else {
-            lb.innerHTML = fmtCur(totalBlackBal);
-            lb.style.color = "";
         }
     }
 }
@@ -4559,68 +4709,278 @@ function deleteLedgerEntry(entryId) {
 }
 
 function openPaymentModal() {
-    const sel = document.getElementById("payment-merchant-id");
-    sel.innerHTML = '<option value="">Select Party...</option>';
-    state.merchants.forEach(m => {
-        sel.innerHTML += `<option value="${m.id}">${m.name}</option>`;
-    });
-    
-    let dStr = new Date().toLocaleDateString('en-GB');
-    if(dStr.includes('/')) dStr = dStr.split('/').reverse().join('-');
-    
-    document.getElementById("add-payment-form").reset();
-    document.getElementById("payment-date").value = dStr;
+    const searchInput = document.getElementById("payment-merchant-search");
+    const hiddenId = document.getElementById("payment-merchant-id");
+    if (searchInput) searchInput.value = "";
+    if (hiddenId) hiddenId.value = "";
+
+    // Pre-select merchant if ledger filter has a specific merchant selected
+    const ledgerFilter = document.getElementById("ledger-merchant-filter") ? document.getElementById("ledger-merchant-filter").value : 'all';
+    if (ledgerFilter && ledgerFilter !== 'all') {
+        const m = (state.merchants || []).find(x => x.id === ledgerFilter);
+        if (m) {
+            if (searchInput) searchInput.value = m.name;
+            if (hiddenId) hiddenId.value = m.id;
+        }
+    }
+
+    let dStr = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById("payment-date");
+    if (dateInput) dateInput.value = dStr;
+
+    const txnTypeEl = document.getElementById("payment-txn-type");
+    if (txnTypeEl) txnTypeEl.value = "Payment";
+    onPaymentTxnTypeChange();
+
+    const amtInput = document.getElementById("payment-amount");
+    if (amtInput) amtInput.value = "";
+
+    const refInput = document.getElementById("payment-ref");
+    if (refInput) refInput.value = "";
+
     openModal('add-payment-modal');
+}
+
+function onPaymentTxnTypeChange() {
+    const txnType = document.getElementById("payment-txn-type") ? document.getElementById("payment-txn-type").value : "Payment";
+    const saveBtn = document.querySelector("#add-payment-form button[type='submit']");
+    const waWrap = document.getElementById("payment-send-wa") ? document.getElementById("payment-send-wa").closest('.form-group') : null;
+
+    if (txnType === "Payment") {
+        if (saveBtn) saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save Payment (જમા કરો)';
+        if (waWrap) waWrap.style.display = "block";
+    } else if (txnType === "CreditNote") {
+        if (saveBtn) saveBtn.innerHTML = '<i class="fa-solid fa-receipt"></i> Save Credit Note (જમા કરો)';
+        if (waWrap) waWrap.style.display = "block";
+    } else if (txnType === "DebitNote") {
+        if (saveBtn) saveBtn.innerHTML = '<i class="fa-solid fa-file-invoice"></i> Save Debit Note (ઉધાર કરો)';
+        if (waWrap) waWrap.style.display = "none";
+    }
 }
 
 function savePaymentEntry(e) {
     e.preventDefault();
-    const merchantId = document.getElementById("payment-merchant-id").value;
-    const book = document.getElementById("payment-book").value;
-    const mode = document.getElementById("payment-mode").value;
+    const merchantId = document.getElementById("payment-merchant-id") ? document.getElementById("payment-merchant-id").value : "";
+    const txnTypeSelect = document.getElementById("payment-txn-type") ? document.getElementById("payment-txn-type").value : "Payment";
+    const book = document.getElementById("payment-book") ? document.getElementById("payment-book").value : "white";
+    const mode = document.getElementById("payment-mode") ? document.getElementById("payment-mode").value : "Cash";
     const amount = parseFloat(document.getElementById("payment-amount").value);
-    const ref = document.getElementById("payment-ref").value;
-    let dateStr = document.getElementById("payment-date").value; 
-    
-    if(dateStr) {
+    const ref = document.getElementById("payment-ref") ? document.getElementById("payment-ref").value.trim() : "";
+    let dateStr = document.getElementById("payment-date") ? document.getElementById("payment-date").value : ""; 
+    const sendWA = document.getElementById("payment-send-wa") ? document.getElementById("payment-send-wa").checked : false;
+
+    if (!merchantId) {
+        alert("કૃપા કરીને પાર્ટી પસંદ કરો (Please search and select a merchant).");
+        const searchInput = document.getElementById("payment-merchant-search");
+        if (searchInput) searchInput.focus();
+        return;
+    }
+    if (!amount || amount <= 0) {
+        alert("કૃપા કરીને માન્ય રકમ દાખલ કરો (Please enter a valid amount).");
+        return;
+    }
+
+    if (dateStr) {
         const parts = dateStr.split('-');
-        dateStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        if (parts.length === 3) {
+            dateStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
     } else {
         dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '.');
     }
 
-    const m = state.merchants.find(x => x.id === merchantId);
-    if(!m) return;
+    const m = (state.merchants || []).find(x => x.id === merchantId);
+    if (!m) {
+        alert("પાર્ટી મળી નથી (Merchant not found).");
+        return;
+    }
+
+    let txnType = 'Credit';
+    let desc = 'Payment Received';
+
+    if (txnTypeSelect === 'DebitNote') {
+        txnType = 'Debit';
+        desc = ref ? `Debit Note - ${ref}` : `Debit Note / Extra Charges (${mode})`;
+    } else if (txnTypeSelect === 'CreditNote') {
+        txnType = 'Credit';
+        desc = ref ? `Credit Note - ${ref}` : `Credit Note / Return / Discount (${mode})`;
+    } else {
+        txnType = 'Credit';
+        desc = ref ? `Payment Received (${ref})` : `Payment Received (${mode})`;
+    }
 
     const entry = {
-        id: "led-pay-" + Date.now(),
+        id: "led-" + (txnTypeSelect === 'Payment' ? 'pay-' : (txnTypeSelect === 'CreditNote' ? 'cn-' : 'dn-')) + Date.now(),
         merchantId: m.id,
         merchantName: m.name,
         date: dateStr,
         refNo: ref ? `${mode} - ${ref}` : mode,
-        description: "Payment Received",
+        description: desc,
         whiteAmount: book === 'white' ? amount : 0,
         blackAmount: book === 'black' ? amount : 0,
-        txnType: 'Credit',
+        txnType: txnType,
         status: "Cleared"
     };
 
+    if (!state.ledger) state.ledger = [];
     state.ledger.push(entry);
     saveState();
     closeModal('add-payment-modal');
     renderLedger();
+
+    if (sendWA && (txnTypeSelect === 'Payment' || txnTypeSelect === 'CreditNote')) {
+        sendPaymentReceiptWhatsApp(m, amount, book, mode, ref, dateStr, txnTypeSelect);
+    }
+}
+
+function sendPaymentReceiptWhatsApp(m, amount, book, mode, ref, dateStr, txnTypeSelect) {
+    if (!m) return;
+    const companyName = (state.settings && state.settings.companyName) ? state.settings.companyName : "Shree Ram Bathware";
+    const companyPhone = (state.settings && state.settings.companyPhone) ? state.settings.companyPhone : "";
+
+    const typeTitle = txnTypeSelect === 'CreditNote' ? 'CREDIT NOTE / VADTAR (જમા પહોંચ)' : 'PAYMENT RECEIPT (પેમેન્ટ મળ્યાની પહોંચ)';
+    const bookTitle = book === 'white' ? 'Official White Book' : 'Cash Book';
+
+    let msg = `🧾 *${typeTitle}*\n` +
+              `🏢 *${companyName}*\n` +
+              `━━━━━━━━━━━━━━━━━━━━\n` +
+              `👤 *પાર્ટી (Party):* ${m.name}\n` +
+              `📅 *તારીખ (Date):* ${dateStr}\n` +
+              `💰 *જમા રકમ (Amount):* *₹${Math.round(amount).toLocaleString('en-IN')}*\n` +
+              `💳 *રીત (Mode):* ${mode} ${ref ? `(${ref})` : ''}\n` +
+              `📖 *ખાતું (Account):* ${bookTitle}\n` +
+              `━━━━━━━━━━━━━━━━━━━━\n` +
+              `આપનું પેમેન્ટ સફળતાપૂર્વક જમા કરવામાં આવ્યું છે. આભાર!\n` +
+              (companyPhone ? `📞 સંપર્ક: ${companyPhone}` : '');
+
+    const phone = (m.phone || '').replace(/[^0-9]/g, '');
+    const cleanPhone = phone.length === 10 ? `91${phone}` : phone;
+    const waUrl = cleanPhone ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, "_blank");
+}
+
+function openOpeningBalanceModal() {
+    const sel = document.getElementById("opbal-merchant-select");
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Select Party...</option>';
+    (state.merchants || []).forEach(m => {
+        sel.innerHTML += `<option value="${m.id}">${m.name} (${m.city || m.address || 'UID: ' + (m.uid || '-')})</option>`;
+    });
+
+    const activeFilter = document.getElementById("ledger-merchant-filter") ? document.getElementById("ledger-merchant-filter").value : 'all';
+    if (activeFilter && activeFilter !== 'all') {
+        sel.value = activeFilter;
+    }
+
+    loadPartyOpeningBalanceFields();
+    openModal('opening-balance-modal');
+}
+
+function loadPartyOpeningBalanceFields() {
+    const sel = document.getElementById("opbal-merchant-select");
+    const mId = sel ? sel.value : "";
+    const m = (state.merchants || []).find(x => x.id === mId);
+
+    const wAmt = document.getElementById("opbal-white-amount");
+    const wType = document.getElementById("opbal-white-type");
+    const bAmt = document.getElementById("opbal-black-amount");
+    const bType = document.getElementById("opbal-black-type");
+    const dateInput = document.getElementById("opbal-date");
+
+    if (m) {
+        if (wAmt) wAmt.value = (m.openingBalanceWhite != null && m.openingBalanceWhite !== 0) ? Math.abs(m.openingBalanceWhite) : "";
+        if (wType) wType.value = (m.openingBalanceWhite != null && m.openingBalanceWhite < 0) ? "Cr" : "Dr";
+        if (bAmt) bAmt.value = (m.openingBalanceBlack != null && m.openingBalanceBlack !== 0) ? Math.abs(m.openingBalanceBlack) : "";
+        if (bType) bType.value = (m.openingBalanceBlack != null && m.openingBalanceBlack < 0) ? "Cr" : "Dr";
+        if (dateInput) dateInput.value = m.openingBalanceDate || "";
+    } else {
+        if (wAmt) wAmt.value = "";
+        if (wType) wType.value = "Dr";
+        if (bAmt) bAmt.value = "";
+        if (bType) bType.value = "Dr";
+        if (dateInput) dateInput.value = "";
+    }
+}
+
+function savePartyOpeningBalance(e) {
+    e.preventDefault();
+    const sel = document.getElementById("opbal-merchant-select");
+    const mId = sel ? sel.value : "";
+    const m = (state.merchants || []).find(x => x.id === mId);
+    if (!m) {
+        alert("કૃપા કરીને પાર્ટી પસંદ કરો (Please select a party).");
+        return;
+    }
+
+    const wRaw = parseFloat(document.getElementById("opbal-white-amount")?.value) || 0;
+    const wType = document.getElementById("opbal-white-type")?.value || "Dr";
+    const bRaw = parseFloat(document.getElementById("opbal-black-amount")?.value) || 0;
+    const bType = document.getElementById("opbal-black-type")?.value || "Dr";
+    const opDate = document.getElementById("opbal-date")?.value || "";
+
+    m.openingBalanceWhite = wType === "Cr" ? -wRaw : wRaw;
+    m.openingBalanceBlack = bType === "Cr" ? -bRaw : bRaw;
+    m.openingBalanceDate = opDate;
+
+    saveState();
+    closeModal('opening-balance-modal');
+    renderLedger();
+    alert(`✔ ${m.name} નું Opening Balance સફળતાપૂર્વક સાચવવામાં આવ્યું છે.`);
 }
 
 function exportLedgerCSV() {
-    if (state.ledger.length === 0) { alert("Ledger is empty."); return; }
-    let csv = "Date,Merchant,Ref,Description,Type,White Amount,Black Amount,Status\n";
-    state.ledger.forEach(e => {
-        csv += `${e.date},"${e.merchantName}",${e.refNo},"${e.description}",${e.txnType || 'Debit'},${e.whiteAmount || 0},${e.blackAmount || 0},${e.status}\n`;
+    if (!state.ledger || state.ledger.length === 0) { alert("Ledger is empty."); return; }
+
+    const filterMerchant = document.getElementById("ledger-merchant-filter") ? document.getElementById("ledger-merchant-filter").value : 'all';
+    const bookFilter = document.getElementById("ledger-book-filter") ? document.getElementById("ledger-book-filter").value : 'all';
+    const fromDateStr = document.getElementById("ledger-date-from") ? document.getElementById("ledger-date-from").value : '';
+    const toDateStr = document.getElementById("ledger-date-to") ? document.getElementById("ledger-date-to").value : '';
+
+    let fromDate = fromDateStr ? new Date(fromDateStr + "T00:00:00") : null;
+    let toDate = toDateStr ? new Date(toDateStr + "T23:59:59") : null;
+
+    let filtered = [...state.ledger];
+
+    if (filterMerchant !== 'all') {
+        filtered = filtered.filter(e => e.merchantId === filterMerchant);
+    }
+
+    if (bookFilter === 'white') {
+        filtered = filtered.filter(e => (e.whiteAmount || 0) > 0);
+    } else if (bookFilter === 'black') {
+        filtered = filtered.filter(e => (e.blackAmount || 0) > 0);
+    }
+
+    if (fromDate || toDate) {
+        filtered = filtered.filter(e => {
+            const d = parseLedgerDate(e.date);
+            if (!d) return true;
+            if (fromDate && d < fromDate) return false;
+            if (toDate && d > toDate) return false;
+            return true;
+        });
+    }
+
+    filtered.sort((a, b) => {
+        const da = parseLedgerDate(a.date) || new Date(0);
+        const db = parseLedgerDate(b.date) || new Date(0);
+        return da - db;
     });
-    const blob = new Blob([csv], { type: 'text/csv' });
+
+    let csv = "Date,Merchant,Ref,Description,Type,White Amount,Black Amount,Net Debit,Net Credit,Status\n";
+    filtered.forEach(e => {
+        const isCr = e.txnType === 'Credit';
+        const w = e.whiteAmount || 0;
+        const b = e.blackAmount || 0;
+        const dr = isCr ? 0 : (w + b);
+        const cr = isCr ? (w + b) : 0;
+        csv += `"${e.date}","${(e.merchantName || '').replace(/"/g, '""')}","${(e.refNo || '').replace(/"/g, '""')}","${(e.description || '').replace(/"/g, '""')}",${e.txnType || 'Debit'},${w},${b},${dr},${cr},${e.status || 'Cleared'}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `BMS_Ledger_${Date.now()}.csv`;
+    a.download = `BMS_Ledger_${filterMerchant !== 'all' ? filterMerchant : 'Consolidated'}_${Date.now()}.csv`;
     a.click();
 }
 
@@ -4639,45 +4999,67 @@ function sendLedgerWhatsAppStatement() {
         return;
     }
 
+    const bookFilter = document.getElementById("ledger-book-filter") ? document.getElementById("ledger-book-filter").value : 'all';
+    const fromDateStr = document.getElementById("ledger-date-from") ? document.getElementById("ledger-date-from").value : '';
+    const toDateStr = document.getElementById("ledger-date-to") ? document.getElementById("ledger-date-to").value : '';
+
+    let fromDate = fromDateStr ? new Date(fromDateStr + "T00:00:00") : null;
+    let toDate = toDateStr ? new Date(toDateStr + "T23:59:59") : null;
+
     const companyName = (state.settings && state.settings.companyName) ? state.settings.companyName : "Shree Ram Bathware";
     const companyPhone = (state.settings && state.settings.companyPhone) ? state.settings.companyPhone : "";
-    const finDates = getActiveFinYearDates();
 
-    let entries = (state.ledger || []).filter(e => e.merchantId === filter);
-    if (finDates) {
-        entries = entries.filter(e => {
-            if (e.date) {
-                let parts = e.date.split('.');
-                if (parts.length !== 3) parts = e.date.split('/');
-                if (parts.length === 3) {
-                    const d = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
-                    return d >= finDates.startDate && d <= finDates.endDate;
-                }
+    // Calculate opening balance before fromDate
+    let initialOBWhite = m.openingBalanceWhite || 0;
+    let initialOBBlack = m.openingBalanceBlack || 0;
+    let priorWhite = initialOBWhite;
+    let priorBlack = initialOBBlack;
+
+    let partyEntries = (state.ledger || []).filter(e => e.merchantId === filter);
+
+    if (fromDate) {
+        partyEntries.forEach(e => {
+            const d = parseLedgerDate(e.date);
+            if (d && d < fromDate) {
+                const isCr = e.txnType === 'Credit';
+                const w = e.whiteAmount || 0;
+                const b = e.blackAmount || 0;
+                priorWhite += isCr ? -w : w;
+                priorBlack += isCr ? -b : b;
             }
-            return true;
         });
     }
 
-    entries.sort((a, b) => {
-        const parseDate = (dStr) => {
-            if(!dStr) return 0;
-            let p = dStr.split('.');
-            if(p.length !== 3) p = dStr.split('/');
-            if(p.length === 3) return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0])).getTime();
-            return 0;
-        };
-        return parseDate(a.date) - parseDate(b.date);
+    // Filter within range
+    let entries = partyEntries.filter(e => {
+        const d = parseLedgerDate(e.date);
+        if (!d) return true;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+        return true;
     });
 
-    let wBal = 0, bBal = 0;
+    if (bookFilter === 'white') {
+        entries = entries.filter(e => (e.whiteAmount || 0) > 0);
+    } else if (bookFilter === 'black') {
+        entries = entries.filter(e => (e.blackAmount || 0) > 0);
+    }
+
+    entries.sort((a, b) => {
+        const da = parseLedgerDate(a.date) || new Date(0);
+        const db = parseLedgerDate(b.date) || new Date(0);
+        return da - db;
+    });
+
+    let wBal = (bookFilter === 'black') ? 0 : priorWhite;
+    let bBal = (bookFilter === 'white') ? 0 : priorBlack;
+
     entries.forEach(e => {
-        const isCredit = e.txnType === 'Credit';
-        const wDebit = isCredit ? 0 : (e.whiteAmount || 0);
-        const wCredit = isCredit ? (e.whiteAmount || 0) : 0;
-        const bDebit = isCredit ? 0 : (e.blackAmount || 0);
-        const bCredit = isCredit ? (e.blackAmount || 0) : 0;
-        wBal += (wDebit - wCredit);
-        bBal += (bDebit - bCredit);
+        const isCr = e.txnType === 'Credit';
+        const w = e.whiteAmount || 0;
+        const b = e.blackAmount || 0;
+        if (bookFilter !== 'black') wBal += isCr ? -w : w;
+        if (bookFilter !== 'white') bBal += isCr ? -b : b;
     });
 
     const netBal = wBal + bBal;
@@ -4685,12 +5067,23 @@ function sendLedgerWhatsAppStatement() {
 
     const todayStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '.');
 
-    const recentTxns = entries.slice(-5);
+    let periodStr = "All Transactions";
+    if (fromDateStr && toDateStr) {
+        periodStr = `${fromDateStr.split('-').reverse().join('.')} to ${toDateStr.split('-').reverse().join('.')}`;
+    } else if (fromDateStr) {
+        periodStr = `From ${fromDateStr.split('-').reverse().join('.')}`;
+    } else if (toDateStr) {
+        periodStr = `Up to ${toDateStr.split('-').reverse().join('.')}`;
+    }
+
+    const bookName = bookFilter === 'white' ? 'Official White Book' : (bookFilter === 'black' ? 'Cash Black Book' : 'Consolidated (All Books)');
+
+    const recentTxns = entries.slice(-6);
     let txnLines = "";
     if (recentTxns.length > 0) {
         txnLines = "\n📋 *છેલ્લા વ્યવહારો (Recent Transactions):*\n" + recentTxns.map(t => {
             const isCr = t.txnType === 'Credit';
-            const amt = (t.whiteAmount || 0) + (t.blackAmount || 0);
+            const amt = (bookFilter === 'white' ? (t.whiteAmount || 0) : (bookFilter === 'black' ? (t.blackAmount || 0) : ((t.whiteAmount || 0) + (t.blackAmount || 0))));
             return `• ${t.date} | ${t.description || (isCr ? 'Payment' : 'Invoice')} | ${isCr ? '🟢 જમા: ₹' : '🔴 ઉધાર: ₹'}${amt.toLocaleString('en-IN')}`;
         }).join('\n') + "\n";
     }
@@ -4700,10 +5093,11 @@ function sendLedgerWhatsAppStatement() {
               `━━━━━━━━━━━━━━━━━━━━\n` +
               `👤 *Party:* ${m.name}\n` +
               `📍 *City:* ${m.city || m.address || '-'}\n` +
-              `📅 *Date:* ${todayStr}\n` +
+              `📅 *Period:* ${periodStr}\n` +
+              `📖 *Book:* ${bookName}\n` +
               `━━━━━━━━━━━━━━━━━━━━\n` +
-              `🔹 *White Book:* ${wBal >= 0 ? '₹' + Math.round(wBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(wBal)).toLocaleString('en-IN') + ' (Adv)'}\n` +
-              `🔹 *Cash Book:* ${bBal >= 0 ? '₹' + Math.round(bBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(bBal)).toLocaleString('en-IN') + ' (Adv)'}\n` +
+              (bookFilter !== 'black' ? `🔹 *White Book:* ${wBal >= 0 ? '₹' + Math.round(wBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(wBal)).toLocaleString('en-IN') + ' (Adv)'}\n` : '') +
+              (bookFilter !== 'white' ? `🔹 *Cash Book:* ${bBal >= 0 ? '₹' + Math.round(bBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(bBal)).toLocaleString('en-IN') + ' (Adv)'}\n` : '') +
               `💰 *કુલ નેટ બાકી (Net Balance):* *${statusText}*\n` +
               `━━━━━━━━━━━━━━━━━━━━\n` +
               txnLines +
@@ -4731,34 +5125,20 @@ function sendPaymentReminderWhatsApp() {
         return;
     }
 
+    const bookFilter = document.getElementById("ledger-book-filter") ? document.getElementById("ledger-book-filter").value : 'all';
     const companyName = (state.settings && state.settings.companyName) ? state.settings.companyName : "Shree Ram Bathware";
     const companyPhone = (state.settings && state.settings.companyPhone) ? state.settings.companyPhone : "";
-    const finDates = getActiveFinYearDates();
 
-    let entries = (state.ledger || []).filter(e => e.merchantId === filter);
-    if (finDates) {
-        entries = entries.filter(e => {
-            if (e.date) {
-                let parts = e.date.split('.');
-                if (parts.length !== 3) parts = e.date.split('/');
-                if (parts.length === 3) {
-                    const d = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
-                    return d >= finDates.startDate && d <= finDates.endDate;
-                }
-            }
-            return true;
-        });
-    }
+    let wBal = (bookFilter === 'black') ? 0 : (m.openingBalanceWhite || 0);
+    let bBal = (bookFilter === 'white') ? 0 : (m.openingBalanceBlack || 0);
 
-    let wBal = 0, bBal = 0;
+    const entries = (state.ledger || []).filter(e => e.merchantId === filter);
     entries.forEach(e => {
-        const isCredit = e.txnType === 'Credit';
-        const wDebit = isCredit ? 0 : (e.whiteAmount || 0);
-        const wCredit = isCredit ? (e.whiteAmount || 0) : 0;
-        const bDebit = isCredit ? 0 : (e.blackAmount || 0);
-        const bCredit = isCredit ? (e.blackAmount || 0) : 0;
-        wBal += (wDebit - wCredit);
-        bBal += (bDebit - bCredit);
+        const isCr = e.txnType === 'Credit';
+        const w = e.whiteAmount || 0;
+        const b = e.blackAmount || 0;
+        if (bookFilter !== 'black') wBal += isCr ? -w : w;
+        if (bookFilter !== 'white') bBal += isCr ? -b : b;
     });
 
     const netBal = wBal + bBal;
@@ -4787,182 +5167,285 @@ function sendPaymentReminderWhatsApp() {
 
 function printLedgerStatement() {
     const filter = document.getElementById("ledger-merchant-filter") ? document.getElementById("ledger-merchant-filter").value : 'all';
+    const bookFilter = document.getElementById("ledger-book-filter") ? document.getElementById("ledger-book-filter").value : 'all';
+    const fromDateStr = document.getElementById("ledger-date-from") ? document.getElementById("ledger-date-from").value : '';
+    const toDateStr = document.getElementById("ledger-date-to") ? document.getElementById("ledger-date-to").value : '';
+
+    let fromDate = fromDateStr ? new Date(fromDateStr + "T00:00:00") : null;
+    let toDate = toDateStr ? new Date(toDateStr + "T23:59:59") : null;
+
     const company = (state.settings && state.settings.companyName) ? state.settings.companyName : "Shree Ram Bathware";
     const companyPhone = (state.settings && state.settings.companyPhone) ? state.settings.companyPhone : "";
     const companyAddress = (state.settings && state.settings.companyAddress) ? state.settings.companyAddress : "";
-    const finDates = getActiveFinYearDates();
-    const curYear = (state.settings && state.settings.financialYear) ? state.settings.financialYear : "Current FY";
 
-    let entries = filter === "all" ? [...state.ledger] : state.ledger.filter(e => e.merchantId === filter);
+    const m = filter !== "all" ? (state.merchants || []).find(x => x.id === filter) : null;
 
-    if (finDates) {
-        entries = entries.filter(e => {
-            if (e.date) {
-                let parts = e.date.split('.');
-                if (parts.length !== 3) parts = e.date.split('/');
-                if (parts.length === 3) {
-                    const d = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
-                    return d >= finDates.startDate && d <= finDates.endDate;
-                }
-            }
-            return true;
+    // Calculate opening balance prior to fromDate
+    let initialOpeningBalance = 0;
+    if (m) {
+        if (bookFilter === 'white') initialOpeningBalance = m.openingBalanceWhite || 0;
+        else if (bookFilter === 'black') initialOpeningBalance = m.openingBalanceBlack || 0;
+        else initialOpeningBalance = (m.openingBalanceWhite || 0) + (m.openingBalanceBlack || 0);
+    } else {
+        // Consolidated across all merchants
+        (state.merchants || []).forEach(item => {
+            if (bookFilter === 'white') initialOpeningBalance += (item.openingBalanceWhite || 0);
+            else if (bookFilter === 'black') initialOpeningBalance += (item.openingBalanceBlack || 0);
+            else initialOpeningBalance += (item.openingBalanceWhite || 0) + (item.openingBalanceBlack || 0);
         });
     }
 
-    entries.sort((a, b) => {
-        const parseDate = (dStr) => {
-            if(!dStr) return 0;
-            let p = dStr.split('.');
-            if(p.length !== 3) p = dStr.split('/');
-            if(p.length === 3) return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0])).getTime();
-            return 0;
-        };
-        return parseDate(a.date) - parseDate(b.date);
+    let priorTxnBalance = 0;
+    const allPartyEntries = filter === "all" ? [...state.ledger] : state.ledger.filter(e => e.merchantId === filter);
+
+    if (fromDate) {
+        allPartyEntries.forEach(e => {
+            const d = parseLedgerDate(e.date);
+            if (d && d < fromDate) {
+                const isCredit = e.txnType === 'Credit';
+                const w = e.whiteAmount || 0;
+                const b = e.blackAmount || 0;
+                let amt = 0;
+                if (bookFilter === 'white') amt = w;
+                else if (bookFilter === 'black') amt = b;
+                else amt = w + b;
+                priorTxnBalance += isCredit ? -amt : amt;
+            }
+        });
+    }
+
+    const netOpeningBalance = initialOpeningBalance + priorTxnBalance;
+
+    // Filter entries within date range & book filter
+    let entries = allPartyEntries.filter(e => {
+        const d = parseLedgerDate(e.date);
+        if (!d) return true;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+        return true;
     });
 
-    const m = filter !== "all" ? (state.merchants || []).find(x => x.id === filter) : null;
-    const printWin = window.open("", "_blank");
+    if (bookFilter === 'white') {
+        entries = entries.filter(e => (e.whiteAmount || 0) > 0);
+    } else if (bookFilter === 'black') {
+        entries = entries.filter(e => (e.blackAmount || 0) > 0);
+    }
 
-    let runningBal = 0;
+    entries.sort((a, b) => {
+        const da = parseLedgerDate(a.date) || new Date(0);
+        const db = parseLedgerDate(b.date) || new Date(0);
+        return da - db;
+    });
+
+    let runningBal = netOpeningBalance;
     let totalDebit = 0;
     let totalCredit = 0;
 
-    const rowsHtml = entries.map((e, idx) => {
+    // Build rows
+    let rowsHtml = "";
+
+    // Opening Balance row if fromDate is provided or initial balance exists
+    if (fromDate || netOpeningBalance !== 0) {
+        const obDr = netOpeningBalance > 0 ? netOpeningBalance : 0;
+        const obCr = netOpeningBalance < 0 ? Math.abs(netOpeningBalance) : 0;
+        const obBalFmt = netOpeningBalance > 0 ? `₹${Math.round(netOpeningBalance).toLocaleString('en-IN')} Dr` : (netOpeningBalance < 0 ? `₹${Math.round(Math.abs(netOpeningBalance)).toLocaleString('en-IN')} Cr (Adv)` : '₹0');
+        const obDateStr = fromDateStr ? fromDateStr.split('-').reverse().join('.') : (m && m.openingBalanceDate ? m.openingBalanceDate : '-');
+
+        rowsHtml += `
+            <tr style="background:#f1f5f9; font-weight:700;">
+                <td style="text-align:center;">-</td>
+                <td>${obDateStr}</td>
+                ${filter === "all" ? `<td><b>-</b></td>` : ''}
+                <td>OB-B/F</td>
+                <td><b>Opening Balance B/F (શરૂઆતનું બાકી)</b></td>
+                <td style="text-align:right; color:#ef4444;">${obDr > 0 ? '₹' + Math.round(obDr).toLocaleString('en-IN') : '-'}</td>
+                <td style="text-align:right; color:#10b981;">${obCr > 0 ? '₹' + Math.round(obCr).toLocaleString('en-IN') : '-'}</td>
+                <td style="text-align:right; color:#0e254f;">${obBalFmt}</td>
+            </tr>
+        `;
+    }
+
+    entries.forEach((e, idx) => {
         const isCredit = e.txnType === 'Credit';
-        const wDebit = isCredit ? 0 : (e.whiteAmount || 0);
-        const wCredit = isCredit ? (e.whiteAmount || 0) : 0;
-        const bDebit = isCredit ? 0 : (e.blackAmount || 0);
-        const bCredit = isCredit ? (e.blackAmount || 0) : 0;
-        const dr = wDebit + bDebit;
-        const cr = wCredit + bCredit;
+        const w = e.whiteAmount || 0;
+        const b = e.blackAmount || 0;
+
+        let dr = 0;
+        let cr = 0;
+
+        if (bookFilter === 'white') {
+            dr = isCredit ? 0 : w;
+            cr = isCredit ? w : 0;
+        } else if (bookFilter === 'black') {
+            dr = isCredit ? 0 : b;
+            cr = isCredit ? b : 0;
+        } else {
+            dr = isCredit ? 0 : (w + b);
+            cr = isCredit ? (w + b) : 0;
+        }
+
         totalDebit += dr;
         totalCredit += cr;
         runningBal += (dr - cr);
 
-        const book = (wDebit > 0 || wCredit > 0) ? 'White' : 'Cash';
+        const bookTag = (w > 0 && b > 0) ? 'Split' : (w > 0 ? 'White' : 'Cash');
         const balDisplay = runningBal > 0 ? `₹${Math.round(runningBal).toLocaleString('en-IN')} Dr` : (runningBal < 0 ? `₹${Math.round(Math.abs(runningBal)).toLocaleString('en-IN')} Cr (Adv)` : '₹0');
 
-        return `
+        rowsHtml += `
             <tr>
-                <td>${idx + 1}</td>
+                <td style="text-align:center;">${idx + 1}</td>
                 <td>${e.date}</td>
                 ${filter === "all" ? `<td><b>${e.merchantName}</b></td>` : ''}
                 <td>${e.refNo || '-'}</td>
-                <td>${e.description} <small style="color:#64748b;">(${book})</small></td>
+                <td>${e.description} <small style="color:#64748b; font-weight:600;">(${bookTag})</small></td>
                 <td style="text-align:right; color:#ef4444; font-weight:600;">${dr > 0 ? '₹' + Math.round(dr).toLocaleString('en-IN') : '-'}</td>
                 <td style="text-align:right; color:#10b981; font-weight:600;">${cr > 0 ? '₹' + Math.round(cr).toLocaleString('en-IN') : '-'}</td>
-                <td style="text-align:right; font-weight:700;">${balDisplay}</td>
+                <td style="text-align:right; font-weight:700; color:#0e254f;">${balDisplay}</td>
             </tr>
         `;
-    }).join("");
+    });
 
-    const netBalDisplay = runningBal > 0 ? `<span style="color:#ef4444;">₹${Math.round(runningBal).toLocaleString('en-IN')} (Pending Due)</span>` : (runningBal < 0 ? `<span style="color:#10b981;">+₹${Math.round(Math.abs(runningBal)).toLocaleString('en-IN')} (Advance Deposit)</span>` : `<span style="color:#10b981;">₹0 (Account Settled)</span>`);
+    const netBalDisplay = runningBal > 0 ? `<span style="color:#ef4444; font-weight:800;">₹${Math.round(runningBal).toLocaleString('en-IN')} (Pending Due)</span>` : (runningBal < 0 ? `<span style="color:#10b981; font-weight:800;">+₹${Math.round(Math.abs(runningBal)).toLocaleString('en-IN')} (Advance Deposit)</span>` : `<span style="color:#10b981; font-weight:800;">₹0 (Account Settled)</span>`);
 
+    let periodHeader = "Complete Account History (All Dates)";
+    if (fromDateStr && toDateStr) {
+        periodHeader = `From ${fromDateStr.split('-').reverse().join('.')} To ${toDateStr.split('-').reverse().join('.')}`;
+    } else if (fromDateStr) {
+        periodHeader = `From ${fromDateStr.split('-').reverse().join('.')} Onwards`;
+    } else if (toDateStr) {
+        periodHeader = `Up To ${toDateStr.split('-').reverse().join('.')}`;
+    }
+
+    const bookTitleDisplay = bookFilter === 'white' ? 'Official White Book (GST / Tax Invoices Only)' : (bookFilter === 'black' ? 'Cash Black Book (Cash Accounts Only)' : 'Consolidated Ledger (White & Cash Combined)');
+
+    const printWin = window.open("", "_blank");
     printWin.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="utf-8">
             <title>Ledger Statement - ${m ? m.name : 'All Parties'}</title>
             <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 25px; color: #1e293b; font-size: 13px; }
-                .header { border-bottom: 2px solid #0e254f; padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; }
-                .company-name { font-size: 22px; font-weight: 800; color: #0e254f; text-transform: uppercase; margin: 0; }
-                .party-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; }
-                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                th, td { border: 1px solid #cbd5e1; padding: 7px 10px; }
-                th { background: #0e254f; color: #fff; font-size: 12px; font-weight: 600; text-align: left; }
+                @page { size: A4; margin: 10mm 12mm 12mm 12mm; }
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 15px; color: #0f172a; font-size: 12.5px; line-height: 1.4; }
+                .no-print { text-align: right; margin-bottom: 12px; }
+                .header { border-bottom: 2.5px solid #0e254f; padding-bottom: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; }
+                .company-name { font-size: 22px; font-weight: 800; color: #0e254f; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
+                .party-box { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; }
+                .book-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-top: 4px; }
+                .book-white { background: #dbeafe; color: #1e40af; }
+                .book-black { background: #fef3c7; color: #92400e; }
+                .book-all { background: #e2e8f0; color: #0f172a; }
+                table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+                th, td { border: 1px solid #cbd5e1; padding: 6px 9px; font-size: 12px; }
+                th { background: #0e254f; color: #ffffff; font-weight: 700; text-align: left; }
                 tr:nth-child(even) { background: #f8fafc; }
-                .summary-table { width: 340px; margin-left: auto; margin-top: 15px; border-collapse: collapse; }
+                .summary-table { width: 360px; margin-left: auto; margin-top: 14px; border-collapse: collapse; border: 1.5px solid #cbd5e1; }
                 .summary-table td { padding: 6px 10px; border: 1px solid #cbd5e1; }
+                .signatures { margin-top: 40px; display: flex; justify-content: space-between; font-size: 12px; border-top: 1px dashed #94a3b8; padding-top: 15px; }
                 @media print {
-                    .no-print { display: none; }
-                    body { padding: 0; }
+                    .no-print { display: none !important; }
+                    body { padding: 0 !important; }
+                    tr { page-break-inside: avoid; }
                 }
             </style>
         </head>
         <body>
-            <div class="no-print" style="margin-bottom:15px; text-align:right;">
-                <button onclick="window.print()" style="background:#0e254f; color:#fff; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; font-weight:700;">Print / Save PDF</button>
+            <div class="no-print">
+                <button onclick="window.print()" style="background:#0e254f; color:#fff; border:none; padding:9px 18px; border-radius:6px; cursor:pointer; font-weight:700; font-size:13px; box-shadow:0 2px 4px rgba(0,0,0,0.15);">
+                    🖨️ Print Statement / Save PDF
+                </button>
             </div>
+
             <div class="header">
                 <div>
                     <h1 class="company-name">${company}</h1>
-                    <div style="color:#64748b; margin-top:3px;">${companyAddress || 'Bathware Order & Account Management System'}</div>
-                    ${companyPhone ? `<div style="color:#64748b;">Phone: +${companyPhone}</div>` : ''}
+                    <div style="color:#475569; margin-top:2px;">${companyAddress || 'Bathware Order & Account Management System'}</div>
+                    ${companyPhone ? `<div style="color:#475569;">Phone: +${companyPhone}</div>` : ''}
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-size:16px; font-weight:800; color:#0e254f;">STATEMENT OF ACCOUNT</div>
-                    <div style="color:#64748b; font-size:12px;">Period: ${curYear}</div>
-                    <div style="color:#64748b; font-size:11px;">Generated: ${new Date().toLocaleDateString('en-GB')}</div>
+                    <div style="font-size:16px; font-weight:800; color:#0e254f; letter-spacing:0.5px;">STATEMENT OF ACCOUNT</div>
+                    <div style="color:#475569; font-size:12px; font-weight:600; margin-top:2px;">Period: ${periodHeader}</div>
+                    <div class="book-badge ${bookFilter === 'white' ? 'book-white' : (bookFilter === 'black' ? 'book-black' : 'book-all')}">${bookTitleDisplay}</div>
+                    <div style="color:#64748b; font-size:11px; margin-top:2px;">Generated: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})}</div>
                 </div>
             </div>
 
             ${m ? `
             <div class="party-box">
                 <div>
-                    <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">Party / Merchant</div>
+                    <div style="font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase;">Party / Customer</div>
                     <div style="font-size:16px; font-weight:800; color:#0e254f;">${m.name}</div>
-                    <div>${m.address || '-'} ${m.city ? ', ' + m.city : ''}</div>
-                    <div>Phone: +${m.phone || '-'} ${m.gstin ? `| GSTIN: ${m.gstin}` : ''}</div>
+                    <div style="color:#334155;">${m.address || '-'} ${m.city ? ', ' + m.city : ''}</div>
+                    <div style="color:#334155;">Phone: +${m.phone || '-'} ${m.gstin ? `| GSTIN: <b>${m.gstin}</b>` : ''}</div>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">UID</div>
-                    <div style="font-size:14px; font-weight:700; color:#3b82f6;">${m.uid || '-'}</div>
-                    <div style="margin-top:5px; font-size:11px; color:#64748b;">Closing Net Balance:</div>
+                    <div style="font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase;">UID</div>
+                    <div style="font-size:13px; font-weight:700; color:#2563eb;">${m.uid || '-'}</div>
+                    <div style="margin-top:6px; font-size:11px; color:#64748b;">Closing Balance:</div>
                     <div style="font-size:15px; font-weight:800;">${netBalDisplay}</div>
                 </div>
             </div>
             ` : `
-            <div style="margin-bottom:10px; font-size:14px; font-weight:700; color:#0e254f;">All Merchants Consolidated Ledger</div>
+            <div style="margin-bottom:10px; font-size:14px; font-weight:700; color:#0e254f; background:#f1f5f9; padding:8px 12px; border-radius:4px;">
+                Consolidated All Merchants Account Ledger
+            </div>
             `}
 
             <table>
                 <thead>
                     <tr>
-                        <th style="width:30px;">#</th>
-                        <th style="width:85px;">Date</th>
-                        ${filter === "all" ? `<th>Merchant</th>` : ''}
-                        <th style="width:110px;">Ref / Doc No</th>
-                        <th>Particulars</th>
-                        <th style="text-align:right; width:95px;">Debit (Dr)</th>
-                        <th style="text-align:right; width:95px;">Credit (Cr)</th>
+                        <th style="width:30px; text-align:center;">#</th>
+                        <th style="width:80px;">Date</th>
+                        ${filter === "all" ? `<th>Party Name</th>` : ''}
+                        <th style="width:115px;">Ref / Doc No</th>
+                        <th>Particulars / Description</th>
+                        <th style="text-align:right; width:100px;">Debit (Dr)</th>
+                        <th style="text-align:right; width:100px;">Credit (Cr)</th>
                         <th style="text-align:right; width:110px;">Net Balance</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${rowsHtml || `<tr><td colspan="${filter === 'all' ? 8 : 7}" style="text-align:center; padding:20px; color:#64748b;">No transactions recorded for this period.</td></tr>`}
+                    ${rowsHtml || `<tr><td colspan="${filter === 'all' ? 8 : 7}" style="text-align:center; padding:25px; color:#64748b;">No transactions recorded for the selected filter and period.</td></tr>`}
                 </tbody>
             </table>
 
             <table class="summary-table">
+                ${(fromDate || netOpeningBalance !== 0) ? `
+                <tr style="background:#f8fafc;">
+                    <td><b>Opening Balance B/F:</b></td>
+                    <td style="text-align:right; font-weight:700; color:#0e254f;">${netOpeningBalance > 0 ? '₹' + Math.round(netOpeningBalance).toLocaleString('en-IN') + ' Dr' : (netOpeningBalance < 0 ? '₹' + Math.round(Math.abs(netOpeningBalance)).toLocaleString('en-IN') + ' Cr (Adv)' : '₹0')}</td>
+                </tr>
+                ` : ''}
                 <tr>
-                    <td><b>Total Debits (Sales/Charges):</b></td>
+                    <td><b>Total Period Debits (Bills/Invoices):</b></td>
                     <td style="text-align:right; font-weight:700; color:#ef4444;">₹${Math.round(totalDebit).toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
-                    <td><b>Total Credits (Payments):</b></td>
+                    <td><b>Total Period Credits (Payments/Credits):</b></td>
                     <td style="text-align:right; font-weight:700; color:#10b981;">₹${Math.round(totalCredit).toLocaleString('en-IN')}</td>
                 </tr>
-                <tr style="background:#f1f5f9; font-size:14px;">
-                    <td><b>Net Closing Balance:</b></td>
-                    <td style="text-align:right; font-weight:800;">${netBalDisplay}</td>
+                <tr style="background:#f1f5f9; font-size:13.5px;">
+                    <td><b>Closing Net Balance:</b></td>
+                    <td style="text-align:right;">${netBalDisplay}</td>
                 </tr>
             </table>
 
-            <div style="margin-top:50px; display:flex; justify-content:space-between; font-size:12px; border-top:1px dashed #cbd5e1; padding-top:15px;">
-                <div>Prepared By: ___________________</div>
-                <div>Authorized Signatory (${company}): ___________________</div>
+            <div class="signatures">
+                <div>Prepared By: ___________________________</div>
+                <div>Authorized Signatory (${company}): ___________________________</div>
             </div>
 
             <script>
-                window.onload = function() { window.print(); };
+                window.onload = function() {
+                    setTimeout(function() { window.print(); }, 400);
+                };
             <\/script>
         </body>
         </html>
     `);
     printWin.document.close();
 }
-
 // ---- SETTINGS & BACKUP ----
 function saveSettings(e) {
     e.preventDefault();

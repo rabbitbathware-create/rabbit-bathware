@@ -512,40 +512,129 @@
                 <div class="orders-list-wrapper" id="orders-list-container"></div>
             </section>
 
-                        <!-- 6. LEDGER -->
+            <!-- ============================================================== -->
+            <!-- 6. ACCOUNTS LEDGER (MULTI-BOOK & DATE RANGE FILTERED STATEMENT) -->
+            <!-- ============================================================== -->
             <section id="ledger-tab" class="tab-panel">
-                <div class="card ledger-header">
-                    <div class="ledger-stats">
-                        <div class="ledger-stat-box"><span>Official White Book</span><h2 id="ledger-total-white">₹0</h2></div>
-                        <div class="vertical-divider"></div>
-                        <div class="ledger-stat-box"><span>Cash Black Book</span><h2 id="ledger-total-black">₹0</h2></div>
+                <!-- Top Summary Cards -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1rem;">
+                    <div class="metric-card glow-green" style="background:#fff; border-top:3px solid #10b981; padding:0.9rem 1.1rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-size:0.75rem; font-weight:700; color:#059669; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-file-invoice"></i> Official White Book</div>
+                        <div style="font-size:1.55rem; font-weight:800; color:#0e254f; margin-top:0.35rem;" id="ledger-total-white">₹0</div>
+                        <div style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">GST / Official Bill Balance</div>
                     </div>
-                    <div class="form-row-two" style="margin-top:1.5rem; border-top:1px solid var(--border-color); padding-top:1rem;">
-                        <div class="form-group" style="min-width:260px; justify-content:flex-start;">
-                            <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Filter by Merchant (ટાઈપ કરીને શોધો)</label>
+                    <div class="metric-card glow-gold" style="background:#fff; border-top:3px solid #d97706; padding:0.9rem 1.1rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-size:0.75rem; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-sack-dollar"></i> Cash Black Book</div>
+                        <div style="font-size:1.55rem; font-weight:800; color:#0e254f; margin-top:0.35rem;" id="ledger-total-black">₹0</div>
+                        <div style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">Cash Balance (રોકડ હિસાબ)</div>
+                    </div>
+                    <div class="metric-card glow-blue" style="background:#fff; border-top:3px solid #2563eb; padding:0.9rem 1.1rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-size:0.75rem; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-scale-balanced"></i> Combined Net Balance</div>
+                        <div style="font-size:1.55rem; font-weight:800; color:#0e254f; margin-top:0.35rem;" id="ledger-total-combined">₹0</div>
+                        <div style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;" id="ledger-party-status-sub">All Merchants Combined</div>
+                    </div>
+                </div>
+
+                <!-- Main Ledger Controller Box -->
+                <div class="card" style="padding:1.15rem; margin-bottom:1rem; background:#fff; border:1px solid #cbd5e1; border-radius:8px;">
+                    
+                    <!-- Row 1: Filters (Party, Book Selector, Date Range) -->
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; align-items:end; margin-bottom:1rem;">
+                        <!-- Filter 1: Merchant -->
+                        <div>
+                            <label style="font-weight:700; font-size:0.8rem; color:#0e254f; display:block; margin-bottom:0.35rem;">
+                                <i class="fa-solid fa-user"></i> Select Party (પાર્ટી પસંદ કરો)
+                            </label>
                             <div style="position:relative; width:100%;">
-                                <input type="text" id="ledger-merchant-search" placeholder="Search Party in Ledger..." autocomplete="off" oninput="filterSearchableDropdown('ledger')" onfocus="openSearchableDropdown('ledger')" style="padding:0.45rem 0.75rem; border-radius:4px; border:1px solid #cbd5e1; font-size:0.85rem; width:100%; font-weight:600;">
+                                <input type="text" id="ledger-merchant-search" placeholder="Type party name, city, phone..." autocomplete="off" oninput="filterSearchableDropdown('ledger')" onfocus="openSearchableDropdown('ledger')" style="padding:0.45rem 0.75rem; border-radius:6px; border:1px solid #cbd5e1; font-size:0.85rem; width:100%; font-weight:600; box-sizing:border-box;">
                                 <input type="hidden" id="ledger-merchant-filter" value="all">
                                 <div id="ledger-merchant-dropdown-list" class="searchable-dropdown-list" style="display:none; position:absolute; top:calc(100% + 2px); left:0; width:100%; max-height:240px; overflow-y:auto; background:#ffffff; border:2px solid #0e254f; border-radius:0 0 6px 6px; box-shadow:0 10px 25px rgba(0,0,0,0.18); z-index:3500;">
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group" style="justify-content:flex-end; align-items:flex-end; flex-wrap:wrap; gap:0.5rem;">
-                            <button class="btn btn-success" onclick="openPaymentModal()"><i class="fa-solid fa-plus"></i> Record Payment</button>
-                            <button class="btn btn-secondary" onclick="exportLedgerCSV()"><i class="fa-solid fa-file-export"></i> Export CSV</button>
-                            <button class="btn" style="background:#2563eb; color:#fff;" id="btn-ledger-wa-stmt" onclick="sendLedgerWhatsAppStatement()"><i class="fa-brands fa-whatsapp"></i> WhatsApp Statement</button>
-                            <button class="btn" style="background:#dc2626; color:#fff;" id="btn-ledger-wa-reminder" onclick="sendPaymentReminderWhatsApp()"><i class="fa-solid fa-bell"></i> Payment Reminder</button>
-                            <button class="btn btn-secondary" id="btn-ledger-print-stmt" onclick="printLedgerStatement()"><i class="fa-solid fa-print"></i> Print Statement</button>
+
+                        <!-- Filter 2: Book Filter -->
+                        <div>
+                            <label style="font-weight:700; font-size:0.8rem; color:#0e254f; display:block; margin-bottom:0.35rem;">
+                                <i class="fa-solid fa-book"></i> Book View (ચોપડો પસંદ કરો)
+                            </label>
+                            <div style="display:flex; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden; background:#f8fafc; height:36px;">
+                                <button type="button" id="ledger-book-btn-all" onclick="setLedgerBookFilter('all')" style="flex:1; border:none; background:#0e254f; color:#fff; font-size:0.78rem; font-weight:700; cursor:pointer;">All Books</button>
+                                <button type="button" id="ledger-book-btn-white" onclick="setLedgerBookFilter('white')" style="flex:1; border:none; background:transparent; color:#475569; font-size:0.78rem; font-weight:700; cursor:pointer; border-left:1px solid #cbd5e1;">White (Bill)</button>
+                                <button type="button" id="ledger-book-btn-black" onclick="setLedgerBookFilter('black')" style="flex:1; border:none; background:transparent; color:#475569; font-size:0.78rem; font-weight:700; cursor:pointer; border-left:1px solid #cbd5e1;">Black (Cash)</button>
+                            </div>
+                            <input type="hidden" id="ledger-book-filter" value="all">
+                        </div>
+
+                        <!-- Filter 3: Date Range (From - To) -->
+                        <div style="grid-column: span 1;">
+                            <label style="font-weight:700; font-size:0.8rem; color:#0e254f; display:block; margin-bottom:0.35rem;">
+                                <i class="fa-regular fa-calendar"></i> Statement Date Range (તારીખ મુજબ ફિલ્ટર / PDF)
+                            </label>
+                            <div style="display:flex; gap:0.4rem; align-items:center;">
+                                <input type="date" id="ledger-date-from" onchange="renderLedger()" style="flex:1; padding:0.35rem 0.5rem; font-size:0.82rem; border:1px solid #cbd5e1; border-radius:6px; height:36px; box-sizing:border-box;" title="From Date">
+                                <span style="font-size:0.75rem; color:#64748b; font-weight:700;">TO</span>
+                                <input type="date" id="ledger-date-to" onchange="renderLedger()" style="flex:1; padding:0.35rem 0.5rem; font-size:0.82rem; border:1px solid #cbd5e1; border-radius:6px; height:36px; box-sizing:border-box;" title="To Date">
+                            </div>
+                        </div>
+
+                        <!-- Quick Date Presets -->
+                        <div>
+                            <div style="display:flex; gap:0.35rem; justify-content:flex-start;">
+                                <button type="button" class="btn btn-outline" onclick="setLedgerQuickDate('month')" style="padding:0.3rem 0.65rem; font-size:0.76rem; font-weight:700; height:36px; background:#fff;">This Month</button>
+                                <button type="button" class="btn btn-outline" onclick="setLedgerQuickDate('fy')" style="padding:0.3rem 0.65rem; font-size:0.76rem; font-weight:700; height:36px; background:#fff;">This Year</button>
+                                <button type="button" class="btn btn-outline" onclick="setLedgerQuickDate('all')" style="padding:0.3rem 0.65rem; font-size:0.76rem; font-weight:700; height:36px; background:#fff;">All Dates</button>
+                                <button type="button" class="btn btn-secondary" onclick="resetLedgerFilters()" style="padding:0.3rem 0.65rem; font-size:0.76rem; height:36px;" title="Reset all filters"><i class="fa-solid fa-rotate-left"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Neatly Arranged Action Buttons Bar -->
+                    <div style="border-top:1px dashed #cbd5e1; padding-top:0.85rem; display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center; justify-content:space-between;">
+                        <!-- Left Group: Entry Buttons -->
+                        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+                            <button type="button" class="btn btn-success" onclick="openPaymentModal()" style="padding:0.48rem 1.1rem; font-size:0.85rem; font-weight:700; background:#16a34a; color:#fff; border-radius:6px; box-shadow:0 2px 4px rgba(22,163,74,0.25); display:inline-flex; align-items:center; gap:0.4rem;">
+                                <i class="fa-solid fa-plus-circle"></i> + Record Payment
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="openOpeningBalanceModal()" style="padding:0.48rem 0.95rem; font-size:0.83rem; font-weight:700; border-radius:6px; color:#7c3aed; border:1px solid #c4b5fd; background:#faf5ff; display:inline-flex; align-items:center; gap:0.4rem;">
+                                <i class="fa-solid fa-wallet"></i> Opening Balance
+                            </button>
+                        </div>
+
+                        <!-- Right Group: PDF Print, WhatsApp, Reminder & Export -->
+                        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+                            <button type="button" class="btn btn-primary" id="btn-ledger-print-stmt" onclick="printLedgerStatement()" style="padding:0.48rem 1.1rem; font-size:0.84rem; font-weight:700; background:#0e254f; color:#fff; border-radius:6px; display:inline-flex; align-items:center; gap:0.4rem;" title="Print or Save PDF Statement for chosen Date Range">
+                                <i class="fa-solid fa-print"></i> Print / PDF Statement
+                            </button>
+                            <button type="button" class="btn" id="btn-ledger-wa-stmt" onclick="sendLedgerWhatsAppStatement()" style="padding:0.48rem 0.95rem; font-size:0.84rem; font-weight:700; background:#25D366; color:#fff; border-radius:6px; display:inline-flex; align-items:center; gap:0.4rem;">
+                                <i class="fa-brands fa-whatsapp"></i> WhatsApp Statement
+                            </button>
+                            <button type="button" class="btn btn-danger" id="btn-ledger-wa-reminder" onclick="sendPaymentReminderWhatsApp()" style="padding:0.48rem 0.85rem; font-size:0.84rem; font-weight:700; background:#dc2626; color:#fff; border-radius:6px; display:inline-flex; align-items:center; gap:0.4rem;">
+                                <i class="fa-solid fa-bell"></i> Payment Reminder
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="exportLedgerCSV()" style="padding:0.48rem 0.85rem; font-size:0.84rem; font-weight:600; border-radius:6px; background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:0.4rem;">
+                                <i class="fa-solid fa-file-excel" style="color:#16a34a;"></i> Export CSV
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div class="table-container card" style="padding:0;">
-                    <table class="data-table">
-                        <thead><tr>
-                            <th>Date</th><th>Merchant</th><th>Ref / Mode</th><th>Description</th>
-                            <th class="num-col" style="color:#ef4444;">Udhar (Debit)</th><th class="num-col" style="color:#10b981;">Jama (Credit)</th><th class="num-col">Balance</th><th>Status</th>
-                            <th>Action</th>
-                        </tr></thead>
+
+                <!-- Table Container with Opening Balance Row and Running Balances -->
+                <div class="table-container card" style="padding:0; overflow-x:auto; background:#fff; border-radius:8px; border:1px solid #cbd5e1;">
+                    <table class="data-table" style="margin:0; width:100%;">
+                        <thead>
+                            <tr style="background:#0e254f; color:#fff;">
+                                <th style="width:105px;">Date</th>
+                                <th>Merchant / Party</th>
+                                <th style="width:130px;">Ref / Mode</th>
+                                <th>Description / Particulars</th>
+                                <th class="num-col" style="color:#fca5a5; width:130px; text-align:right;">Udhar (Debit ₹)</th>
+                                <th class="num-col" style="color:#86efac; width:130px; text-align:right;">Jama (Credit ₹)</th>
+                                <th class="num-col" style="width:145px; text-align:right;">Balance (₹)</th>
+                                <th style="width:95px; text-align:center;">Book</th>
+                                <th style="width:85px; text-align:center;">Action</th>
+                            </tr>
+                        </thead>
                         <tbody id="ledger-table-body"></tbody>
                     </table>
                 </div>
@@ -1927,8 +2016,16 @@
 <!-- MODAL: ADD PAYMENT -->
 <div id="add-payment-modal" class="modal-overlay">
     <div class="modal-content" style="max-width: 420px;">
-        <div class="modal-header"><h2>Record Payment (Jama)</h2><button class="close-btn" onclick="closeModal('add-payment-modal')">&times;</button></div>
+        <div class="modal-header"><h2>Record Payment &amp; Credit (Jama)</h2><button class="close-btn" onclick="closeModal('add-payment-modal')">&times;</button></div>
         <form id="add-payment-form" onsubmit="savePaymentEntry(event)">
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Transaction Type (વ્યવહાર પ્રકાર) *</label>
+                <select id="payment-txn-type" onchange="onPaymentTxnTypeChange()" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.88rem; font-weight:700; color:#0e254f;">
+                    <option value="Payment">Payment Received (પેમેન્ટ જમા મળ્યું - Jama)</option>
+                    <option value="CreditNote">Credit Note / Return / Discount (માલ રિટર્ન / વળતર - Jama)</option>
+                    <option value="DebitNote">Debit Note / Extra Charges (ઉધાર ખર્ચ - Udhar)</option>
+                </select>
+            </div>
             <div class="form-group">
                 <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Merchant / Party (ટાઈપ કરીને શોધો) *</label>
                 <div style="position:relative; width:100%;">
@@ -1965,6 +2062,12 @@
             <div class="form-group">
                 <label>Date</label>
                 <input type="date" id="payment-date" required>
+            </div>
+            <div class="form-group" style="margin-top:0.5rem; margin-bottom:0.85rem;">
+                <label style="display:flex; align-items:center; gap:0.45rem; font-size:0.82rem; font-weight:600; color:#16a34a; cursor:pointer;">
+                    <input type="checkbox" id="payment-send-wa" checked style="accent-color:#16a34a; width:16px; height:16px; cursor:pointer;">
+                    <span>Send WhatsApp Payment Receipt to Party</span>
+                </label>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('add-payment-modal')">Cancel</button>
@@ -2377,6 +2480,66 @@
 </div>
 
 <!-- LIGHTBOX MULTI-IMAGE GALLERY MODAL -->
+
+<!-- ============================================== -->
+<!-- MODAL: SET PARTY OPENING BALANCE               -->
+<!-- ============================================== -->
+<div id="opening-balance-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div class="modal-content" style="max-width: 450px; background:#fff; border-radius:8px; padding:1.25rem; box-shadow:0 15px 35px rgba(0,0,0,0.25);">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid #cbd5e1; padding-bottom:0.5rem;">
+            <h3 style="margin:0; font-size:1.05rem; color:#0e254f; display:flex; align-items:center; gap:0.4rem;">
+                <i class="fa-solid fa-wallet" style="color:#7c3aed;"></i> Party Opening Balance
+            </h3>
+            <button type="button" class="close-btn" onclick="closeModal('opening-balance-modal')" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;">&times;</button>
+        </div>
+        <form id="opening-balance-form" onsubmit="savePartyOpeningBalance(event)">
+            <div class="form-group" style="margin-bottom:0.85rem;">
+                <label style="font-weight:700; font-size:0.82rem; color:#0e254f; display:block; margin-bottom:0.3rem;">Select Merchant / Party *</label>
+                <select id="opbal-merchant-select" required onchange="loadPartyOpeningBalanceFields()" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.88rem; font-weight:600;">
+                    <option value="">Select Party...</option>
+                </select>
+            </div>
+
+            <div class="form-row-two" style="margin-bottom:0.85rem;">
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">White Book Opening (₹)</label>
+                    <input type="number" id="opbal-white-amount" step="any" min="0" placeholder="0" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Type (Debit/Credit)</label>
+                    <select id="opbal-white-type" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
+                        <option value="Dr">Dr (બાકી લેણું - Udhar)</option>
+                        <option value="Cr">Cr (જમા એડવાન્સ - Jama)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row-two" style="margin-bottom:0.85rem;">
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Black Book Opening (₹)</label>
+                    <input type="number" id="opbal-black-amount" step="any" min="0" placeholder="0" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Type (Debit/Credit)</label>
+                    <select id="opbal-black-type" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
+                        <option value="Dr">Dr (બાકી લેણું - Udhar)</option>
+                        <option value="Cr">Cr (જમા એડવાન્સ - Jama)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">As of Date (તારીખ)</label>
+                <input type="date" id="opbal-date" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('opening-balance-modal')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="background:#7c3aed; font-weight:700;">Save Opening Balance</button>
+            </div>
+        </form>
+    </div>
+</div>
 <div id="lightbox-modal" class="lightbox-overlay" onclick="closeLightbox(event)">
     <div class="lightbox-box lightbox-gallery-box" onclick="event.stopPropagation()">
         <span class="lightbox-close" onclick="closeLightbox(event)"><i class="fa-solid fa-xmark"></i></span>
