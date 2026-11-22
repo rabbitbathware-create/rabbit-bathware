@@ -513,9 +513,7 @@
         }
 
         @media (max-width: 768px) {
-            .kowf-hero-slider-wrap {
-                height: 340px !important;
-            }
+            .kowf-hero-slider-wrap { height: 240px !important; max-height: 38vh !important; }
             .kowf-slide {
                 padding: 1.25rem 1.5rem !important;
                 align-items: flex-end !important;
@@ -560,9 +558,7 @@
             .dealer-prod-card {
                 padding: 0.75rem !important;
             }
-            .dealer-prod-image {
-                height: 140px !important;
-            }
+            .dealer-prod-image { width: 100% !important; aspect-ratio: 1 / 1 !important; height: auto !important; max-height: 170px !important; display: flex !important; align-items: center !important; justify-content: center !important; background: #f8fafc !important; border-radius: 6px !important; overflow: hidden !important; padding: 4px !important; box-sizing: border-box !important; }
             .dealer-prod-name {
                 font-size: 0.82rem !important;
             }
@@ -602,7 +598,7 @@
             box-sizing: border-box;
         }
         .dealer-prod-image svg { width: 55%; height: 55%; color: #94a3b8; }
-                .dealer-prod-image img { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; object-fit: cover !important; border-radius: 4px; display: block; margin: auto; }
+                .dealer-prod-image img { width: auto !important; height: auto !important; max-width: 100% !important; max-height: 100% !important; object-fit: contain !important; border-radius: 4px; display: block; margin: auto; }
         .amazon-slider-dots {
             display: flex;
             justify-content: center;
@@ -777,11 +773,9 @@
                 line-height: 1;
             }
             .kowf-brand-logo-img { display: none !important; }
-            .kowf-hero-slider-wrap { height: 550px !important; }
+            .kowf-hero-slider-wrap { height: 240px !important; max-height: 38vh !important; }
             .kowf-slide {
-                padding: 0 1.5rem 3rem 1.5rem !important;
-                align-items: flex-end !important;
-                justify-content: center !important;
+                padding: 0.75rem 1rem 2.2rem 1rem !important; align-items: flex-end !important; justify-content: flex-start !important;
                 background-position: center top !important;
                 background-size: cover !important;
             }
@@ -1033,6 +1027,19 @@
             border-color: #0e254f !important;
             box-shadow: 0 4px 12px rgba(14, 37, 79, 0.25) !important;
         }
+        $1
+        @media (max-width: 768px) {
+            #specs-visual-container {
+                height: 200px !important;
+                max-height: 210px !important;
+                aspect-ratio: auto !important;
+            }
+            #specs-ceramic-img {
+                max-height: 190px !important;
+                max-width: 100% !important;
+                object-fit: contain !important;
+            }
+        }
         #product-specs-modal {
             padding: 1rem;
             box-sizing: border-box;
@@ -1045,7 +1052,20 @@
             box-sizing: border-box !important;
         }
         @media (max-width: 768px) {
-            #product-specs-modal {
+            $1
+        @media (max-width: 768px) {
+            #specs-visual-container {
+                height: 200px !important;
+                max-height: 210px !important;
+                aspect-ratio: auto !important;
+            }
+            #specs-ceramic-img {
+                max-height: 190px !important;
+                max-width: 100% !important;
+                object-fit: contain !important;
+            }
+        }
+        #product-specs-modal {
                 padding: 10px !important;
                 align-items: center !important;
                 justify-content: center !important;
@@ -1894,9 +1914,14 @@
     <!-- LIGHTBOX MULTI-IMAGE GALLERY OVERLAY -->
     <div id="lightbox-modal" class="lightbox-overlay" onclick="closeLightbox(event)">
         <div class="lightbox-box lightbox-gallery-box" onclick="event.stopPropagation()">
-            <span class="lightbox-close" onclick="closeLightbox(event)"><i class="fa-solid fa-xmark"></i></span>
-            <div id="lightbox-caption" class="lightbox-caption" style="padding:0.6rem 1rem; font-weight:600;"></div>
+            <button type="button" class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
+            <div id="lightbox-caption" class="lightbox-caption"></div>
             <div id="lightbox-gallery" class="lightbox-gallery-scroll"></div>
+            <div id="lightbox-nav-bar" style="display:none; padding:0.5rem 1rem; background:#071328; border-top:1px solid rgba(255,255,255,0.1); justify-content:space-between; align-items:center;">
+                <button type="button" id="lightbox-prev-btn" onclick="prevLightboxSlide()" style="background:#1e3a8a; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.85rem;"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                <span id="lightbox-dots" style="color:#93c5fd; font-size:0.82rem; font-weight:700;"></span>
+                <button type="button" id="lightbox-next-btn" onclick="nextLightboxSlide()" style="background:#1e3a8a; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.85rem;">Next <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
         </div>
     </div>
 

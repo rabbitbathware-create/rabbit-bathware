@@ -2514,103 +2514,178 @@
         printWin.document.close();
     }
 
-    window.openLightbox = function(imgSrc, caption) {
-        if (!imgSrc) return;
-        const modal = document.getElementById("lightbox-modal");
-        const gallery = document.getElementById("lightbox-gallery");
-        const cap = document.getElementById("lightbox-caption");
-        if (!modal || !gallery) return;
+    let currentLightboxIndex = 0;
+let totalLightboxSlides = 0;
 
-        cap.textContent = caption || '';
-        gallery.innerHTML = `<div class="lightbox-gallery-item"><img src="${imgSrc}" alt="Product" onclick="this.classList.toggle('zoomed')"></div>`;
-        gallery.scrollTop = 0;
-        modal.classList.add("active");
-    };
+function updateLightboxNav() {
+    const navBar = document.getElementById("lightbox-nav-bar");
+    const dots = document.getElementById("lightbox-dots");
+    const prevBtn = document.getElementById("lightbox-prev-btn");
+    const nextBtn = document.getElementById("lightbox-next-btn");
 
-    window.openGallery = function(prodId) {
-        if (window._ignoreGalleryClickUntil && Date.now() < window._ignoreGalleryClickUntil) return;
-        let p = (state.products || []).find(x => x.id === prodId);
-        let offer = (state.offers || []).find(x => x.id === prodId);
-        if (!p && offer) {
-            p = (state.products || []).find(x => x.id === offer.productId) || {};
-        }
-        if (!p && !offer) return;
+    if (!navBar) return;
 
-        const images = [];
-        if (offer && offer.image && offer.image !== 'logo.png') {
-            images.push(offer.image);
-        }
-        if (p && p.imagesBase64 && p.imagesBase64.length > 0) {
-            p.imagesBase64.forEach(img => { if (img && !images.includes(img)) images.push(img); });
-        } else if (p && p.imageBase64 && !images.includes(p.imageBase64)) {
-            images.push(p.imageBase64);
-        }
+    if (totalLightboxSlides > 1) {
+        navBar.style.display = "flex";
+        if (dots) dots.textContent = `${currentLightboxIndex + 1} / ${totalLightboxSlides}`;
+        if (prevBtn) prevBtn.style.opacity = currentLightboxIndex === 0 ? "0.45" : "1";
+        if (nextBtn) nextBtn.style.opacity = currentLightboxIndex === totalLightboxSlides - 1 ? "0.45" : "1";
+    } else {
+        navBar.style.display = "none";
+    }
+}
 
-        const hasVideo = !!(p && (p.videoUrl || p.videoBase64));
-        if (images.length === 0 && !hasVideo) return;
+function prevLightboxSlide() {
+    if (currentLightboxIndex > 0) {
+        currentLightboxIndex--;
+        scrollLightboxToIndex(currentLightboxIndex);
+    }
+}
 
-        const modal = document.getElementById("lightbox-modal");
-        const gallery = document.getElementById("lightbox-gallery");
-        const cap = document.getElementById("lightbox-caption");
-        if (!modal || !gallery) return;
+function nextLightboxSlide() {
+    if (currentLightboxIndex < totalLightboxSlides - 1) {
+        currentLightboxIndex++;
+        scrollLightboxToIndex(currentLightboxIndex);
+    }
+}
 
-        const titleText = offer ? (offer.model || p.model || 'Special Offer') : p.model;
-        const gradeText = p && p.grade ? ` - ${p.grade}` : '';
-        const colourText = p && p.colour ? ` / ${p.colour}` : '';
-        const offerSuffix = offer ? ' (Special Offer)' : '';
-        cap.textContent = `${titleText}${gradeText}${colourText}${offerSuffix}`;
+function scrollLightboxToIndex(idx) {
+    const gallery = document.getElementById("lightbox-gallery");
+    if (!gallery) return;
+    const items = gallery.querySelectorAll(".lightbox-gallery-item");
+    if (items[idx]) {
+        items[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+    updateLightboxNav();
+}
 
-        gallery.innerHTML = '';
+function closeLightbox(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const modal = document.getElementById("lightbox-modal");
+    if (modal) modal.classList.remove("active");
+    currentLightboxIndex = 0;
+    totalLightboxSlides = 0;
+}
 
-        // If product has video, prepend video player / embed
-        if (hasVideo) {
-            const vSrc = p.videoUrl || p.videoBase64;
-            const vItem = document.createElement('div');
-            vItem.className = 'lightbox-gallery-item';
-            vItem.style.marginBottom = '1.25rem';
-            const ytEmbed = typeof getYouTubeEmbedUrl === 'function' ? getYouTubeEmbedUrl(p.videoUrl) : null;
-            if (ytEmbed) {
-                vItem.innerHTML = `
-                    <div style="font-weight:700; font-size:0.85rem; color:#dc2626; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
-                        <i class="fa-solid fa-circle-play"></i> Product Video Demo
-                    </div>
-                    <div style="position:relative; width:100%; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000;">
-                        <iframe src="${ytEmbed}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
-                    </div>
-                `;
-            } else {
-                vItem.innerHTML = `
-                    <div style="font-weight:700; font-size:0.85rem; color:#dc2626; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
-                        <i class="fa-solid fa-circle-play"></i> Product Video Demo
-                    </div>
-                    <video controls playsinline style="width:100%; max-height:360px; border-radius:8px; background:#000; display:block;" src="${vSrc}"></video>
-                `;
-            }
-            gallery.appendChild(vItem);
-        }
-        images.forEach((src, idx) => {
-            const item = document.createElement('div');
-            item.className = 'lightbox-gallery-item';
-            item.innerHTML = `
-                <span class="gallery-badge">${idx + 1} / ${images.length}</span>
-                <img src="${src}" alt="${titleText} - Photo ${idx + 1}" onclick="this.classList.toggle('zoomed')">
+function openLightbox(imgSrc, caption) {
+    if (!imgSrc) return;
+    const modal = document.getElementById("lightbox-modal");
+    const gallery = document.getElementById("lightbox-gallery");
+    const cap = document.getElementById("lightbox-caption");
+    if (!modal || !gallery) return;
+
+    currentLightboxIndex = 0;
+    totalLightboxSlides = 1;
+
+    if (cap) cap.textContent = caption || 'Product Photo';
+    gallery.innerHTML = `<div class="lightbox-gallery-item"><img src="${imgSrc}" alt="${caption || 'Product Photo'}"></div>`;
+    gallery.scrollLeft = 0;
+    gallery.scrollTop = 0;
+    modal.classList.add("active");
+    updateLightboxNav();
+}
+
+function openGallery(prodId) {
+    if (window._ignoreGalleryClickUntil && Date.now() < window._ignoreGalleryClickUntil) return;
+    let p = (state.products || []).find(x => x.id === prodId);
+    let offer = (state.offers || []).find(x => x.id === prodId);
+    if (!p && offer) {
+        p = (state.products || []).find(x => x.id === offer.productId) || {};
+    }
+    if (!p && !offer) return;
+
+    const images = [];
+    if (offer && offer.image && offer.image !== 'logo.png') {
+        images.push(offer.image);
+    }
+    if (p && p.imagesBase64 && p.imagesBase64.length > 0) {
+        p.imagesBase64.forEach(img => { if (img && !images.includes(img)) images.push(img); });
+    } else if (p.imageBase64 && !images.includes(p.imageBase64)) {
+        images.push(p.imageBase64);
+    }
+    if (p && p.images && p.images.length > 0) {
+        p.images.forEach(img => { if (img && !images.includes(img)) images.push(img); });
+    } else if (p && p.image && !images.includes(p.image)) {
+        images.push(p.image);
+    }
+
+    const hasVideo = !!(p && (p.videoUrl || p.videoBase64));
+    if (images.length === 0 && !hasVideo) return;
+
+    const modal = document.getElementById("lightbox-modal");
+    const gallery = document.getElementById("lightbox-gallery");
+    const cap = document.getElementById("lightbox-caption");
+    if (!modal || !gallery) return;
+
+    const titleText = offer ? (offer.model || p.model || 'Special Offer') : p.model;
+    const gradeText = p && p.grade ? ` - ${p.grade}` : '';
+    const colourText = p && p.colour ? ` / ${p.colour}` : '';
+    const offerSuffix = offer ? ' (Special Offer)' : '';
+    if (cap) cap.textContent = `${titleText}${gradeText}${colourText}${offerSuffix}`;
+
+    gallery.innerHTML = '';
+    currentLightboxIndex = 0;
+    let slideCount = 0;
+
+    if (hasVideo) {
+        slideCount++;
+        const vSrc = p.videoUrl || p.videoBase64;
+        const vItem = document.createElement('div');
+        vItem.className = 'lightbox-gallery-item';
+        const ytEmbed = typeof getYouTubeEmbedUrl === 'function' ? getYouTubeEmbedUrl(p.videoUrl) : null;
+        if (ytEmbed) {
+            vItem.innerHTML = `
+                <div style="position:relative; width:100%; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000;">
+                    <iframe src="${ytEmbed}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                </div>
             `;
-            gallery.appendChild(item);
-        });
+        } else {
+            vItem.innerHTML = `
+                <video controls playsinline style="width:100%; max-height:360px; border-radius:8px; background:#000; display:block;" src="${vSrc}"></video>
+            `;
+        }
+        gallery.appendChild(vItem);
+    }
 
-        gallery.scrollTop = 0;
-        modal.classList.add("active");
+    images.forEach((src, idx) => {
+        slideCount++;
+        const item = document.createElement('div');
+        item.className = 'lightbox-gallery-item';
+        item.innerHTML = `
+            ${images.length > 1 ? `<span class="gallery-badge">${idx + 1} / ${images.length}</span>` : ''}
+            <img src="${src}" alt="${titleText} - Photo ${idx + 1}">
+        `;
+        gallery.appendChild(item);
+    });
+
+    totalLightboxSlides = slideCount;
+
+    gallery.onscroll = () => {
+        const itemWidth = gallery.clientWidth;
+        if (itemWidth > 0) {
+            const idx = Math.round(gallery.scrollLeft / itemWidth);
+            if (idx !== currentLightboxIndex && idx >= 0 && idx < totalLightboxSlides) {
+                currentLightboxIndex = idx;
+                updateLightboxNav();
+            }
+        }
     };
 
-    window.openOfferGallery = function(offerId) {
-        window.openGallery(offerId);
-    };
+    gallery.scrollLeft = 0;
+    gallery.scrollTop = 0;
+    modal.classList.add("active");
+    updateLightboxNav();
+}
 
-    window.closeLightbox = function(e) {
-        if (e) e.stopPropagation();
-        const modal = document.getElementById("lightbox-modal");
-        if (modal) modal.classList.remove("active");
-    };
+function openLightboxFromCard(prodId, caption) {
+    openGallery(prodId);
+}
+
+window.openLightbox = openLightbox;
+window.openGallery = openGallery;
+window.closeLightbox = closeLightbox;
+window.prevLightboxSlide = prevLightboxSlide;
+window.nextLightboxSlide = nextLightboxSlide;
 
 window.viewTimeline = typeof viewTimeline !== 'undefined' ? viewTimeline : function(id) { if (typeof window.viewTimeline === 'function') window.viewTimeline(id); };
 

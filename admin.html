@@ -2542,15 +2542,18 @@
 </div>
 <div id="lightbox-modal" class="lightbox-overlay" onclick="closeLightbox(event)">
     <div class="lightbox-box lightbox-gallery-box" onclick="event.stopPropagation()">
-        <span class="lightbox-close" onclick="closeLightbox(event)"><i class="fa-solid fa-xmark"></i></span>
-        <div id="lightbox-caption" class="lightbox-caption" style="padding:0.6rem 1rem; font-weight:600;"></div>
-        <div id="lightbox-gallery" class="lightbox-gallery-scroll">
-            <!-- Images will be injected here vertically -->
+        <button type="button" class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
+        <div id="lightbox-caption" class="lightbox-caption"></div>
+        <div id="lightbox-gallery" class="lightbox-gallery-scroll"></div>
+        <div id="lightbox-nav-bar" style="display:none; padding:0.5rem 1rem; background:#071328; border-top:1px solid rgba(255,255,255,0.1); justify-content:space-between; align-items:center;">
+            <button type="button" id="lightbox-prev-btn" onclick="prevLightboxSlide()" style="background:#1e3a8a; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.85rem;"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+            <span id="lightbox-dots" style="color:#93c5fd; font-size:0.82rem; font-weight:700;"></span>
+            <button type="button" id="lightbox-next-btn" onclick="nextLightboxSlide()" style="background:#1e3a8a; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.85rem;">Next <i class="fa-solid fa-chevron-right"></i></button>
         </div>
     </div>
 </div>
 
-    <div class="modal-overlay" id="edit-rates-modal">
+<div class="modal-overlay" id="edit-rates-modal">
         <div class="modal-content" style="max-width:400px; padding:1.5rem;">
             <div class="modal-header">
                 <h2>Set Rates for <span id="edit-rates-model-name" style="color:#0e254f;"></span></h2>
