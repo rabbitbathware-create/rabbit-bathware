@@ -6,7 +6,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rabbit World — Admin Management Portal</title>
+    <title>Rabbit World — Admin Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -61,11 +61,11 @@
     <div class="admin-auth-box">
         <div style="text-align:center; margin-bottom:1rem;"><img src="bms-logo.png" style="max-height:160px; width:auto;" alt="Rabbit World"></div>
         <h2 style="display:none;">Admin Security</h2>
-        <p>Enter the master password to access the panel.</p>
+        <div style="display:inline-block; background:#dbeafe; color:#1e40af; font-size:0.75rem; font-weight:800; padding:0.2rem 0.65rem; border-radius:12px; margin-bottom:0.6rem; border:1px solid #93c5fd; letter-spacing:0.5px;">🛡️ ADMIN PORTAL</div><p style="font-weight:600; color:#0e254f; font-size:0.88rem; margin-bottom:0.85rem;">Enter Admin PIN to access the management panel.</p>
         <div class="form-group" style="text-align:left; margin-bottom:1rem;">
-            <input type="password" id="admin-login-pwd" placeholder="Enter password..." class="pin-input-group" onkeypress="if(event.key === 'Enter') checkAdminLogin()">
+            <input type="password" id="admin-login-pwd" placeholder="Enter Admin PIN..." class="pin-input-group" onkeypress="if(event.key === 'Enter') checkAdminLogin()">
         </div>
-        <button class="btn btn-primary" style="width:100%;" onclick="checkAdminLogin()">Unlock Panel</button>
+        <button class="btn btn-primary" style="width:100%;" onclick="checkAdminLogin()">Unlock Admin Panel</button>
         <div style="margin-top:0.85rem; text-align:center;">
             <button type="button" onclick="openForgotPinModal()" style="background:none; border:none; color:#2563eb; font-size:0.82rem; font-weight:700; cursor:pointer; text-decoration:underline;">
                 <i class="fa-solid fa-key"></i> Forgot Admin PIN? (OTP / Recovery Key)
@@ -84,6 +84,7 @@
         <div class="sidebar-logo" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
             <div style="display:flex; align-items:center;">
                 <div style="margin-right:0.5rem; background: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; display: flex; align-items: center;"><img src="bms-logo.png" style="height:30px;" alt="Rabbit World"></div>
+                <span class="badge" style="background:#2563eb; color:#fff; font-size:0.65rem; font-weight:800; padding:0.18rem 0.45rem; border-radius:4px; letter-spacing:0.5px;">ADMIN</span>
                 <h2 style="display:none;">BMS <span>Portal</span></h2>
             </div>
             <button class="mobile-only-btn" onclick="document.querySelector('.sidebar').classList.remove('open'); document.getElementById('sidebar-backdrop').classList.remove('active');" style="background:none; border:none; font-size:1.5rem; color:#fff; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
@@ -161,17 +162,17 @@
                     <div class="metric-card glow-green">
                         <div class="card-icon"><i class="fa-solid fa-building-columns"></i></div>
                         <div class="card-info">
-                            <h3>Official (White Book)</h3>
+                            <h3>Official Book</h3>
                             <p id="metric-total-white">₹0</p>
                             <small id="metric-white-pct" style="color:#16a34a; font-size:0.75rem; font-weight:600;">GST Billed Revenue</small>
                         </div>
                     </div>
-                    <div class="metric-card glow-gold">
-                        <div class="card-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <div class="metric-card glow-teal">
+                        <div class="card-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
                         <div class="card-info">
-                            <h3>Cash (Black Book)</h3>
-                            <p id="metric-total-black">₹0</p>
-                            <small id="metric-black-pct" style="color:#d97706; font-size:0.75rem; font-weight:600;">Direct Cash Revenue</small>
+                            <h3>Pending Orders</h3>
+                            <p id="metric-orders-pending">0</p>
+                            <small id="metric-pending-sub" style="color:#0f766e; font-size:0.75rem; font-weight:600;">Awaiting Dispatch</small>
                         </div>
                     </div>
                     <div class="metric-card glow-teal">
@@ -254,17 +255,19 @@
                     </div>
 
                     <!-- ORIGINAL FINANCIAL SPLIT & RECENT ACTIVITY -->
-                    <div class="card">
-                        <h2 style="font-size:1rem; margin-bottom:1rem;"><i class="fa-solid fa-scale-balanced" style="color:#2563eb;"></i> Official vs Cash Book Split</h2>
+                    <div class="card" style="border-top: 3px solid #2563eb;">
+                        <h2 style="font-size:1rem; margin-bottom:1rem; color:#0e254f;"><i class="fa-solid fa-chart-simple" style="color:#2563eb;"></i> Order Pipeline &amp; Delivery Status</h2>
                         <div class="split-bar-container">
-                            <div class="split-bar">
-                                <div id="split-bar-white" class="bar-segment white-seg" style="width:50%;">Official 50%</div>
-                                <div id="split-bar-black" class="bar-segment black-seg" style="width:50%;">Cash 50%</div>
+                            <div class="split-bar" style="background:#e2e8f0; height:24px; border-radius:6px; display:flex; overflow:hidden;">
+                                <div id="status-bar-pending" style="width:33%; background:#f59e0b; color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:800; transition:width 0.4s;">Pending</div>
+                                <div id="status-bar-confirmed" style="width:33%; background:#3b82f6; color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:800; transition:width 0.4s;">Confirmed</div>
+                                <div id="status-bar-dispatched" style="width:34%; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:800; transition:width 0.4s;">Dispatched</div>
                             </div>
                         </div>
-                        <div class="chart-legend">
-                            <span><span class="legend-dot white-dot"></span> Official (White)</span>
-                            <span><span class="legend-dot black-dot"></span> Cash (Black)</span>
+                        <div class="chart-legend" style="display:flex; justify-content:space-around; margin-top:0.75rem; font-size:0.78rem;">
+                            <span><span class="legend-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f59e0b;"></span> Pending (<span id="status-cnt-pending">0</span>)</span>
+                            <span><span class="legend-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#3b82f6;"></span> Confirmed (<span id="status-cnt-confirmed">0</span>)</span>
+                            <span><span class="legend-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981;"></span> Dispatched (<span id="status-cnt-dispatched">0</span>)</span>
                         </div>
                     </div>
 
@@ -335,7 +338,7 @@
                     <table class="data-table">
                         <thead><tr>
                             <th>Image</th><th>Model Name</th><th>Category</th><th>Grade / Material</th><th>Colour</th>
-                            <th class="num-col">Stock</th><th class="num-col">Base Price</th><th class="num-col">Bill Rate</th><th class="num-col">Weight</th><th>Actions</th>
+                            <th class="num-col">Stock</th><th class="num-col">Rate</th><th class="num-col">Weight</th><th>Actions</th>
                         </tr></thead>
                         <tbody id="stock-table-body"></tbody>
                     </table>
@@ -421,8 +424,8 @@
                                 <thead>
                                     <tr>
                                         <th>#</th><th>Model</th><th>Qty</th>
-                                        <th>Price</th><th>Bill Rate</th>
-                                        <th>Bill Amt</th><th>Cash Amt</th><th></th>
+                                        <th>Rate</th>
+                                        <th>Bill Amt</th><th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="order-items-body">
@@ -454,10 +457,7 @@
                                         <td colspan="1"><input type="number" id="freight-input" value="0" style="width:70px; padding:0.2rem; border:1px solid var(--border-color); border-radius:4px; font-size:0.72rem;"></td>
                                         <td colspan="2" class="num-col" id="freight-val">₹0</td>
                                     </tr>
-                                    <tr class="final-bill-row" style="font-size:inherit;">
-                                        <td colspan="6" class="footer-label">TOTAL CASH AMOUNT</td>
-                                        <td colspan="2" class="num-col" id="total-cash-val">₹0</td>
-                                    </tr>
+                                    
                                     <tr style="background-color:#cbd5e1; font-weight:900; font-size:18px;">
                                         <td colspan="6" class="footer-label">TOTAL PAYMENT</td>
                                         <td colspan="2" class="num-col" id="total-payment-val">₹0</td>
@@ -519,15 +519,11 @@
                 <!-- Top Summary Cards -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1rem;">
                     <div class="metric-card glow-green" style="background:#fff; border-top:3px solid #10b981; padding:0.9rem 1.1rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="font-size:0.75rem; font-weight:700; color:#059669; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-file-invoice"></i> Official White Book</div>
+                        <div style="font-size:0.75rem; font-weight:700; color:#059669; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-file-invoice"></i> Official Book</div>
                         <div style="font-size:1.55rem; font-weight:800; color:#0e254f; margin-top:0.35rem;" id="ledger-total-white">₹0</div>
                         <div style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">GST / Official Bill Balance</div>
                     </div>
-                    <div class="metric-card glow-gold" style="background:#fff; border-top:3px solid #d97706; padding:0.9rem 1.1rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="font-size:0.75rem; font-weight:700; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-sack-dollar"></i> Cash Black Book</div>
-                        <div style="font-size:1.55rem; font-weight:800; color:#0e254f; margin-top:0.35rem;" id="ledger-total-black">₹0</div>
-                        <div style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">Cash Balance (રોકડ હિસાબ)</div>
-                    </div>
+                    
                     <div class="metric-card glow-blue" style="background:#fff; border-top:3px solid #2563eb; padding:0.9rem 1.1rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                         <div style="font-size:0.75rem; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-scale-balanced"></i> Combined Net Balance</div>
                         <div style="font-size:1.55rem; font-weight:800; color:#0e254f; margin-top:0.35rem;" id="ledger-total-combined">₹0</div>
@@ -553,17 +549,17 @@
                             </div>
                         </div>
 
-                        <!-- Filter 2: Book Filter -->
+                        <!-- Filter 2: Book View (Locked to Official White Book) -->
                         <div>
                             <label style="font-weight:700; font-size:0.8rem; color:#0e254f; display:block; margin-bottom:0.35rem;">
-                                <i class="fa-solid fa-book"></i> Book View (ચોપડો પસંદ કરો)
+                                <i class="fa-solid fa-book"></i> Book View (ચોપડો)
                             </label>
-                            <div style="display:flex; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden; background:#f8fafc; height:36px;">
-                                <button type="button" id="ledger-book-btn-all" onclick="setLedgerBookFilter('all')" style="flex:1; border:none; background:#0e254f; color:#fff; font-size:0.78rem; font-weight:700; cursor:pointer;">All Books</button>
-                                <button type="button" id="ledger-book-btn-white" onclick="setLedgerBookFilter('white')" style="flex:1; border:none; background:transparent; color:#475569; font-size:0.78rem; font-weight:700; cursor:pointer; border-left:1px solid #cbd5e1;">White (Bill)</button>
-                                <button type="button" id="ledger-book-btn-black" onclick="setLedgerBookFilter('black')" style="flex:1; border:none; background:transparent; color:#475569; font-size:0.78rem; font-weight:700; cursor:pointer; border-left:1px solid #cbd5e1;">Black (Cash)</button>
+                            <div style="display:inline-flex; align-items:center; gap:0.5rem; background:#ecfdf5; border:1px solid #a7f3d0; padding:0.45rem 0.85rem; border-radius:6px; height:36px; box-sizing:border-box; width:100%;">
+                                <i class="fa-solid fa-file-invoice" style="color:#059669;"></i>
+                                <span style="font-size:0.8rem; font-weight:700; color:#065f46;">Official Book (GST)</span>
                             </div>
-                            <input type="hidden" id="ledger-book-filter" value="all">
+                            <input type="hidden" id="ledger-book-filter" value="white">
+                        </div>
                         </div>
 
                         <!-- Filter 3: Date Range (From - To) -->
@@ -1033,13 +1029,13 @@
                     <!-- Card 1: Admin Master PIN -->
                     <div class="card" style="border-top:3px solid #0e254f; background:#fff; padding:1rem;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                            <h3 style="font-size:0.92rem; color:#0e254f; margin:0;"><i class="fa-solid fa-user-shield" style="color:#0e254f;"></i> Admin Master PIN</h3>
-                            <span class="badge" style="background:#dbeafe; color:#1e40af; font-size:0.7rem; font-weight:700;">Owner Access</span>
+                            <h3 style="font-size:0.92rem; color:#0e254f; margin:0;"><i class="fa-solid fa-user-shield" style="color:#0e254f;"></i> Admin Portal PIN</h3>
+                            <span class="badge" style="background:#dbeafe; color:#1e40af; font-size:0.7rem; font-weight:700;">Admin Access</span>
                         </div>
-                        <p style="font-size:0.78rem; color:#64748b; margin-bottom:0.75rem;">Protects full business data, margins, pricing &amp; ledger.</p>
+                        <p style="font-size:0.78rem; color:#64748b; margin-bottom:0.75rem;">Protects official admin portal (orders, stock &amp; white ledger).</p>
                         <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <input type="password" id="pinhub-admin-pwd" placeholder="New Master PIN" style="flex:1; padding:0.35rem 0.5rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; height:32px;">
-                            <button type="button" class="btn btn-primary" onclick="saveAdminMasterPin()" style="font-size:0.78rem; padding:0.35rem 0.75rem; white-space:nowrap; height:32px;">
+                            <input type="password" id="pinhub-admin-pwd" placeholder="New Admin PIN" style="flex:1; padding:0.35rem 0.5rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; height:32px;">
+                            <button type="button" class="btn btn-primary" onclick="saveAdminPinFromHub()" style="font-size:0.78rem; padding:0.35rem 0.75rem; white-space:nowrap; height:32px;">
                                 <i class="fa-solid fa-floppy-disk"></i> Update
                             </button>
                         </div>
@@ -1294,7 +1290,7 @@
                                     <th style="padding:0.6rem;">Category</th>
                                     <th style="padding:0.6rem;" class="num-col">Regular Price</th>
                                     <th style="padding:0.6rem; color:#fecaca;" class="num-col">Offer Price</th>
-                                    <th style="padding:0.6rem;" class="num-col">Bill Rate</th>
+                                    <th style="padding:0.6rem;" class="num-col">Rate</th>
                                     <th style="padding:0.6rem; text-align:center;">Min Qty (MOQ)</th>
                                     <th style="padding:0.6rem; text-align:center;">Status</th>
                                     <th style="padding:0.6rem; text-align:center;">Actions</th>
@@ -1370,7 +1366,7 @@
 
             <div class="form-row-two" style="margin-bottom:0.75rem;">
                 <div class="form-group">
-                    <label style="font-weight:700; font-size:0.82rem;">Offer Bill Rate (₹)</label>
+                    <label style="font-weight:700; font-size:0.82rem;">Offer Rate (₹)</label>
                     <input type="number" id="offer-bill-rate" step="0.01" placeholder="1500" style="width:100%; padding:0.4rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px;">
                 </div>
                 <div class="form-group">
@@ -1629,7 +1625,7 @@
                     <input type="number" id="stock-price" required min="0" step="0.01" placeholder="2000">
                 </div>
                 <div class="form-group">
-                    <label style="font-weight:700; font-size:0.8rem;">Base Bill Rate (₹) *</label>
+                    <label style="font-weight:700; font-size:0.8rem;">Rate (₹) *</label>
                     <input type="number" id="stock-bill-rate" required min="0" step="0.01" placeholder="500">
                 </div>
                 <div class="form-group">
@@ -1660,7 +1656,7 @@
                         <small id="stock-full-box-preview" style="font-size:0.7rem; color:#64748b;">આખા બોક્સનો ભાવ: ₹0</small>
                     </div>
                     <div class="form-group">
-                        <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Box Bill Rate (બોક્સનો બિલ રેટ ₹)</label>
+                        <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Box Rate (બોક્સનો રેટ ₹)</label>
                         <input type="number" id="stock-box-bill-rate" min="0" step="0.01" placeholder="e.g. 45" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.85rem;">
                     </div>
                 </div>
@@ -1932,7 +1928,7 @@
                         <input type="number" id="edit-order-add-price" min="0" step="any" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem;">
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #0e254f; margin-bottom: 0.25rem;">Bill Rate (₹)</label>
+                        <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #0e254f; margin-bottom: 0.25rem;">Rate (₹)</label>
                         <input type="number" id="edit-order-add-billrate" min="0" step="any" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem;">
                     </div>
                     <div>
@@ -1962,7 +1958,7 @@
                                 <th>Weight</th>
                                 <th style="width: 120px;">Qty (pcs)</th>
                                 <th>Rate</th>
-                                <th>Bill Rate</th>
+                                <th>Rate</th>
                                 <th>Total Amt</th>
                                 <th style="width: 50px; text-align: center;">Action</th>
                             </tr>
@@ -1997,7 +1993,7 @@
                         <span>Freight:</span>
                         <input type="number" id="edit-order-live-freight" min="0" step="any" value="0" onchange="recalcEditOrderSummary()" style="width: 90px; padding: 0.2rem 0.4rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.8rem; text-align: right;">
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-weight: 700;"><span>Total Cash Amount:</span><b id="edit-order-live-cash">₹0</b></div>
+                    <div style="display: none;"><span>Total Cash Amount:</span><b id="edit-order-live-cash">₹0</b></div>
                     <div style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: 800; color: #0e254f; border-top: 2px solid #cbd5e1; padding-top: 0.4rem; margin-top: 0.2rem;">
                         <span>Total Payment:</span><b id="edit-order-live-total">₹0</b>
                     </div>
@@ -2038,8 +2034,8 @@
             <div class="form-group">
                 <label>Book / Account</label>
                 <select id="payment-book" required>
-                    <option value="white">White Book (Official)</option>
-                    <option value="black">Black Book (Cash)</option>
+                    <option value="white">Official Book</option>
+                    
                 </select>
             </div>
             <div class="form-group">
@@ -2127,7 +2123,7 @@
                     <span style="font-size:0.7rem; color:#16a34a; text-transform:uppercase; font-weight:700;">Official Ledger</span>
                     <div style="font-size:1.05rem; font-weight:800; color:#16a34a;" id="pdetail-white-balance">₹0</div>
                 </div>
-                <div>
+                <div style="display:none;">
                     <span style="font-size:0.7rem; color:#d97706; text-transform:uppercase; font-weight:700;">Cash Ledger</span>
                     <div style="font-size:1.05rem; font-weight:800; color:#d97706;" id="pdetail-black-balance">₹0</div>
                 </div>
@@ -2242,10 +2238,10 @@
                     </div>
                     <div class="form-group" style="margin-bottom:0.5rem; display:flex; align-items:center; gap:0.6rem;">
                         <label for="pdetail-bill-pct" style="font-weight:600; font-size:0.85rem; color:#0e254f; white-space:nowrap;">
-                            <i class="fa-solid fa-percent" style="color:#2563eb;"></i> Default Bill Percentage (%):
+                            <i class="fa-solid fa-percent" style="color:#2563eb;"></i> Default Rate Percentage (%):
                         </label>
                         <input type="number" id="pdetail-bill-pct" min="0" max="100" step="1" placeholder="50" style="width:80px; padding:0.3rem 0.5rem; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; height:30px; font-weight:600;">
-                        <span style="font-size:0.78rem; color:#64748b;">(Auto-calculates bill rates for this party)</span>
+                        <span style="font-size:0.78rem; color:#64748b;">(Auto-calculates rates for this party)</span>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #cbd5e1; padding-top:0.75rem; margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center;">
@@ -2263,19 +2259,19 @@
             
             <div class="rate-config-actions" style="margin-bottom:0.45rem; flex-shrink:0; padding:0.35rem 0.75rem; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.6rem; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px;">
                 <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-                    <div style="display:flex; align-items:center; gap:0.35rem;">
-                        <label for="rate-global-adj" style="font-size:0.78rem; font-weight:700; white-space:nowrap; color:#1e293b;" title="Applies to all products where no specific override is set">Global Adj (%):</label>
-                        <div style="display:flex; gap:0.25rem;">
-                            <input type="number" id="rate-global-adj" step="0.1" placeholder="e.g. -10" style="width:80px; padding:0.25rem 0.45rem; font-size:0.8rem; border:1px solid #cbd5e1; border-radius:4px; height:28px;">
-                            <button type="button" class="btn btn-primary" onclick="applyGlobalAdjustment()" style="padding:0.2rem 0.65rem; font-size:0.78rem; height:28px;">Apply</button>
-                        </div>
-                    </div>
+                    <div style="display:none; align-items:center; gap:0.35rem;">
+    <label for="rate-global-adj" style="font-size:0.78rem; font-weight:700; white-space:nowrap; color:#1e293b;" title="Applies to all products where no specific override is set">Global Adj (%):</label>
+    <div style="display:flex; gap:0.25rem;">
+        <input type="number" id="rate-global-adj" step="0.1" placeholder="e.g. -10" style="width:80px; padding:0.25rem 0.45rem; font-size:0.8rem; border:1px solid #cbd5e1; border-radius:4px; height:28px;">
+        <button type="button" class="btn btn-primary" onclick="applyGlobalAdjustment()" style="padding:0.2rem 0.65rem; font-size:0.78rem; height:28px;">Apply</button>
+    </div>
+</div>
                     <div style="display:flex; align-items:center; gap:0.35rem; background:#eff6ff; padding:2px 8px; border-radius:5px; border:1px solid #bfdbfe;">
-                        <label for="rate-bill-pct" style="font-size:0.78rem; font-weight:700; white-space:nowrap; color:#1d4ed8;" title="Auto-calculate Bill Rate based on percentage of Price"><i class="fa-solid fa-percent"></i> Bill Rate (%):</label>
+                        <label for="rate-bill-pct" style="font-size:0.78rem; font-weight:700; white-space:nowrap; color:#1d4ed8;" title="Auto-calculate Rate for all products"><i class="fa-solid fa-percent"></i> Rate (%):</label>
                         <div style="display:flex; gap:0.25rem; align-items:center;">
                             <input type="number" id="rate-bill-pct" min="0" max="100" step="1" placeholder="50" style="width:65px; padding:0.25rem 0.45rem; font-size:0.82rem; font-weight:700; border:1px solid #93c5fd; border-radius:4px; height:28px; color:#1e40af; text-align:center;">
-                            <button type="button" class="btn btn-primary" onclick="applyBillPercentageToAll()" style="padding:0.2rem 0.65rem; font-size:0.78rem; height:28px; background:#2563eb; font-weight:600;" title="Auto-calculate Bill Rates for all products at this %"><i class="fa-solid fa-wand-magic-sparkles"></i> Apply %</button>
-                            <button type="button" class="btn btn-outline-success" onclick="applyQuickBillPct(100)" style="padding:0.2rem 0.6rem; font-size:0.78rem; height:28px; font-weight:700; border:1px solid #16a34a; color:#16a34a; background:#fff; border-radius:4px; cursor:pointer;" title="Set Bill Rate = 100% of Price for all products"><i class="fa-solid fa-check-double"></i> 100% Full Bill</button>
+                            <button type="button" class="btn btn-primary" onclick="applyBillPercentageToAll()" style="padding:0.2rem 0.65rem; font-size:0.78rem; height:28px; background:#2563eb; font-weight:600;" title="Auto-calculate Rates for all products at this %"><i class="fa-solid fa-wand-magic-sparkles"></i> Apply %</button>
+                            <button type="button" class="btn btn-outline-success" onclick="applyQuickBillPct(100)" style="padding:0.2rem 0.6rem; font-size:0.78rem; height:28px; font-weight:700; border:1px solid #16a34a; color:#16a34a; background:#fff; border-radius:4px; cursor:pointer;" title="Set Rate = 100% for all products"><i class="fa-solid fa-check-double"></i> 100% Full Rate</button>
                         </div>
                     </div>
                 </div>
@@ -2293,16 +2289,14 @@
             <div style="flex:1; overflow-y:auto; border:1px solid #cbd5e1; border-radius:6px; min-height:180px;">
                 <table style="width:100%; border-collapse:collapse; font-size:0.82rem;">
                     <thead style="position:sticky; top:0; background:#f1f5f9; z-index:2; box-shadow:0 1px 2px rgba(0,0,0,0.06);">
-                        <tr>
-                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; text-align:left;">Model / Category</th>
-                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:75px;" title="Catalog Base / MRP Price">MRP</th>
-                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:85px;" title="Party price after Global Discount %">Price</th>
-                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:80px;" title="Catalog default base Bill Rate">Bill Rate</th>
-                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:130px;">Custom Price (₹)</th>
-                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:130px;">Custom Bill Rate (₹)</th>
-                            <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:65px; text-align:center;">Reset</th>
-                        </tr>
-                    </thead>
+    <tr>
+        <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; text-align:left;">Model / Category</th>
+        <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:85px;" title="Catalog Base / MRP Price">MRP</th>
+        <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:95px;" title="Catalog default Rate">Rate</th>
+        <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:140px;">Custom Rate (₹)</th>
+        <th style="padding:0.35rem 0.55rem; font-size:0.78rem; font-weight:700; border-bottom:2px solid #cbd5e1; width:65px; text-align:center;">Reset</th>
+    </tr>
+</thead>
                     <tbody id="rate-config-tbody"></tbody>
                 </table>
             </div>
@@ -2502,7 +2496,7 @@
 
             <div class="form-row-two" style="margin-bottom:0.85rem;">
                 <div class="form-group">
-                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">White Book Opening (₹)</label>
+                    <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Official Book Opening (₹)</label>
                     <input type="number" id="opbal-white-amount" step="any" min="0" placeholder="0" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
                 </div>
                 <div class="form-group">
@@ -2514,7 +2508,7 @@
                 </div>
             </div>
 
-            <div class="form-row-two" style="margin-bottom:0.85rem;">
+            <div class="form-row-two" style="margin-bottom:0.85rem; display:none;">
                 <div class="form-group">
                     <label style="font-weight:700; font-size:0.8rem; color:#0e254f;">Black Book Opening (₹)</label>
                     <input type="number" id="opbal-black-amount" step="any" min="0" placeholder="0" style="width:100%; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
@@ -2566,7 +2560,7 @@
                     <input type="number" id="edit-rates-base-price" step="0.01" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;">
                 </div>
                 <div class="form-group" style="margin-bottom:1rem;">
-                    <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:0.3rem;">Base Bill Rate (₹)</label>
+                    <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:0.3rem;">Rate (₹)</label>
                     <input type="number" id="edit-rates-bill-rate" step="0.01" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.95rem;">
                 </div>
             </div>

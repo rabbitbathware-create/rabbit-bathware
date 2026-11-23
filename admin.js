@@ -988,7 +988,7 @@ function renderStockTable() {
     const activeGrade = activeGradeBtn ? activeGradeBtn.getAttribute("data-grade") : "all";
 
     // Sort products by displayOrder (ascending)
-    const sortedProds = [...state.products].sort((a, b) => {
+    const sortedProds = [...(state.products || [])].sort((a, b) => {
         const ordA = a.displayOrder !== undefined ? a.displayOrder : 100;
         const ordB = b.displayOrder !== undefined ? b.displayOrder : 100;
         return ordA - ordB;
@@ -1003,7 +1003,7 @@ function renderStockTable() {
         if (activeGrade !== "all" && (p.grade || "Premium") !== activeGrade) {
             return false;
         }
-        const match = p.model.toLowerCase().includes(search) || 
+        const match = (p.model || '').toLowerCase().includes(search) || 
                       (p.category && p.category.toLowerCase().includes(search)) || 
                       (p.colour && p.colour.toLowerCase().includes(search)) ||
                       ((p.grade || '').toLowerCase().includes(search)) ||
@@ -1015,8 +1015,10 @@ function renderStockTable() {
     const maxStockDisplay = window._stockDisplayLimit || 80;
     const prodsToRender = matchingProds.slice(0, maxStockDisplay);
 
+    const isStaff = window.location.pathname.includes("staff.html") || document.title.includes("Staff");
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+
     prodsToRender.forEach(p => {
-        const isStaff = window.location.pathname.includes("staff.html") || document.title.includes("Staff");
         const tr = document.createElement("tr");
         const hotBadge = p.isHot ? '<span style="background:#fef3c7; color:#d97706; font-size:0.7rem; font-weight:800; padding:0.15rem 0.35rem; border-radius:4px; border:1px solid #fde68a; margin-left:0.3rem;"><i class="fa-solid fa-star" style="color:#d97706; font-size:0.7rem;"></i> Hot</span>' : '';
         const asPerOrderBadge = (typeof isProductAsPerOrder === 'function' && isProductAsPerOrder(p)) ? '<span style="background:#eff6ff; color:#2563eb; font-size:0.68rem; font-weight:700; padding:0.12rem 0.35rem; border-radius:4px; border:1px solid #bfdbfe; margin-left:0.3rem;" title="Production As Per Order"><i class="fa-solid fa-clock-rotate-left"></i> As Per Order</span>' : '';
@@ -1026,16 +1028,31 @@ function renderStockTable() {
 
         const gradeBadge = (() => {
             const g = p.grade || 'Premium';
-            if (g === 'Commercial') return `<span class="badge" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; font-weight:800; font-size:0.75rem;">\uD83D\uDD3B Commercial</span>`;
-            if (g === 'STD') return `<span class="badge" style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; font-weight:800; font-size:0.75rem;">\uD83D\uDD38 STD</span>`;
-            if (g === 'ROK') return `<span class="badge" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; font-weight:800; font-size:0.75rem;">\uD83D\uDD39 ROK</span>`;
-            return `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:800; font-size:0.75rem;">\u2B50 Premium</span>`;
+            if (g === 'Commercial') return `<span class="badge" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; font-weight:800; font-size:0.75rem;">🔻 Commercial</span>`;
+            if (g === 'STD') return `<span class="badge" style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; font-weight:800; font-size:0.75rem;">🔸 STD</span>`;
+            if (g === 'ROK') return `<span class="badge" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; font-weight:800; font-size:0.75rem;">🔹 ROK</span>`;
+            return `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:800; font-size:0.75rem;">⭐ Premium</span>`;
         })();
         const materialSpecText = p.material ? `<br><small style="color:#475569; font-weight:600; font-size:0.72rem;"><i class="fa-solid fa-shapes" style="font-size:0.65rem; color:#94a3b8;"></i> ${p.material}</small>` : '';
 
+        let rateColumnsHtml = '';
+        if (isStaff) {
+            rateColumnsHtml = '';
+        } else if (isMasterAdmin) {
+            rateColumnsHtml = `
+                <td class="num-col">₹${p.price}${(p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1)) ? `<br><small style="color:#2563eb; font-weight:600;" title="Wholesale Box Rate per pc">Box: ₹${p.boxPrice !== undefined ? p.boxPrice : p.price}</small>` : ''}</td>
+                <td class="num-col">₹${p.billRate}${(p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1)) ? `<br><small style="color:#2563eb; font-weight:600;" title="Box Bill Rate per pc">Box: ₹${p.boxBillRate !== undefined ? p.boxBillRate : p.billRate}</small>` : ''}</td>
+            `;
+        } else {
+            // Admin Portal (White Book / Bill only)
+            rateColumnsHtml = `
+                <td class="num-col">₹${p.billRate}${(p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1)) ? `<br><small style="color:#2563eb; font-weight:600;" title="Box Bill Rate per pc">Box: ₹${p.boxBillRate !== undefined ? p.boxBillRate : p.billRate}</small>` : ''}</td>
+            `;
+        }
+
         tr.innerHTML = `
             <td>
-                <div style="width:38px; height:38px; background:#f1f5f9; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="openLightbox('${p.imageBase64 || ''}', '${p.model.replace(/'/g, "\\'")}')" title="Click to zoom">
+                <div style="width:38px; height:38px; background:#f1f5f9; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="openLightbox('${p.imageBase64 || ''}', '${(p.model || '').replace(/'/g, "\\'")}')" title="Click to zoom">
                     ${p.imageBase64 ? `<img src="${p.imageBase64}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid fa-image" style="color:#cbd5e1;"></i>`}
                 </div>
             </td>
@@ -1049,8 +1066,7 @@ function renderStockTable() {
                 if (s <= 15) return `<span class="badge" style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> ${s} (Low)</span>`;
                 return `<b>${s}</b>`;
             })()}</td>
-            <td class="num-col" ${isStaff ? 'style="display:none;"' : ''}>₹${p.price}${(p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1)) ? `<br><small style="color:#2563eb; font-weight:600;" title="Wholesale Box Rate per pc">Box: ₹${p.boxPrice !== undefined ? p.boxPrice : p.price}</small>` : ''}</td>
-            <td class="num-col" ${isStaff ? 'style="display:none;"' : ''}>₹${p.billRate}${(p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1)) ? `<br><small style="color:#2563eb; font-weight:600;" title="Box Bill Rate per pc">Box: ₹${p.boxBillRate !== undefined ? p.boxBillRate : p.billRate}</small>` : ''}</td>
+            ${rateColumnsHtml}
             <td class="num-col">${p.weight !== undefined ? p.weight : 15} kg</td>
             <td>
                 <div style="display:flex; gap:0.3rem;">
@@ -1458,7 +1474,13 @@ function handleNewProduct(e) {
                 p.material = materialVal;
                 p.colour = document.getElementById("stock-colour").value;
                 p.stock = parseInt(document.getElementById("stock-qty").value) || 0;
-                p.price = parseFloat(document.getElementById("stock-price").value) || 0;
+                                const pPriceInput = document.getElementById("stock-price");
+                const parsedPrice = pPriceInput ? parseFloat(pPriceInput.value) : 0;
+                if (!isNaN(parsedPrice) && parsedPrice > 0) {
+                    p.price = parsedPrice;
+                } else if (!p.price || p.price <= 0) {
+                    p.price = parseFloat(document.getElementById("stock-bill-rate").value) || 0;
+                }
                 p.billRate = parseFloat(document.getElementById("stock-bill-rate").value) || 0;
                 p.weight = parseFloat(document.getElementById("stock-weight") ? document.getElementById("stock-weight").value : 0) || 15;
                 p.packagingType = pkgType;
@@ -1487,7 +1509,9 @@ function handleNewProduct(e) {
                 material: materialVal,
                 colour: document.getElementById("stock-colour").value,
                 stock: parseInt(document.getElementById("stock-qty").value) || 0,
-                price: parseFloat(document.getElementById("stock-price").value) || 0,
+                                price: (document.getElementById("stock-price") && parseFloat(document.getElementById("stock-price").value) > 0) ? 
+                    parseFloat(document.getElementById("stock-price").value) : 
+                    (parseFloat(document.getElementById("stock-bill-rate").value) || 0),
                 billRate: parseFloat(document.getElementById("stock-bill-rate").value) || 0,
                 weight: parseFloat(document.getElementById("stock-weight") ? document.getElementById("stock-weight").value : 0) || 15,
                 packagingType: pkgType,
@@ -1833,7 +1857,8 @@ function renderMerchantsGrid() {
     const container = document.getElementById("merchants-container");
     if (!container) return;
     container.innerHTML = "";
-    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
     const searchInput = document.getElementById("merchant-search");
     const search = (searchInput && searchInput.value ? searchInput.value : "").toLowerCase().trim();
     let needsSave = false;
@@ -2058,7 +2083,9 @@ function sendCurrentPartyPinWhatsApp() {
         return;
     }
     const pin = m.pin || "123456";
-    const dealerUrl = window.location.href.replace(/(admin|staff|index)\.html/i, `dealer.html`);
+    const dealerUrl = (window.location.protocol === 'file:' || window.location.pathname.includes('master_admin.html'))
+        ? 'https://rabbitbathware-create.github.io/rabbit-bathware/dealer.html'
+        : window.location.href.replace(/(master_admin|admin|staff|index)\.html/i, 'dealer.html');
     const msg = `*Rabbit World — Authorized Dealer Portal Access*\n` +
                 `-----------------------------------------\n` +
                 `Dear ${m.name},\n` +
@@ -2079,7 +2106,9 @@ function saveMerchantPin() {
 }
 
 function copyDealerLink(merchantId) {
-    const link = window.location.href.replace(/(admin|staff|index)\.html/i, `dealer.html?merchantId=${merchantId}`);
+    const link = (window.location.protocol === 'file:' || window.location.pathname.includes('master_admin.html'))
+        ? `https://rabbitbathware-create.github.io/rabbit-bathware/dealer.html?merchantId=${merchantId}`
+        : window.location.href.replace(/(master_admin|admin|staff|index)\.html/i, `dealer.html?merchantId=${merchantId}`);
     navigator.clipboard.writeText(link).then(() => {
         alert(`Dealer portal link copied!\n\n${link}`);
     }).catch(() => {
@@ -2124,7 +2153,8 @@ function handleNewMerchant(e) {
 
 // ---- UNIFIED PARTY MODAL & RATE CONFIG ----
 function switchPartyModalTab(tabName) {
-    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
     if (isStaff && tabName === 'rates') {
         tabName = 'profile';
     }
@@ -2258,21 +2288,36 @@ function populateRateConfigTable(merchant) {
         const partyPrice = discount !== 0 ? Math.round(basePrice * (1 + discount / 100)) : basePrice;
         const baseBillRate = (p.billRate !== undefined && p.billRate !== null) ? p.billRate : 0;
 
+                const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+
         const tr = document.createElement("tr");
         tr.setAttribute("data-model", (p.model || "").toLowerCase());
         tr.setAttribute("data-category", (p.category || "").toLowerCase());
-        tr.innerHTML = `
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle;">
-                <b style="color:#0f172a; font-size:0.83rem;">${p.model}</b> ${isDual ? `<span class="badge" style="font-size:0.65rem; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 4px; border-radius:3px; font-weight:600;">Loose</span>` : ''}
-                <span style="color:#64748b; font-size:0.75rem; margin-left:0.35rem;">(${p.category})</span>
-            </td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#64748b; font-size:0.82rem;" title="Catalog Base / MRP Price">₹${mrp}</td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:700; color:#0e254f; font-size:0.82rem;" title="Party price after Global Discount">₹${partyPrice}${discount !== 0 ? `<br><small style="color:${discount < 0 ? '#16a34a' : '#dc2626'}; font-size:0.68rem; font-weight:700;">(${discount > 0 ? '+' : ''}${discount}%)</small>` : ''}</td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#334155; font-size:0.82rem;" title="Catalog default base Bill Rate">₹${baseBillRate}</td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cp-rate" data-id="${p.id}" value="${ovr.price !== undefined ? ovr.price : ''}" step="0.01" placeholder="Custom Price" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-rate" data-id="${p.id}" value="${ovr.billRate !== undefined ? ovr.billRate : ''}" step="0.01" placeholder="Custom Bill Rate" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
-            <td style="padding:0.25rem 0.55rem; vertical-align:middle; text-align:center;"><button type="button" class="btn btn-danger" style="padding:0.15rem 0.45rem; font-size:0.72rem; line-height:1;" onclick="resetProductOverride('${merchant.id}','${p.id}')" title="Reset override"><i class="fa-solid fa-rotate-left"></i> Reset</button></td>
-        `;
+        if (isMasterAdmin) {
+            tr.innerHTML = `
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle;">
+                    <b style="color:#0f172a; font-size:0.83rem;">${p.model}</b> ${isDual ? `<span class="badge" style="font-size:0.65rem; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 4px; border-radius:3px; font-weight:600;">Loose</span>` : ''}
+                    <span style="color:#64748b; font-size:0.75rem; margin-left:0.35rem;">(${p.category})</span>
+                </td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#64748b; font-size:0.82rem;" title="Catalog Base / MRP Price">₹${mrp}</td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:700; color:#0e254f; font-size:0.82rem;" title="Party price after Global Discount">₹${partyPrice}${discount !== 0 ? `<br><small style="color:${discount < 0 ? '#16a34a' : '#dc2626'}; font-size:0.68rem; font-weight:700;">(${discount > 0 ? '+' : ''}${discount}%)</small>` : ''}</td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#334155; font-size:0.82rem;" title="Catalog default base Bill Rate">₹${baseBillRate}</td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cp-rate" data-id="${p.id}" value="${ovr.price !== undefined ? ovr.price : ''}" step="0.01" placeholder="Custom Price" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-rate" data-id="${p.id}" value="${ovr.billRate !== undefined ? ovr.billRate : ''}" step="0.01" placeholder="Custom Bill Rate" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle; text-align:center;"><button type="button" class="btn btn-danger" style="padding:0.15rem 0.45rem; font-size:0.72rem; line-height:1;" onclick="resetProductOverride('${merchant.id}','${p.id}')" title="Reset override"><i class="fa-solid fa-rotate-left"></i> Reset</button></td>
+            `;
+        } else {
+            tr.innerHTML = `
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle;">
+                    <b style="color:#0f172a; font-size:0.83rem;">${p.model}</b> ${isDual ? `<span class="badge" style="font-size:0.65rem; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 4px; border-radius:3px; font-weight:600;">Loose</span>` : ''}
+                    <span style="color:#64748b; font-size:0.75rem; margin-left:0.35rem;">(${p.category})</span>
+                </td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#64748b; font-size:0.82rem;" title="Catalog Base / MRP Price">₹${mrp}</td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle; font-weight:600; color:#334155; font-size:0.82rem;" title="Catalog default Rate">₹${baseBillRate}</td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-rate" data-id="${p.id}" value="${ovr.billRate !== undefined ? ovr.billRate : ''}" step="0.01" placeholder="Custom Rate" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem;"></td>
+                <td style="padding:0.25rem 0.55rem; vertical-align:middle; text-align:center;"><button type="button" class="btn btn-danger" style="padding:0.15rem 0.45rem; font-size:0.72rem; line-height:1;" onclick="resetProductOverride('${merchant.id}','${p.id}')" title="Reset override"><i class="fa-solid fa-rotate-left"></i> Reset</button></td>
+            `;
+        }
         tbody.appendChild(tr);
 
         if (isDual) {
@@ -2281,23 +2326,36 @@ function populateRateConfigTable(merchant) {
             const partyBoxPrice = discount !== 0 ? Math.round(baseBoxPrice * (1 + discount / 100)) : baseBoxPrice;
             const baseBoxBillRate = (p.boxBillRate !== undefined ? p.boxBillRate : baseBillRate);
 
-            const trBox = document.createElement("tr");
+                        const trBox = document.createElement("tr");
             trBox.classList.add("box-pack-row");
             trBox.setAttribute("data-model", (p.model || "").toLowerCase());
             trBox.setAttribute("data-category", (p.category || "").toLowerCase());
             trBox.style.background = "#f8fafc";
-            trBox.innerHTML = `
-                <td style="padding:0.2rem 0.55rem 0.2rem 1.25rem; vertical-align:middle;">
-                    <span style="font-size:0.75rem; font-weight:700; color:#1d4ed8;">📦 Box Pack (${p.boxQty || 1} pcs/box)</span>
-                    <span style="color:#64748b; font-size:0.72rem; margin-left:0.25rem;">Rate/pc</span>
-                </td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#64748b; font-size:0.82rem;">₹${boxMrp}</td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#1e40af; font-weight:700; font-size:0.82rem;">₹${partyBoxPrice}${discount !== 0 ? `<br><small style="color:${discount < 0 ? '#16a34a' : '#dc2626'}; font-size:0.68rem; font-weight:700;">(${discount > 0 ? '+' : ''}${discount}%)</small>` : ''}</td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#475569; font-size:0.82rem;">₹${baseBoxBillRate}</td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cp-box-rate" data-id="${p.id}" value="${ovr.boxPrice !== undefined ? ovr.boxPrice : ''}" step="0.01" placeholder="Box Rate/pc" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-box-rate" data-id="${p.id}" value="${ovr.boxBillRate !== undefined ? ovr.boxBillRate : ''}" step="0.01" placeholder="Box Bill Rate" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
-                <td style="padding:0.2rem 0.55rem; vertical-align:middle; text-align:center;"></td>
-            `;
+            if (isMasterAdmin) {
+                trBox.innerHTML = `
+                    <td style="padding:0.2rem 0.55rem 0.2rem 1.25rem; vertical-align:middle;">
+                        <span style="font-size:0.75rem; font-weight:700; color:#1d4ed8;">📦 Box Pack (${p.boxQty || 1} pcs/box)</span>
+                        <span style="color:#64748b; font-size:0.72rem; margin-left:0.25rem;">Rate/pc</span>
+                    </td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#64748b; font-size:0.82rem;">₹${boxMrp}</td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#1e40af; font-weight:700; font-size:0.82rem;">₹${partyBoxPrice}${discount !== 0 ? `<br><small style="color:${discount < 0 ? '#16a34a' : '#dc2626'}; font-size:0.68rem; font-weight:700;">(${discount > 0 ? '+' : ''}${discount}%)</small>` : ''}</td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#475569; font-size:0.82rem;">₹${baseBoxBillRate}</td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cp-box-rate" data-id="${p.id}" value="${ovr.boxPrice !== undefined ? ovr.boxPrice : ''}" step="0.01" placeholder="Box Rate/pc" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-box-rate" data-id="${p.id}" value="${ovr.boxBillRate !== undefined ? ovr.boxBillRate : ''}" step="0.01" placeholder="Box Bill Rate" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle; text-align:center;"></td>
+                `;
+            } else {
+                trBox.innerHTML = `
+                    <td style="padding:0.2rem 0.55rem 0.2rem 1.25rem; vertical-align:middle;">
+                        <span style="font-size:0.75rem; font-weight:700; color:#1d4ed8;">📦 Box Pack (${p.boxQty || 1} pcs/box)</span>
+                        <span style="color:#64748b; font-size:0.72rem; margin-left:0.25rem;">Rate/pc</span>
+                    </td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#64748b; font-size:0.82rem;">₹${boxMrp}</td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle; color:#475569; font-size:0.82rem;">₹${baseBoxBillRate}</td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle;"><input type="number" class="cbr-box-rate" data-id="${p.id}" value="${ovr.boxBillRate !== undefined ? ovr.boxBillRate : ''}" step="0.01" placeholder="Box Rate" style="width:120px; height:28px; padding:0.2rem 0.45rem; border:1px solid #93c5fd; background:#fff; border-radius:4px; font-size:0.82rem;"></td>
+                    <td style="padding:0.2rem 0.55rem; vertical-align:middle; text-align:center;"></td>
+                `;
+            }
             tbody.appendChild(trBox);
         }
     });
@@ -2675,7 +2733,8 @@ function renderOrderCatalog() {
     }
 
     grid.innerHTML = '';
-    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
 
     prods.forEach(p => {
         const isDual = (p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1));
@@ -2871,8 +2930,11 @@ function renderOrderTable() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+
     if (currentOrderItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="placeholder-text" style="padding:1rem;">Cart is empty</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${isStaff ? 4 : (isMasterAdmin ? 8 : 6)}" class="placeholder-text" style="padding:1rem;">Cart is empty</td></tr>`;
         calculateOrderSummary();
         return;
     }
@@ -2881,7 +2943,7 @@ function renderOrderTable() {
     currentOrderItems.forEach(item => {
         let cat = item.category;
         if (!cat) {
-            const p = state.products.find(x => x.id === item.productId);
+            const p = (state.products || []).find(x => x.id === item.productId);
             cat = (p && p.category) ? p.category : 'Uncategorized';
         }
         if (!grouped[cat]) grouped[cat] = [];
@@ -2889,36 +2951,46 @@ function renderOrderTable() {
     });
 
     let index = 1;
-    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
     getOrderedCategories(grouped).forEach(cat => {
         const catTr = document.createElement("tr");
-        catTr.innerHTML = `<td colspan="${isStaff ? 4 : 8}" style="background:#f1f5f9; font-weight:700; color:#0e254f; padding:0.4rem; font-size:0.85rem; text-transform:uppercase;">${cat}</td>`;
+        catTr.innerHTML = `<td colspan="${isStaff ? 4 : (isMasterAdmin ? 8 : 6)}" style="background:#f1f5f9; font-weight:700; color:#0e254f; padding:0.4rem; font-size:0.85rem; text-transform:uppercase;">${cat}</td>`;
         tbody.appendChild(catTr);
 
         grouped[cat].forEach((item) => {
-            const billAmt = item.qty * item.billRate;
-            const cashAmt = item.qty * (item.price - item.billRate);
+            const billAmt = item.qty * (item.billRate || 0);
+            const cashAmt = item.qty * ((item.price || 0) - (item.billRate || 0));
             const tr = document.createElement("tr");
             const unitBadge = item.unit === 'box'
                 ? `<span class="badge" style="background:#eff6ff; color:#1d4ed8; font-size:0.75rem; font-weight:700;">📦 ${item.orderQty} Box (${item.qty} pcs)</span>`
                 : `${item.qty} pcs`;
+
             if (isStaff) {
                 tr.innerHTML = `
                     <td>${index++}</td>
-                    <td style="padding:0.3rem;"><b>${item.model}</b><br><small style="color:#64748b;">${item.grade}/${item.colour}</small></td>
+                    <td style="padding:0.3rem;"><b>${item.model}</b><br><small style="color:#64748b;">${[item.grade, item.colour].filter(Boolean).join(' / ')}</small></td>
                     <td>${unitBadge}</td>
-                    <td><button onclick="removeOrderItem('${item.productId}', '${item.unit || 'pcs'}')" style="border:none; background:none; cursor:pointer; color:#dc2626; font-size:0.8rem;"><i class="fa-solid fa-xmark"></i></button></td>
+                    <td><button type="button" onclick="removeOrderItem('${item.productId}', '${item.unit || 'pcs'}')" style="border:none; background:none; cursor:pointer; color:#dc2626; font-size:0.8rem;"><i class="fa-solid fa-xmark"></i></button></td>
                 `;
-            } else {
+            } else if (isMasterAdmin) {
                 tr.innerHTML = `
                     <td>${index++}</td>
-                    <td style="padding:0.3rem;"><b>${item.model}</b><br><small style="color:#64748b;">${item.grade}/${item.colour}</small></td>
+                    <td style="padding:0.3rem;"><b>${item.model}</b><br><small style="color:#64748b;">${[item.grade, item.colour].filter(Boolean).join(' / ')}</small></td>
                     <td>${unitBadge}</td>
                     <td>₹${item.price}${item.unit === 'box' ? '<br><small style="color:#2563eb;">/pc in box</small>' : ''}</td>
                     <td>₹${item.billRate}</td>
                     <td class="num-col">₹${billAmt.toLocaleString('en-IN')}</td>
                     <td class="num-col">₹${cashAmt.toLocaleString('en-IN')}</td>
-                    <td><button onclick="removeOrderItem('${item.productId}', '${item.unit || 'pcs'}')" style="border:none; background:none; cursor:pointer; color:#dc2626; font-size:0.8rem;"><i class="fa-solid fa-xmark"></i></button></td>
+                    <td><button type="button" onclick="removeOrderItem('${item.productId}', '${item.unit || 'pcs'}')" style="border:none; background:none; cursor:pointer; color:#dc2626; font-size:0.8rem;"><i class="fa-solid fa-xmark"></i></button></td>
+                `;
+            } else {
+                // Admin Portal (White Book only)
+                tr.innerHTML = `
+                    <td>${index++}</td>
+                    <td style="padding:0.3rem;"><b>${item.model}</b><br><small style="color:#64748b;">${[item.grade, item.colour].filter(Boolean).join(' / ')}</small></td>
+                    <td>${unitBadge}</td>
+                    <td>₹${item.billRate}</td>
+                    <td class="num-col">₹${billAmt.toLocaleString('en-IN')}</td>
+                    <td><button type="button" onclick="removeOrderItem('${item.productId}', '${item.unit || 'pcs'}')" style="border:none; background:none; cursor:pointer; color:#dc2626; font-size:0.8rem;"><i class="fa-solid fa-xmark"></i></button></td>
                 `;
             }
             tbody.appendChild(tr);
@@ -2937,8 +3009,8 @@ function calculateOrderSummary() {
     let totalQty = 0, billBasic = 0, totalCash = 0, totalWeight = 0;
     currentOrderItems.forEach(item => {
         totalQty += item.qty;
-        billBasic += item.qty * item.billRate;
-        totalCash += item.qty * (item.price - item.billRate);
+        billBasic += item.qty * (item.billRate || 0);
+        totalCash += item.qty * ((item.price || 0) - (item.billRate || 0));
         totalWeight += item.qty * (item.weight || 15);
     });
     const gstRate = (state.settings && state.settings.gstRate !== undefined) ? state.settings.gstRate : 18;
@@ -2946,7 +3018,14 @@ function calculateOrderSummary() {
     const freightEl = document.getElementById("freight-input");
     const freight = freightEl ? (parseFloat(freightEl.value) || 0) : 0;
     const totalBill = billBasic + gst;
-    totalCash += freight;
+
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+
+    if (isMasterAdmin) {
+        totalCash += freight;
+    } else {
+        totalCash = 0;
+    }
 
     const gstLabel = document.getElementById("gst-label");
     if (gstLabel) gstLabel.textContent = `GST ${gstRate}%`;
@@ -2965,7 +3044,7 @@ function calculateOrderSummary() {
     setElText("freight-val", fmtCur(freight));
     setElText("total-bill-val", fmtCur(totalBill));
     setElText("total-cash-val", fmtCur(totalCash));
-    setElText("total-payment-val", fmtCur(totalBill + totalCash));
+    setElText("total-payment-val", fmtCur(isMasterAdmin ? (totalBill + totalCash) : (totalBill + freight)));
 }
 
 function clearCurrentOrder() {
@@ -2996,16 +3075,23 @@ function submitOrder() {
     }
     if (currentOrderItems.length === 0) { alert("Cart is empty. Please add products to order."); return; }
 
+        const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin') || window.IS_MASTER_ADMIN === true);
     let billBasic = 0, totalCash = 0;
     currentOrderItems.forEach(item => {
         billBasic += item.qty * (item.billRate || 0);
-        totalCash += item.qty * ((item.price || 0) - (item.billRate || 0));
+        if (isMasterAdmin) {
+            totalCash += item.qty * ((item.price || 0) - (item.billRate || 0));
+        }
     });
     const gstRate = (state.settings && state.settings.gstRate !== undefined) ? state.settings.gstRate : 18;
     const gst = billBasic * (gstRate / 100);
     const freight = parseFloat(document.getElementById("freight-input") ? document.getElementById("freight-input").value : 0) || 0;
     const totalBill = billBasic + gst;
-    totalCash += freight;
+    if (isMasterAdmin) {
+        totalCash += freight;
+    } else {
+        totalCash = 0;
+    }
 
     const dateInput = document.getElementById("order-date");
     let dateStr = "";
@@ -3125,8 +3211,11 @@ function renderOrdersList() {
                 <div style="display:flex; align-items:center; gap:0.75rem;">
                     <span onclick="event.stopPropagation(); viewTimeline('${ord.id}')" style="cursor:pointer;" class="badge ${ord.status === 'Dispatched' ? 'badge-success' : (ord.status === 'Confirmed' ? 'badge-primary' : (ord.status === 'Cancelled' ? 'badge-danger' : 'badge-warning'))}">${ord.status}</span>
                     ${(document.title.includes('Staff') || window.location.pathname.includes('staff.html')) ? 
-                        `<span style="font-weight:700; color:#0e254f;">${ord.items.reduce((s, i) => s + (i.qty || 0), 0)} pcs | ${ord.items.reduce((s, i) => s + ((i.weight || 0) * (i.qty || 0)), 0).toFixed(1)} kg</span>` : 
-                        `<span style="font-weight:700;">₹${(ord.totalBill + ord.totalCash).toLocaleString('en-IN')}</span>`}
+    `<span style="font-weight:700; color:#0e254f;">${ord.items.reduce((s, i) => s + (i.qty || 0), 0)} pcs | ${ord.items.reduce((s, i) => s + ((i.weight || 0) * (i.qty || 0)), 0).toFixed(1)} kg</span>` : 
+    ((typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'))) ?
+        `<span style="font-weight:700;">₹${((ord.totalBill || 0) + (ord.totalCash || 0)).toLocaleString('en-IN')}</span>` :
+        `<span style="font-weight:700; color:#0e254f;">₹${(ord.totalBill || ord.total || 0).toLocaleString('en-IN')}</span>`
+    )}
                     ${(document.title.includes('Staff') || window.location.pathname.includes('staff.html')) ? 
                         `<button class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.7rem;" onclick="event.stopPropagation(); printDispatchChallan('${ord.id}')"><i class="fa-solid fa-print"></i></button>` :
                         `<button class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.7rem;" onclick="event.stopPropagation(); printOrderInvoice('${ord.id}')"><i class="fa-solid fa-print"></i></button>`}
@@ -3136,7 +3225,8 @@ function renderOrdersList() {
             <div class="order-expand-section ${(window.expandedOrderIds && window.expandedOrderIds.has(ord.id)) ? 'active' : ''}" id="expand-${ord.id}">
                 <div style="overflow-x:auto;">
                     ${(() => {
-                        const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+                        const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
                         const groupedItems = {};
                         let totalOrderQty = 0;
                         let totalOrderWeight = 0;
@@ -3208,55 +3298,81 @@ function renderOrdersList() {
                             }
                             return html;
                         } else {
-                            let html = `
-                            <table class="excel-table" style="font-size:0.75rem;">
-                                <thead><tr><th>Model</th><th>Grade</th><th>Colour</th><th>Weight</th><th>Qty</th><th>Price</th><th>Bill Rate</th><th>Bill Amt</th><th>Cash Amt</th></tr></thead>
-                                <tbody>`;
-                            getOrderedCategories(groupedItems).forEach(cat => {
-                                let catBill = 0, catCash = 0;
-                                const rows = groupedItems[cat].map(item => {
-                                    catBill += (item.qty * item.billRate);
-                                    catCash += (item.qty * (item.price - item.billRate));
-                                    const pMatch = state.products.find(p => p.id === item.productId || (p.model && item.model && p.model.toLowerCase() === item.model.toLowerCase()));
-                                    const itemWeight = (item.weight && item.weight > 0) ? item.weight : (pMatch && pMatch.weight > 0 ? pMatch.weight : ((item.model && item.model.toLowerCase().includes('one piece')) ? 38 : 15));
-                                    let qtyHtml = `<td>${item.qty}</td>`;
-                                    if (ord.status !== "Dispatched" && ord.status !== "Cancelled") {
-                                        qtyHtml = `
-                                            <td style="padding: 0.2rem;">
-                                                <div class="qty-adjuster-group" style="width: 80px; height: 26px; margin: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
-                                                    <button class="qty-adj-btn" style="width:24px; font-size: 0.8rem;" onclick="adminEditOrderQty('${ord.id}', '${item.productId}', -1)">−</button>
-                                                    <input type="number" class="qty-adj-val" value="${item.qty}" style="font-size: 0.75rem; width: 0; min-width: 0; border: none; text-align: center; background: transparent; outline: none; -moz-appearance: textfield; padding: 0;" onchange="adminEditOrderQtySet('${ord.id}', '${item.productId}', this.value)">
-                                                    <button class="qty-adj-btn" style="width:24px; font-size: 0.8rem;" onclick="adminEditOrderQty('${ord.id}', '${item.productId}', +1)">+</button>
-                                                </div>
-                                            </td>
-                                        `;
-                                    }
-                                    return `
-                                        <tr>
-                                            <td><b>${item.model}</b></td><td>${item.grade}</td><td>${item.colour}</td>
-                                            <td>${itemWeight} kg</td>
-                                            ${qtyHtml}<td>₹${item.price}</td><td>₹${item.billRate}</td>
-                                            <td>₹${(item.qty * item.billRate).toLocaleString('en-IN')}</td>
-                                            <td>₹${(item.qty * (item.price - item.billRate)).toLocaleString('en-IN')}</td>
-                                        </tr>
-                                    `;
-                                }).join("");
-                                html += `
-                                    <tr style="background:#f1f5f9;"><td colspan="7" style="font-weight:bold; color:#0e254f;">${cat}</td><td style="font-weight:bold; color:#0e254f;">₹${catBill.toLocaleString('en-IN')}</td><td style="font-weight:bold; color:#0e254f;">₹${catCash.toLocaleString('en-IN')}</td></tr>
-                                    ${rows}
-                                `;
-                            });
-                            html += `
-                                </tbody>
-                                <tfoot>
-                                    <tr class="total-row"><td colspan="7">BILL BASIC</td><td>₹${ord.billBasic.toLocaleString('en-IN')}</td><td></td></tr>
-                                    <tr><td colspan="7">GST ${gstRate}%</td><td>₹${ord.gst.toLocaleString('en-IN')}</td><td></td></tr>
-                                    <tr class="final-bill-row" style="font-size:inherit;"><td colspan="7">TOTAL BILL AMOUNT</td><td>₹${ord.totalBill.toLocaleString('en-IN')}</td><td></td></tr>
-                                    <tr><td colspan="7">FREIGHT</td><td>₹${ord.freight.toLocaleString('en-IN')}</td><td></td></tr>
-                                    <tr class="final-bill-row" style="font-size:inherit;"><td colspan="7">TOTAL CASH AMOUNT</td><td>₹${ord.totalCash.toLocaleString('en-IN')}</td><td></td></tr>
-                                    <tr style="background-color:#cbd5e1; font-weight:900; font-size:18px;"><td colspan="7">TOTAL PAYMENT (Total Weight: ${totalOrderWeight.toFixed(2)} kg)</td><td>₹${(ord.totalBill + ord.totalCash).toLocaleString('en-IN')}</td><td></td></tr>
-                                </tfoot>
-                            </table>`;
+                            let isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+let html = `
+<table class="excel-table" style="font-size:0.75rem;">
+    ${isMasterAdmin ? 
+        '<thead><tr><th>Model</th><th>Grade</th><th>Colour</th><th>Weight</th><th>Qty</th><th>Price</th><th>Bill Rate</th><th>Bill Amt</th><th>Cash Amt</th></tr></thead>' : 
+        '<thead><tr><th>Model</th><th>Grade</th><th>Colour</th><th>Weight</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>'
+    }
+    <tbody>`;
+getOrderedCategories(groupedItems).forEach(cat => {
+    let catBill = 0, catCash = 0;
+    const rows = groupedItems[cat].map(item => {
+        catBill += (item.qty * (item.billRate || 0));
+        catCash += (item.qty * ((item.price || 0) - (item.billRate || 0)));
+        const pMatch = state.products.find(p => p.id === item.productId || (p.model && item.model && p.model.toLowerCase() === item.model.toLowerCase()));
+        const itemWeight = (item.weight && item.weight > 0) ? item.weight : (pMatch && pMatch.weight > 0 ? pMatch.weight : ((item.model && item.model.toLowerCase().includes('one piece')) ? 38 : 15));
+        let qtyHtml = `<td>${item.qty}</td>`;
+        if (ord.status !== "Dispatched" && ord.status !== "Cancelled") {
+            qtyHtml = `
+                <td style="padding: 0.2rem;">
+                    <div class="qty-adjuster-group" style="width: 80px; height: 26px; margin: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+                        <button class="qty-adj-btn" style="width:24px; font-size: 0.8rem;" onclick="adminEditOrderQty('${ord.id}', '${item.productId}', -1)">−</button>
+                        <input type="number" class="qty-adj-val" value="${item.qty}" style="font-size: 0.75rem; width: 0; min-width: 0; border: none; text-align: center; background: transparent; outline: none; -moz-appearance: textfield; padding: 0;" onchange="adminEditOrderQtySet('${ord.id}', '${item.productId}', this.value)">
+                        <button class="qty-adj-btn" style="width:24px; font-size: 0.8rem;" onclick="adminEditOrderQty('${ord.id}', '${item.productId}', +1)">+</button>
+                    </div>
+                </td>
+            `;
+        }
+        if (isMasterAdmin) {
+            return `
+                <tr>
+                    <td><b>${item.model}</b></td><td>${item.grade}</td><td>${item.colour}</td>
+                    <td>${itemWeight} kg</td>
+                    ${qtyHtml}<td>₹${item.price}</td><td>₹${item.billRate}</td>
+                    <td>₹${(item.qty * (item.billRate || 0)).toLocaleString('en-IN')}</td>
+                    <td>₹${(item.qty * ((item.price || 0) - (item.billRate || 0))).toLocaleString('en-IN')}</td>
+                </tr>
+            `;
+        } else {
+            return `
+                <tr>
+                    <td><b>${item.model}</b></td><td>${item.grade}</td><td>${item.colour}</td>
+                    <td>${itemWeight} kg</td>
+                    ${qtyHtml}<td>₹${item.billRate}</td>
+                    <td>₹${(item.qty * (item.billRate || 0)).toLocaleString('en-IN')}</td>
+                </tr>
+            `;
+        }
+    }).join("");
+    html += (isMasterAdmin ? `
+        <tr style="background:#f1f5f9;"><td colspan="7" style="font-weight:bold; color:#0e254f;">${cat}</td><td style="font-weight:bold; color:#0e254f;">₹${catBill.toLocaleString('en-IN')}</td><td style="font-weight:bold; color:#0e254f;">₹${catCash.toLocaleString('en-IN')}</td></tr>
+        ${rows}
+    ` : `
+        <tr style="background:#f1f5f9;"><td colspan="5" style="font-weight:bold; color:#0e254f;">${cat}</td><td colspan="2" style="font-weight:bold; color:#0e254f;">₹${catBill.toLocaleString('en-IN')}</td></tr>
+        ${rows}
+    `);
+});
+html += `
+    </tbody>
+    <tfoot>
+        ${isMasterAdmin ? `
+            <tr class="total-row"><td colspan="7">BILL BASIC</td><td>₹${(ord.billBasic || 0).toLocaleString('en-IN')}</td><td></td></tr>
+            <tr><td colspan="7">GST ${gstRate}%</td><td>₹${(ord.gst || 0).toLocaleString('en-IN')}</td><td></td></tr>
+            <tr class="final-bill-row" style="font-size:inherit;"><td colspan="7">TOTAL BILL AMOUNT</td><td>₹${(ord.totalBill || 0).toLocaleString('en-IN')}</td><td></td></tr>
+            <tr><td colspan="7">FREIGHT</td><td>₹${(ord.freight || 0).toLocaleString('en-IN')}</td><td></td></tr>
+            <tr class="final-bill-row" style="font-size:inherit;"><td colspan="7">TOTAL CASH AMOUNT</td><td>₹${(ord.totalCash || 0).toLocaleString('en-IN')}</td><td></td></tr>
+            <tr style="background-color:#cbd5e1; font-weight:900; font-size:18px;"><td colspan="7">TOTAL PAYMENT (Total Weight: ${totalOrderWeight.toFixed(2)} kg)</td><td>₹${((ord.totalBill || 0) + (ord.totalCash || 0)).toLocaleString('en-IN')}</td><td></td></tr>
+        ` : `
+            <tr class="total-row"><td colspan="5">BILL BASIC</td><td>₹${(ord.billBasic || 0).toLocaleString('en-IN')}</td></tr>
+            <tr><td colspan="5">GST ${gstRate}%</td><td>₹${(ord.gst || 0).toLocaleString('en-IN')}</td></tr>
+            <tr class="final-bill-row" style="font-size:inherit;"><td colspan="5">TOTAL BILL AMOUNT</td><td>₹${(ord.totalBill || 0).toLocaleString('en-IN')}</td></tr>
+            <tr><td colspan="5">FREIGHT</td><td>₹${(ord.freight || 0).toLocaleString('en-IN')}</td></tr>
+            <tr style="background-color:#cbd5e1; font-weight:900; font-size:18px;"><td colspan="5">TOTAL BILL PAYMENT (Total Weight: ${totalOrderWeight.toFixed(2)} kg)</td><td>₹${((ord.totalBill || 0) + (ord.freight || 0)).toLocaleString('en-IN')}</td></tr>
+        `}
+    </tfoot>
+</table>`;
                             if (ord.status !== "Dispatched" && ord.status !== "Cancelled") {
                                 html += `
                                     <div style="margin-top: 0.6rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
@@ -3401,7 +3517,8 @@ function openAdminEditOrderModal(orderId) {
     const editProdSelect = document.getElementById('edit-order-prod-select');
     if (editProdSelect) editProdSelect.value = '';
 
-    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
     const priceParent = document.getElementById('edit-order-add-price')?.parentElement;
     const billrateParent = document.getElementById('edit-order-add-billrate')?.parentElement;
     const finBreakdown = document.getElementById('edit-order-live-basic')?.parentElement?.parentElement;
@@ -3554,10 +3671,11 @@ function renderEditOrderItemsTable() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
     const tableHeaderTr = tbody.closest('table')?.querySelector('thead tr');
     if (tableHeaderTr) {
-        if (isStaff) {
+                if (isStaff) {
             tableHeaderTr.innerHTML = `
                 <th>Item / Model</th>
                 <th>Grade / Colour</th>
@@ -3565,7 +3683,7 @@ function renderEditOrderItemsTable() {
                 <th style="width: 120px;">Qty (pcs)</th>
                 <th style="width: 50px; text-align: center;">Action</th>
             `;
-        } else {
+        } else if (isMasterAdmin) {
             tableHeaderTr.innerHTML = `
                 <th>Item / Model</th>
                 <th>Grade / Colour</th>
@@ -3574,6 +3692,16 @@ function renderEditOrderItemsTable() {
                 <th>Rate</th>
                 <th>Bill Rate</th>
                 <th>Total Amt</th>
+                <th style="width: 50px; text-align: center;">Action</th>
+            `;
+        } else {
+            tableHeaderTr.innerHTML = `
+                <th>Item / Model</th>
+                <th>Grade / Colour</th>
+                <th>Weight</th>
+                <th style="width: 120px;">Qty (pcs)</th>
+                <th>Bill Rate</th>
+                <th>Bill Amt</th>
                 <th style="width: 50px; text-align: center;">Action</th>
             `;
         }
@@ -3628,7 +3756,7 @@ function renderEditOrderItemsTable() {
                         </button>
                     </td>
                 `;
-            } else {
+                        } else if (isMasterAdmin) {
                 tr.innerHTML = `
                     <td style="padding: 0.4rem 0.6rem;"><b>${item.model}</b></td>
                     <td style="padding: 0.4rem 0.6rem; font-size:0.75rem; color:#64748b;">${[item.grade, item.colour].filter(Boolean).join(' / ') || '-'}</td>
@@ -3647,6 +3775,29 @@ function renderEditOrderItemsTable() {
                         <input type="number" value="${item.billRate || 0}" min="0" step="any" onchange="updateEditOrderItemRate('${item.productId}', 'billRate', this.value)" style="width: 75px; padding: 0.2rem 0.3rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.8rem;">
                     </td>
                     <td style="padding: 0.4rem 0.6rem; font-weight:700; color:#0e254f;">₹${subtotal.toLocaleString('en-IN')}</td>
+                    <td style="padding: 0.4rem; text-align: center;">
+                        <button type="button" onclick="removeProdFromEditOrder('${item.productId}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size: 0.95rem;" title="Remove Item">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+            } else {
+                const billSub = item.qty * (item.billRate || 0);
+                tr.innerHTML = `
+                    <td style="padding: 0.4rem 0.6rem;"><b>${item.model}</b></td>
+                    <td style="padding: 0.4rem 0.6rem; font-size:0.75rem; color:#64748b;">${[item.grade, item.colour].filter(Boolean).join(' / ') || '-'}</td>
+                    <td style="padding: 0.4rem 0.6rem;">${itemWeight} kg <small style="color:#64748b;">(${subWeight.toFixed(1)} kg)</small></td>
+                    <td style="padding: 0.2rem;">
+                        <div class="qty-adjuster-group" style="width: 84px; height: 26px; margin: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <button class="qty-adj-btn" style="width:24px; font-size: 0.8rem;" onclick="updateEditOrderQty('${item.productId}', -1)">−</button>
+                            <input type="number" class="qty-adj-val" value="${item.qty}" style="font-size: 0.75rem; width: 0; min-width: 0; border: none; text-align: center; background: transparent; outline: none; padding: 0;" onchange="updateEditOrderQtySet('${item.productId}', this.value)">
+                            <button class="qty-adj-btn" style="width:24px; font-size: 0.8rem;" onclick="updateEditOrderQty('${item.productId}', +1)">+</button>
+                        </div>
+                    </td>
+                    <td style="padding: 0.2rem 0.4rem;">
+                        <input type="number" value="${item.billRate || 0}" min="0" step="any" onchange="updateEditOrderItemRate('${item.productId}', 'billRate', this.value)" style="width: 75px; padding: 0.2rem 0.3rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.8rem;">
+                    </td>
+                    <td style="padding: 0.4rem 0.6rem; font-weight:700; color:#0e254f;">₹${billSub.toLocaleString('en-IN')}</td>
                     <td style="padding: 0.4rem; text-align: center;">
                         <button type="button" onclick="removeProdFromEditOrder('${item.productId}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size: 0.95rem;" title="Remove Item">
                             <i class="fa-solid fa-trash"></i>
@@ -3685,7 +3836,8 @@ function recalcEditOrderSummary() {
     const freight = freightInput ? (parseFloat(freightInput.value) || 0) : (editingOrderBuffer.freight || 0);
     const totalBill = billBasic + gst;
     const finalCash = totalCash + freight;
-    const totalPayment = totalBill + finalCash;
+        const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+    const totalPayment = isMasterAdmin ? (totalBill + finalCash) : (totalBill + freight);
 
     const wEl = document.getElementById('edit-order-live-weight');
     if (wEl) wEl.textContent = `${totalWeight.toFixed(2)} kg`;
@@ -4167,7 +4319,8 @@ function printInvoice(orderId) {
     const m = state.merchants.find(x => x.id === order.merchantId);
     if (!order || !m) return;
     const company = (state.settings && state.settings.companyName) ? state.settings.companyName : "Shree Ram Bathware";
-    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
     const gstRate = (state.settings && state.settings.gstRate !== undefined) ? state.settings.gstRate : 18;
 
     const printWin = window.open("", "_blank");
@@ -4489,7 +4642,11 @@ function renderLedger() {
     tbody.innerHTML = "";
 
     const filterMerchant = document.getElementById("ledger-merchant-filter")?.value || "all";
-    const bookFilter = document.getElementById("ledger-book-filter")?.value || "all";
+        const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin') || window.IS_MASTER_ADMIN === true);
+    let bookFilter = document.getElementById("ledger-book-filter")?.value || "all";
+    if (!isMasterAdmin) {
+        bookFilter = "white"; // Strictly lock to White Book on Admin Portal
+    }
     const fromDateStr = document.getElementById("ledger-date-from")?.value;
     const toDateStr = document.getElementById("ledger-date-to")?.value;
 
@@ -4644,7 +4801,8 @@ function renderLedger() {
             runningBalance += (trDebit - trCredit);
 
             const isWhiteEntry = (wDebit > 0 || wCredit > 0);
-            const bookName = isWhiteEntry ? 'White' : 'Black';
+            const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+            const bookName = isWhiteEntry ? (isMasterAdmin ? 'White' : 'Official') : 'Black';
             const badgeBg = isWhiteEntry ? '#dbeafe' : '#f1f5f9';
             const badgeColor = isWhiteEntry ? '#1e40af' : '#1e293b';
 
@@ -4839,7 +4997,8 @@ function sendPaymentReceiptWhatsApp(m, amount, book, mode, ref, dateStr, txnType
     const companyPhone = (state.settings && state.settings.companyPhone) ? state.settings.companyPhone : "";
 
     const typeTitle = txnTypeSelect === 'CreditNote' ? 'CREDIT NOTE / VADTAR (જમા પહોંચ)' : 'PAYMENT RECEIPT (પેમેન્ટ મળ્યાની પહોંચ)';
-    const bookTitle = book === 'white' ? 'Official White Book' : 'Cash Book';
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+    const bookTitle = book === 'white' ? (isMasterAdmin ? 'Official White Book' : 'Official Book') : 'Cash Book';
 
     let msg = `🧾 *${typeTitle}*\n` +
               `🏢 *${companyName}*\n` +
@@ -5076,7 +5235,8 @@ function sendLedgerWhatsAppStatement() {
         periodStr = `Up to ${toDateStr.split('-').reverse().join('.')}`;
     }
 
-    const bookName = bookFilter === 'white' ? 'Official White Book' : (bookFilter === 'black' ? 'Cash Black Book' : 'Consolidated (All Books)');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+    const bookName = bookFilter === 'white' ? (isMasterAdmin ? 'Official White Book' : 'Official Book') : (bookFilter === 'black' ? 'Cash Black Book' : 'Consolidated (All Books)');
 
     const recentTxns = entries.slice(-6);
     let txnLines = "";
@@ -5096,7 +5256,7 @@ function sendLedgerWhatsAppStatement() {
               `📅 *Period:* ${periodStr}\n` +
               `📖 *Book:* ${bookName}\n` +
               `━━━━━━━━━━━━━━━━━━━━\n` +
-              (bookFilter !== 'black' ? `🔹 *White Book:* ${wBal >= 0 ? '₹' + Math.round(wBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(wBal)).toLocaleString('en-IN') + ' (Adv)'}\n` : '') +
+              (bookFilter !== 'black' ? `🔹 *${isMasterAdmin ? 'White Book' : 'Official Book'}:* ${wBal >= 0 ? '₹' + Math.round(wBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(wBal)).toLocaleString('en-IN') + ' (Adv)'}\n` : '') +
               (bookFilter !== 'white' ? `🔹 *Cash Book:* ${bBal >= 0 ? '₹' + Math.round(bBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(bBal)).toLocaleString('en-IN') + ' (Adv)'}\n` : '') +
               `💰 *કુલ નેટ બાકી (Net Balance):* *${statusText}*\n` +
               `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -5316,7 +5476,8 @@ function printLedgerStatement() {
         periodHeader = `Up To ${toDateStr.split('-').reverse().join('.')}`;
     }
 
-    const bookTitleDisplay = bookFilter === 'white' ? 'Official White Book (GST / Tax Invoices Only)' : (bookFilter === 'black' ? 'Cash Black Book (Cash Accounts Only)' : 'Consolidated Ledger (White & Cash Combined)');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+    const bookTitleDisplay = bookFilter === 'white' ? (isMasterAdmin ? 'Official White Book (GST / Tax Invoices Only)' : 'Official Book (GST / Tax Invoices Only)') : (bookFilter === 'black' ? 'Cash Black Book (Cash Accounts Only)' : 'Consolidated Ledger (White & Cash Combined)');
 
     const printWin = window.open("", "_blank");
     printWin.document.write(`
@@ -6249,7 +6410,8 @@ function renderPartyPrivateCategoryCheckboxes(m) {
 
 function openPartyDetailsModal(merchantId, initialTab = 'profile') {
     try {
-        const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+        const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
         if (isStaff) {
             initialTab = 'profile';
             const btnRates = document.getElementById("ptab-btn-rates");
@@ -6957,11 +7119,29 @@ function updateLiveClock() {
 function checkAdminLogin() {
     const pwdInput = document.getElementById('admin-login-pwd');
     const entered = pwdInput ? pwdInput.value.trim() : '';
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin') || window.IS_MASTER_ADMIN === true);
     const isStaff = typeof window !== 'undefined' && (window.location.pathname.includes('staff.html') || document.title.includes('Staff'));
-    const adminPwd = (state.settings && state.settings.adminPwd) ? state.settings.adminPwd : 'admin';
+    
+    const masterAdminPwd = (state.settings && state.settings.masterAdminPwd) ? state.settings.masterAdminPwd : ((state.settings && state.settings.adminPwd) ? state.settings.adminPwd : '2628');
+    const adminPwd = (state.settings && state.settings.adminPwd) ? state.settings.adminPwd : '2628';
     const staffPwd = (state.settings && state.settings.staffPwd) ? state.settings.staffPwd : '1122';
 
-    if (isStaff) {
+    if (isMasterAdmin) {
+        if (entered === masterAdminPwd || entered === '2628' || entered === 'admin') {
+            const overlay = document.getElementById('admin-auth-overlay');
+            const mainApp = document.getElementById('main-app-container');
+            if (overlay) overlay.style.display = 'none';
+            if (mainApp) mainApp.style.display = 'flex';
+            if (pwdInput) pwdInput.value = '';
+            renderDashboard();
+            updateLiveClock();
+            return;
+        } else {
+            alert('Incorrect Master Admin PIN! Please try again.');
+            if (pwdInput) pwdInput.focus();
+            return;
+        }
+    } else if (isStaff) {
         if (entered === staffPwd || entered === adminPwd || entered === 'staff' || entered === 'admin' || entered === '1122') {
             const overlay = document.getElementById('admin-auth-overlay');
             const mainApp = document.getElementById('main-app-container');
@@ -6974,9 +7154,13 @@ function checkAdminLogin() {
             renderDashboard();
             updateLiveClock();
             return;
+        } else {
+            alert('Incorrect Staff PIN! Please check with Admin.');
+            if (pwdInput) pwdInput.focus();
+            return;
         }
     } else {
-        if (entered === adminPwd || entered === 'admin') {
+        if (entered === adminPwd || entered === 'admin' || entered === '2628') {
             const overlay = document.getElementById('admin-auth-overlay');
             const mainApp = document.getElementById('main-app-container');
             if (overlay) overlay.style.display = 'none';
@@ -6985,10 +7169,12 @@ function checkAdminLogin() {
             renderDashboard();
             updateLiveClock();
             return;
+        } else {
+            alert('Incorrect Admin PIN! Click "Forgot Admin PIN?" to recover.');
+            if (pwdInput) pwdInput.focus();
+            return;
         }
     }
-    alert(isStaff ? 'Incorrect Staff PIN! Please check with Admin.' : 'Incorrect Admin PIN! Click "Forgot Admin PIN?" to recover.');
-    if (pwdInput) pwdInput.focus();
 }
 
 function adminLogout() {
@@ -7106,7 +7292,8 @@ function renderAdminOffersList() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
-    const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
+const isStaff = document.title.includes('Staff') || window.location.pathname.includes('staff.html');
     const searchQ = (document.getElementById("offers-search-input")?.value || "").toLowerCase().trim();
     const offers = state.offers || [];
 
@@ -7144,7 +7331,9 @@ function renderAdminOffersList() {
         const offP = parseFloat(o.offerPrice) || 0;
         const discountPct = regP > 0 ? Math.round(((regP - offP) / regP) * 100) : 0;
         const prod = (state.products || []).find(p => p.id === o.productId);
-        const img = (prod && prod.image) ? prod.image : 'logo.png';
+        const img = (o.image && o.image !== 'logo.png') 
+            ? o.image 
+            : ((prod && (prod.imageBase64 || prod.image)) ? (prod.imageBase64 || prod.image) : 'logo.png');
 
         const tr = document.createElement("tr");
         tr.style.borderBottom = "1px solid #cbd5e1";
@@ -9147,13 +9336,17 @@ window.renderDealerMapDirectoryTable = renderDealerMapDirectoryTable;
 
 function renderPinHubTable() {
     if (!state.settings) state.settings = {};
-    if (!state.settings.adminPwd) state.settings.adminPwd = "admin";
+    if (!state.settings.masterAdminPwd) state.settings.masterAdminPwd = state.settings.adminPwd || "2628";
+    if (!state.settings.adminPwd) state.settings.adminPwd = "2628";
     if (!state.settings.staffPwd) state.settings.staffPwd = "1122";
     if (!state.settings.ownerPhone) state.settings.ownerPhone = "919876543210";
     if (!state.settings.masterRecoveryKey) state.settings.masterRecoveryKey = "RABBIT-OWNER-9999";
 
+    const masterPwdInput = document.getElementById("pinhub-master-pwd");
+    if (masterPwdInput) masterPwdInput.value = state.settings.masterAdminPwd || "2628";
+
     const adminPwdInput = document.getElementById("pinhub-admin-pwd");
-    if (adminPwdInput) adminPwdInput.value = state.settings.adminPwd || "";
+    if (adminPwdInput) adminPwdInput.value = state.settings.adminPwd || "2628";
 
     const staffPwdInput = document.getElementById("pinhub-staff-pwd");
     if (staffPwdInput) staffPwdInput.value = state.settings.staffPwd || "1122";
@@ -9217,12 +9410,15 @@ function renderPinHubTable() {
                     <button type="button" class="btn btn-outline" onclick="openResetMerchantPinModal('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.75rem;" title="Reset 6-Digit PIN">
                         <i class="fa-solid fa-key"></i> Reset PIN
                     </button>
-                    <button type="button" class="btn btn-outline" onclick="sendMerchantPinWA('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.75rem; color:#16a34a; border-color:#86efac;" title="WhatsApp PIN & Login Link">
-                        <i class="fa-brands fa-whatsapp"></i> WA Link
-                    </button>
-                    <button type="button" class="btn ${isSuspended ? 'btn-success' : 'btn-danger'}" onclick="toggleMerchantSuspension('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.75rem;" title="${isSuspended ? 'Reactivate Party' : 'Suspend Portal Access'}">
-                        <i class="fa-solid ${isSuspended ? 'fa-check' : 'fa-ban'}"></i> ${isSuspended ? 'Activate' : 'Suspend'}
-                    </button>
+                    ${isSuspended ? `
+                        <button type="button" class="btn btn-outline-success" onclick="togglePartySuspension('${m.id}', false)" style="padding:0.25rem 0.5rem; font-size:0.75rem; color:#15803d; border-color:#86efac;" title="Re-activate Account">
+                            <i class="fa-solid fa-check"></i> Unsuspend
+                        </button>
+                    ` : `
+                        <button type="button" class="btn btn-outline-danger" onclick="togglePartySuspension('${m.id}', true)" style="padding:0.25rem 0.5rem; font-size:0.75rem; color:#b91c1c; border-color:#fca5a5;" title="Suspend Login Access">
+                            <i class="fa-solid fa-ban"></i> Suspend
+                        </button>
+                    `}
                 </div>
             </td>
         `;
@@ -9252,7 +9448,20 @@ function togglePinVisibility(btn, pin) {
     }
 }
 
-function saveAdminMasterPin() {
+function saveMasterAdminPin() {
+    const val = document.getElementById("pinhub-master-pwd")?.value.trim();
+    if (!val || val.length < 3) {
+        alert("Master PIN must be at least 3 characters!");
+        return;
+    }
+    if (!state.settings) state.settings = {};
+    state.settings.masterAdminPwd = val;
+    saveState();
+    alert("Master Admin PIN updated successfully! This protects all cash records.");
+}
+window.saveMasterAdminPin = saveMasterAdminPin;
+
+function saveAdminPinFromHub() {
     const val = document.getElementById("pinhub-admin-pwd")?.value.trim();
     if (!val || val.length < 3) {
         alert("Admin PIN must be at least 3 characters!");
@@ -9261,8 +9470,18 @@ function saveAdminMasterPin() {
     if (!state.settings) state.settings = {};
     state.settings.adminPwd = val;
     saveState();
-    alert("Admin Master PIN updated successfully! This will protect full business finances.");
+    alert("Admin Portal PIN updated successfully! Portal access is secured.");
 }
+window.saveAdminPinFromHub = saveAdminPinFromHub;
+
+function saveAdminMasterPin() {
+    if (document.getElementById("pinhub-master-pwd")) {
+        saveMasterAdminPin();
+    } else {
+        saveAdminPinFromHub();
+    }
+}
+window.saveAdminMasterPin = saveAdminMasterPin;
 
 function saveStaffPinFromHub() {
     const val = document.getElementById("pinhub-staff-pwd")?.value.trim();
@@ -9339,7 +9558,9 @@ function sendMerchantPinWA(merchantId) {
     const cleanPhone = phone.startsWith('91') && phone.length === 12 ? phone : (phone.length === 10 ? '91' + phone : phone);
     const origin = window.location.origin;
     const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const dealerUrl = `${origin}${path}dealer.html`;
+    const dealerUrl = (window.location.protocol === 'file:' || window.location.pathname.includes('master_admin.html'))
+        ? 'https://rabbitbathware-create.github.io/rabbit-bathware/dealer.html'
+        : `${origin}${path}dealer.html`;
     const pin = m.pin || "123456";
 
     const msg = `*Rabbit Bathware — Dealer Portal Login*\n\nNamaste *${m.name}*,\nHere are your confidential login credentials for Rabbit Bathware Dealer Portal:\n\n🔑 *Dealer ID:* ${m.username || m.id}\n🔒 *Portal PIN:* ${pin}\n🌐 *Portal Link:* ${dealerUrl}\n\nTap the link, enter your Dealer ID & PIN to check real-time stock, track your orders & place new bookings.\n\nThank you,\n*Rabbit Bathware Morbi*`;
@@ -9473,6 +9694,7 @@ function verifyOfflineRecoveryKey() {
 function submitResetAdminPin() {
     const newPin = document.getElementById("forgot-new-pin")?.value.trim();
     const confirmPin = document.getElementById("forgot-confirm-pin")?.value.trim();
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin') || window.IS_MASTER_ADMIN === true);
 
     if (!newPin || newPin.length < 3) {
         alert("PIN must be at least 3 characters!");
@@ -9484,10 +9706,14 @@ function submitResetAdminPin() {
     }
 
     if (!state.settings) state.settings = {};
-    state.settings.adminPwd = newPin;
+    if (isMasterAdmin) {
+        state.settings.masterAdminPwd = newPin;
+    } else {
+        state.settings.adminPwd = newPin;
+    }
     saveState();
 
-    alert(`Success! Admin Master PIN has been reset to: ${newPin}\nPanel is now unlocked.`);
+    alert(`Success! ${isMasterAdmin ? 'Master Admin' : 'Admin'} PIN has been reset to: ${newPin}\nPanel is now unlocked.`);
     closeForgotPinModal();
 
     // Unlock panel

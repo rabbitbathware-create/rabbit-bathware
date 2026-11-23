@@ -225,7 +225,8 @@ const DEFAULT_SETTINGS = {
     companyName: "Shree Ram Bathware",
     currencySymbol: "\u20B9",
     allAsPerOrder: false,
-    adminPwd: "admin",
+    masterAdminPwd: "2628",
+    adminPwd: "2628",
     staffPwd: "1122",
     ownerPhone: "919876543210",
     masterRecoveryKey: "RABBIT-OWNER-9999",
@@ -693,6 +694,15 @@ function loadState() {
             if (!state.orders) state.orders = [];
             if (!state.ledger) state.ledger = [];
             if (!state.settings) state.settings = { ...DEFAULT_SETTINGS };
+            if (!state.settings.masterAdminPwd) {
+                state.settings.masterAdminPwd = state.settings.adminPwd || "2628";
+            }
+            if (!state.settings.adminPwd) {
+                state.settings.adminPwd = "2628";
+            }
+            if (!state.settings.staffPwd) {
+                state.settings.staffPwd = "1122";
+            }
             if (!state.settings.firebaseConfigJSON || state.settings.firebaseConfigJSON.includes('...')) {
                 state.settings.firebaseConfigJSON = JSON.stringify(DEFAULT_FIREBASE_CONFIG);
             }
