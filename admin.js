@@ -671,7 +671,7 @@ function renderDashboard() {
                 merchantTurnoverMap[m.id] = { merchant: m, totalRev: 0, totalOrders: 0, pcs: 0 };
             }
             merchantTurnoverMap[m.id].totalOrders++;
-            merchantTurnoverMap[m.id].totalRev += ((ord.totalBill || 0) + (ord.totalCash || 0));
+            merchantTurnoverMap[m.id].totalRev += (isMasterAdmin ? ((ord.totalBill || 0) + (ord.totalCash || 0)) : (ord.totalBill || 0));
         }
 
         (ord.items || []).forEach(item => {
@@ -4925,20 +4925,25 @@ function renderLedger() {
         const isCredit = e.txnType === 'Credit';
         const wDebit = isCredit ? 0 : (e.whiteAmount || 0);
         const wCredit = isCredit ? (e.whiteAmount || 0) : 0;
-        const bDebit = isCredit ? 0 : (e.blackAmount || 0);
-        const bCredit = isCredit ? (e.blackAmount || 0) : 0;
         overallWhite += (wDebit - wCredit);
-        overallBlack += (bDebit - bCredit);
+
+        if (isMasterAdmin) {
+            const bDebit = isCredit ? 0 : (e.blackAmount || 0);
+            const bCredit = isCredit ? (e.blackAmount || 0) : 0;
+            overallBlack += (bDebit - bCredit);
+        }
     });
 
     // Opening balances configured on merchant
     const selectedMerchant = filterMerchant !== 'all' ? (state.merchants || []).find(m => m.id === filterMerchant) : null;
     if (selectedMerchant) {
         overallWhite += (parseFloat(selectedMerchant.openingBalanceWhite) || 0);
-        overallBlack += (parseFloat(selectedMerchant.openingBalanceBlack) || 0);
+        if (isMasterAdmin) {
+            overallBlack += (parseFloat(selectedMerchant.openingBalanceBlack) || 0);
+        }
     }
 
-    const overallCombined = overallWhite + overallBlack;
+    const overallCombined = isMasterAdmin ? (overallWhite + overallBlack) : overallWhite;
     const lw = document.getElementById("ledger-total-white");
     const lb = document.getElementById("ledger-total-black");
     const lc = document.getElementById("ledger-total-combined");
@@ -4948,19 +4953,25 @@ function renderLedger() {
         lw.innerHTML = overallWhite >= 0 ? fmtCur(overallWhite) : `+${fmtCur(Math.abs(overallWhite))} (Adv)`;
         lw.style.color = overallWhite > 0 ? "#ef4444" : "#10b981";
     }
-    if (lb) {
+    if (lb && isMasterAdmin) {
         lb.innerHTML = overallBlack >= 0 ? fmtCur(overallBlack) : `+${fmtCur(Math.abs(overallBlack))} (Adv)`;
         lb.style.color = overallBlack > 0 ? "#d97706" : "#10b981";
     }
     if (lc) {
-        lc.innerHTML = overallCombined >= 0 ? fmtCur(overallCombined) : `+${fmtCur(Math.abs(overallCombined))} (Adv)`;
-        lc.style.color = overallCombined > 0 ? "#2563eb" : "#10b981";
+        if (isMasterAdmin) {
+            lc.innerHTML = overallCombined >= 0 ? fmtCur(overallCombined) : `+${fmtCur(Math.abs(overallCombined))} (Adv)`;
+            lc.style.color = overallCombined > 0 ? "#2563eb" : "#10b981";
+        } else {
+            // ADMIN PORTAL ONLY: strictly NO cash! Show official white net balance
+            lc.innerHTML = overallWhite >= 0 ? fmtCur(overallWhite) : `+${fmtCur(Math.abs(overallWhite))} (Adv)`;
+            lc.style.color = overallWhite > 0 ? "#2563eb" : "#10b981";
+        }
     }
     if (lpSub) {
         if (selectedMerchant) {
             lpSub.innerHTML = `<b>${selectedMerchant.name}</b> ${selectedMerchant.city ? '· ' + selectedMerchant.city : ''} · UID: <code>${selectedMerchant.uid || selectedMerchant.id}</code>`;
         } else {
-            lpSub.textContent = "All Merchants Combined";
+            lpSub.textContent = isMasterAdmin ? "All Merchants Combined" : "All Merchants Official Total";
         }
     }
 
@@ -6948,6 +6959,7 @@ window.copyDealerLinkFromModal = copyDealerLinkFromModal;
 let currentPartyPerfFilter = 'all';
 
 function renderPartyPerformanceTab() {
+    if (typeof _perfCache !== 'undefined') _perfCache.clear();
     const merchants = state.merchants || [];
     let totalParties = merchants.length;
     let gradeACount = 0;

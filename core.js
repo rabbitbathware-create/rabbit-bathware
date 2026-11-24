@@ -1002,7 +1002,8 @@ window.parseDateToTs = parseDateToTs;
 // Calculate performance metrics for any merchant
 function getMerchantPerformance(merchant) {
     if (!merchant) return null;
-    const cacheKey = (merchant.id || merchant.name) + '_' + (merchant.orderCycleDays || 15) + '_' + (merchant.creditDays || 30);
+    const isMasterAdmin = (typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || (document && document.title && document.title.includes('Master Admin')) || window.IS_MASTER_ADMIN === true));
+    const cacheKey = (merchant.id || merchant.name) + '_' + (merchant.orderCycleDays || 15) + '_' + (merchant.creditDays || 30) + '_' + (isMasterAdmin ? 'master' : 'admin');
     if (typeof _perfCache !== 'undefined' && _perfCache.has(cacheKey)) {
         return _perfCache.get(cacheKey);
     }
@@ -1017,7 +1018,8 @@ function getMerchantPerformance(merchant) {
     });
 
     const totalOrders = orders.length;
-    const totalBusiness = orders.reduce((sum, o) => sum + (o.totalBill || 0) + (o.totalCash || 0), 0);
+    // In Admin Portal: ONLY official billing (totalBill) is counted. Cash is strictly omitted.
+    const totalBusiness = orders.reduce((sum, o) => sum + (o.totalBill || 0) + (isMasterAdmin ? (o.totalCash || 0) : 0), 0);
 
     let lastOrder = null;
     let lastOrderDate = null;
@@ -1067,7 +1069,7 @@ function getMerchantPerformance(merchant) {
     let lastPaymentDate = null;
     let daysSinceLastPayment = null;
 
-    const payments = ledger.filter(l => (parseFloat(l.credit) || (l.txnType === 'Credit' ? (l.whiteAmount || 0) + (l.blackAmount || 0) : 0)) > 0);
+    const payments = ledger.filter(l => (parseFloat(l.credit) || (l.txnType === 'Credit' ? (l.whiteAmount || 0) + (isMasterAdmin ? (l.blackAmount || 0) : 0) : 0)) > 0);
     payments.sort((a, b) => (b.timestamp || parseDateToTs(b.date)) - (a.timestamp || parseDateToTs(a.date)));
     if (payments.length > 0) {
         lastPaymentDate = payments[0].date;
@@ -1077,10 +1079,15 @@ function getMerchantPerformance(merchant) {
         }
     }
 
+    // Opening balances
+    const opWhite = parseFloat(merchant.openingBalanceWhite) || 0;
+    const opBlack = isMasterAdmin ? (parseFloat(merchant.openingBalanceBlack) || 0) : 0;
+    totalDebit += (opWhite + opBlack);
+
     ledger.forEach(l => {
         const isCredit = l.txnType === 'Credit';
-        const dAmt = (parseFloat(l.debit) || (!isCredit ? (l.whiteAmount || 0) + (l.blackAmount || 0) : 0));
-        const cAmt = (parseFloat(l.credit) || (isCredit ? (l.whiteAmount || 0) + (l.blackAmount || 0) : 0));
+        const dAmt = (!isCredit ? ((l.whiteAmount || 0) + (isMasterAdmin ? (l.blackAmount || 0) : 0)) : 0);
+        const cAmt = (isCredit ? ((l.whiteAmount || 0) + (isMasterAdmin ? (l.blackAmount || 0) : 0)) : 0);
         totalDebit += dAmt;
         totalCredit += cAmt;
     });
@@ -1119,7 +1126,7 @@ function getMerchantPerformance(merchant) {
         let remainingCredit = Math.max(0, totalCredit);
 
         fifoDispatches.forEach(ord => {
-            const ordAmt = (ord.totalBill || 0) + (ord.totalCash || 0);
+            const ordAmt = (ord.totalBill || 0) + (isMasterAdmin ? (ord.totalCash || 0) : 0);
             if (remainingCredit >= ordAmt) {
                 remainingCredit -= ordAmt;
                 // Dispatched load fully cleared by prior credits
