@@ -596,6 +596,7 @@ function setupNavigation() {
 
 // ---- DASHBOARD ----
 function renderDashboard() {
+    const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin') || window.IS_MASTER_ADMIN === true);
     const finDates = getActiveFinYearDates();
     let totalOrders = 0;
     let totalWhite = 0, totalBlack = 0;
@@ -622,12 +623,12 @@ function renderDashboard() {
                     valid = d >= finDates.startDate && d <= finDates.endDate;
                 }
             }
-            if(valid) { totalWhite += e.whiteAmount || 0; totalBlack += e.blackAmount || 0; }
+            if(valid) { totalWhite += e.whiteAmount || 0; if (isMasterAdmin) totalBlack += e.blackAmount || 0; }
         });
         totalOrders = filteredOrders.length;
     } else {
         totalOrders = (state.orders || []).length;
-        (state.ledger || []).forEach(e => { totalWhite += e.whiteAmount || 0; totalBlack += e.blackAmount || 0; });
+        (state.ledger || []).forEach(e => { totalWhite += e.whiteAmount || 0; if (isMasterAdmin) totalBlack += e.blackAmount || 0; });
     }
 
     const totalStock = (state.products || []).reduce((a, p) => a + parseInt(p.stock || 0), 0);
@@ -5018,6 +5019,19 @@ function renderLedger() {
         const db = parseLedgerDate(b.date) || new Date(0);
         return da.getTime() - db.getTime();
     });
+
+    const countBadge = document.getElementById("ledger-txn-count-badge");
+    const subHeading = document.getElementById("ledger-table-subheading");
+    if (countBadge) {
+        countBadge.textContent = `${inRangeEntries.length} વ્યવહારો (Entries)`;
+    }
+    if (subHeading) {
+        if (filterMerchant === "all") {
+            subHeading.textContent = "બધી પાર્ટીઓના ખરીદ-વેચાણ, જમા-ઉધાર અને પેમેન્ટના સંયુક્ત વ્યવહારો";
+        } else {
+            subHeading.textContent = `${selectedMerchant ? selectedMerchant.name : 'પાર્ટી'} નો વિગતવાર ખાતાવહી ચોપડો`;
+        }
+    }
 
     // Calculate initial running balance
     let runningBalance = (bookFilter === 'white') 
