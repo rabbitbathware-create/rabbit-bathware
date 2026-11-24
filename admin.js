@@ -4639,6 +4639,238 @@ function initLedgerTab() {
     renderLedger();
 }
 
+function selectPartyInLedger(merchantId) {
+    const sInput = document.getElementById("ledger-merchant-search");
+    const hInput = document.getElementById("ledger-merchant-filter");
+    if (!merchantId || merchantId === 'all') {
+        if (sInput) sInput.value = "";
+        if (hInput) hInput.value = "all";
+    } else {
+        const m = (state.merchants || []).find(x => x.id === merchantId);
+        if (sInput && m) sInput.value = m.name;
+        if (hInput) hInput.value = merchantId;
+    }
+    renderLedger();
+}
+window.selectPartyInLedger = selectPartyInLedger;
+
+function filterPartySummaryTable() {
+    const q = (document.getElementById("party-summary-search")?.value || "").trim().toLowerCase();
+    document.querySelectorAll(".party-summary-row").forEach(row => {
+        const searchKey = row.getAttribute("data-search") || "";
+        row.style.display = searchKey.includes(q) ? "" : "none";
+    });
+}
+window.filterPartySummaryTable = filterPartySummaryTable;
+
+function renderPartySummaryTable(isMasterAdmin, bookFilter, fromDate, toDate) {
+    const thead = document.getElementById("party-summary-thead");
+    const tbody = document.getElementById("party-summary-tbody");
+    const tfoot = document.getElementById("party-summary-tfoot");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    const merchants = state.merchants || [];
+    const allEntries = state.ledger || [];
+
+    const partyData = {};
+    merchants.forEach(m => {
+        partyData[m.id] = {
+            id: m.id,
+            name: m.name || 'Unnamed Party',
+            city: m.city || '',
+            phone: m.phone || '',
+            white: parseFloat(m.openingBalanceWhite) || 0,
+            black: parseFloat(m.openingBalanceBlack) || 0,
+            txnCount: 0
+        };
+    });
+
+    allEntries.forEach(e => {
+        if (!e || !e.merchantId) return;
+        if (!partyData[e.merchantId]) {
+            partyData[e.merchantId] = {
+                id: e.merchantId,
+                name: e.merchantName || 'Party',
+                city: '',
+                phone: '',
+                white: 0,
+                black: 0,
+                txnCount: 0
+            };
+        }
+        const d = parseLedgerDate(e.date);
+        if (fromDate && d && d < fromDate) {
+            // prior to period
+        } else if (toDate && d && d > toDate) {
+            return;
+        }
+        const isCredit = e.txnType === 'Credit';
+        const wDebit = isCredit ? 0 : (e.whiteAmount || 0);
+        const wCredit = isCredit ? (e.whiteAmount || 0) : 0;
+        const bDebit = isCredit ? 0 : (e.blackAmount || 0);
+        const bCredit = isCredit ? (e.blackAmount || 0) : 0;
+
+        partyData[e.merchantId].white += (wDebit - wCredit);
+        partyData[e.merchantId].black += (bDebit - bCredit);
+        partyData[e.merchantId].txnCount++;
+    });
+
+    const partyList = Object.values(partyData);
+    partyList.forEach(p => {
+        p.total = isMasterAdmin ? (p.white + p.black) : p.white;
+    });
+
+    partyList.sort((a, b) => {
+        if (Math.abs(b.total) !== Math.abs(a.total)) {
+            return Math.abs(b.total) - Math.abs(a.total);
+        }
+        return b.txnCount - a.txnCount;
+    });
+
+    let grandWhite = 0;
+    let grandBlack = 0;
+    let grandTotal = 0;
+
+    if (isMasterAdmin) {
+        if (thead) {
+            thead.innerHTML = `
+                <tr style="background:#0e254f; color:#fff; font-size:0.8rem;">
+                    <th style="width:40px; text-align:center;">#</th>
+                    <th>Party / Merchant Name (વેપારી પેઢી)</th>
+                    <th style="width:110px;">City (શહેર)</th>
+                    <th class="num-col" style="color:#a7f3d0; width:130px; text-align:right;">Official White (GST ₹)</th>
+                    <th class="num-col" style="color:#fed7aa; width:130px; text-align:right;">Cash Black (રોકડ ₹)</th>
+                    <th class="num-col" style="color:#bfdbfe; width:145px; text-align:right;">Combined Total (કુલ બાકી ₹)</th>
+                    <th style="width:105px; text-align:center;">Status</th>
+                    <th style="width:130px; text-align:center;">Action</th>
+                </tr>
+            `;
+        }
+
+        partyList.forEach((p, idx) => {
+            grandWhite += p.white;
+            grandBlack += p.black;
+            grandTotal += p.total;
+
+            const statusBadge = p.total > 0
+                ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:700;">બાકી લેણું</span>`
+                : (p.total < 0
+                    ? `<span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:700;">જમા / Adv</span>`
+                    : `<span class="badge" style="background:#f1f5f9; color:#475569; font-weight:700;">ચુકતે</span>`);
+
+            const tr = document.createElement("tr");
+            tr.className = "party-summary-row";
+            tr.setAttribute("data-search", `${(p.name + ' ' + p.city + ' ' + p.phone).toLowerCase()}`);
+            tr.style.cursor = "pointer";
+            tr.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                    selectPartyInLedger(p.id);
+                }
+            };
+
+            tr.innerHTML = `
+                <td style="text-align:center; font-weight:700; color:#64748b;">${idx + 1}</td>
+                <td>
+                    <b style="color:#0e254f; font-size:0.86rem;">${p.name}</b>
+                    ${p.phone ? `<br><small style="color:#64748b;"><i class="fa-solid fa-phone" style="font-size:0.7rem;"></i> ${p.phone}</small>` : ''}
+                </td>
+                <td style="color:#475569; font-size:0.82rem;">${p.city || '-'}</td>
+                <td class="num-col" style="font-weight:700; color:#059669; text-align:right;">${p.white !== 0 ? fmtCur(p.white) : '₹0'}</td>
+                <td class="num-col" style="font-weight:700; color:#d97706; text-align:right;">${p.black !== 0 ? fmtCur(p.black) : '₹0'}</td>
+                <td class="num-col" style="font-weight:800; color:${p.total > 0 ? '#dc2626' : (p.total < 0 ? '#16a34a' : '#0e254f')}; text-align:right; font-size:0.9rem;">
+                    ${p.total > 0 ? `${fmtCur(p.total)} Dr` : (p.total < 0 ? `+${fmtCur(Math.abs(p.total))} Cr` : '₹0')}
+                </td>
+                <td style="text-align:center;">${statusBadge}</td>
+                <td style="text-align:center;">
+                    <button type="button" class="btn btn-primary" onclick="selectPartyInLedger('${p.id}')" style="padding:0.25rem 0.6rem; font-size:0.75rem; font-weight:700;" title="View this party's individual ledger">
+                        <i class="fa-solid fa-book-open"></i> લેજર જુઓ
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if (tfoot) {
+            tfoot.innerHTML = `
+                <tr style="background:#f8fafc; font-weight:800; border-top:2px solid #cbd5e1; font-size:0.85rem;">
+                    <td colspan="3" style="text-align:right; color:#0e254f; font-weight:800;">TOTAL (બધી પાર્ટીઓનો કુલ હિસાબ):</td>
+                    <td class="num-col" style="text-align:right; color:#059669; font-size:0.92rem;">${fmtCur(grandWhite)}</td>
+                    <td class="num-col" style="text-align:right; color:#d97706; font-size:0.92rem;">${fmtCur(grandBlack)}</td>
+                    <td class="num-col" style="text-align:right; color:${grandTotal > 0 ? '#dc2626' : '#16a34a'}; font-size:1rem; font-weight:900;">
+                        ${grandTotal > 0 ? `${fmtCur(grandTotal)} Dr` : (grandTotal < 0 ? `+${fmtCur(Math.abs(grandTotal))} Cr` : '₹0')}
+                    </td>
+                    <td colspan="2"></td>
+                </tr>
+            `;
+        }
+    } else {
+        if (thead) {
+            thead.innerHTML = `
+                <tr style="background:#0e254f; color:#fff; font-size:0.8rem;">
+                    <th style="width:40px; text-align:center;">#</th>
+                    <th>Party / Merchant Name (વેપારી પેઢી)</th>
+                    <th style="width:120px;">City (શહેર)</th>
+                    <th class="num-col" style="color:#a7f3d0; width:160px; text-align:right;">Official Book Balance (GST ₹)</th>
+                    <th style="width:110px; text-align:center;">Status</th>
+                    <th style="width:130px; text-align:center;">Action</th>
+                </tr>
+            `;
+        }
+
+        partyList.forEach((p, idx) => {
+            grandWhite += p.white;
+            const statusBadge = p.white > 0
+                ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:700;">બાકી લેણું</span>`
+                : (p.white < 0
+                    ? `<span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:700;">જમા / Adv</span>`
+                    : `<span class="badge" style="background:#f1f5f9; color:#475569; font-weight:700;">ચુકતે</span>`);
+
+            const tr = document.createElement("tr");
+            tr.className = "party-summary-row";
+            tr.setAttribute("data-search", `${(p.name + ' ' + p.city + ' ' + p.phone).toLowerCase()}`);
+            tr.style.cursor = "pointer";
+            tr.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                    selectPartyInLedger(p.id);
+                }
+            };
+
+            tr.innerHTML = `
+                <td style="text-align:center; font-weight:700; color:#64748b;">${idx + 1}</td>
+                <td>
+                    <b style="color:#0e254f; font-size:0.86rem;">${p.name}</b>
+                    ${p.phone ? `<br><small style="color:#64748b;"><i class="fa-solid fa-phone" style="font-size:0.7rem;"></i> ${p.phone}</small>` : ''}
+                </td>
+                <td style="color:#475569; font-size:0.82rem;">${p.city || '-'}</td>
+                <td class="num-col" style="font-weight:800; color:${p.white > 0 ? '#dc2626' : (p.white < 0 ? '#16a34a' : '#0e254f')}; text-align:right; font-size:0.9rem;">
+                    ${p.white > 0 ? `${fmtCur(p.white)} Dr` : (p.white < 0 ? `+${fmtCur(Math.abs(p.white))} Cr` : '₹0')}
+                </td>
+                <td style="text-align:center;">${statusBadge}</td>
+                <td style="text-align:center;">
+                    <button type="button" class="btn btn-primary" onclick="selectPartyInLedger('${p.id}')" style="padding:0.25rem 0.6rem; font-size:0.75rem; font-weight:700;" title="View this party's individual ledger">
+                        <i class="fa-solid fa-book-open"></i> લેજર જુઓ
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if (tfoot) {
+            tfoot.innerHTML = `
+                <tr style="background:#f8fafc; font-weight:800; border-top:2px solid #cbd5e1; font-size:0.85rem;">
+                    <td colspan="3" style="text-align:right; color:#0e254f; font-weight:800;">TOTAL OFFICIAL BOOK BALANCE:</td>
+                    <td class="num-col" style="text-align:right; color:${grandWhite > 0 ? '#dc2626' : '#16a34a'}; font-size:0.95rem; font-weight:900;">
+                        ${grandWhite > 0 ? `${fmtCur(grandWhite)} Dr` : (grandWhite < 0 ? `+${fmtCur(Math.abs(grandWhite))} Cr` : '₹0')}
+                    </td>
+                    <td colspan="2"></td>
+                </tr>
+            `;
+        }
+    }
+}
+window.renderPartySummaryTable = renderPartySummaryTable;
+
 function renderLedger() {
     const tbody = document.getElementById("ledger-table-body");
     if (!tbody) return;
@@ -4732,6 +4964,21 @@ function renderLedger() {
         }
     }
 
+    const partySummaryCard = document.getElementById("ledger-party-summary-card");
+    const backBtnContainer = document.getElementById("ledger-party-back-btn-container");
+    const tableHeading = document.getElementById("ledger-table-heading");
+
+    if (filterMerchant === "all") {
+        if (partySummaryCard) partySummaryCard.style.display = "block";
+        if (backBtnContainer) backBtnContainer.style.display = "none";
+        if (tableHeading) tableHeading.textContent = "All Parties Transaction Journal (બધી પાર્ટીઓના સંયુક્ત વ્યવહારો)";
+        renderPartySummaryTable(isMasterAdmin, bookFilter, fromDate, toDate);
+    } else {
+        if (partySummaryCard) partySummaryCard.style.display = "none";
+        if (backBtnContainer) backBtnContainer.style.display = "block";
+        if (tableHeading) tableHeading.textContent = `${selectedMerchant ? selectedMerchant.name : 'Party'} - Detailed Ledger Statement (ખાતાવહી)`;
+    }
+
     // Calculate Opening Balance prior to fromDate
     let openingWhite = selectedMerchant ? (parseFloat(selectedMerchant.openingBalanceWhite) || 0) : 0;
     let openingBlack = selectedMerchant ? (parseFloat(selectedMerchant.openingBalanceBlack) || 0) : 0;
@@ -4765,6 +5012,13 @@ function renderLedger() {
     let runningBalance = (bookFilter === 'white') 
         ? openingWhite 
         : (bookFilter === 'black' ? openingBlack : (openingWhite + openingBlack));
+
+    let partyRunningBalances = {};
+    (state.merchants || []).forEach(m => {
+        partyRunningBalances[m.id] = (bookFilter === 'white')
+            ? (parseFloat(m.openingBalanceWhite) || 0)
+            : (bookFilter === 'black' ? (parseFloat(m.openingBalanceBlack) || 0) : ((parseFloat(m.openingBalanceWhite) || 0) + (parseFloat(m.openingBalanceBlack) || 0)));
+    });
 
     // Render Opening Balance Row if party selected or opening balance != 0
     if (filterMerchant !== 'all' || Math.abs(runningBalance) > 0.01) {
@@ -4813,14 +5067,24 @@ function renderLedger() {
             const badgeBg = isWhiteEntry ? '#dbeafe' : '#f1f5f9';
             const badgeColor = isWhiteEntry ? '#1e40af' : '#1e293b';
 
+            if (partyRunningBalances[e.merchantId] === undefined) {
+                partyRunningBalances[e.merchantId] = 0;
+            }
+            partyRunningBalances[e.merchantId] += (trDebit - trCredit);
+            const pBal = partyRunningBalances[e.merchantId];
+
             const rowBalDisplay = filterMerchant === "all" 
-                ? '-' 
+                ? (pBal > 0 ? `${fmtCur(pBal)} Dr` : (pBal < 0 ? `+${fmtCur(Math.abs(pBal))} Cr` : '₹0')) 
                 : (runningBalance > 0 ? `${fmtCur(runningBalance)} Dr` : (runningBalance < 0 ? `+${fmtCur(Math.abs(runningBalance))} Cr` : '₹0'));
 
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td>${e.date}</td>
-                <td><b>${e.merchantName}</b></td>
+                <td>
+                    <a href="javascript:void(0)" onclick="selectPartyInLedger('${e.merchantId}')" style="color:#0e254f; font-weight:700; text-decoration:none;" title="Click to view ${e.merchantName}'s ledger">
+                        <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.68rem; color:#2563eb; margin-right:4px;"></i><b>${e.merchantName}</b>
+                    </a>
+                </td>
                 <td><code style="background:#f8fafc; padding:2px 5px; border-radius:4px; font-weight:700; color:#0e254f;">${e.refNo || '-'}</code></td>
                 <td>
                     ${e.description}
