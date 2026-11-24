@@ -4633,6 +4633,9 @@ function resetLedgerFilters() {
 }
 
 function initLedgerTab() {
+    if (typeof reconcileDispatchedOrdersToLedger === 'function') {
+        reconcileDispatchedOrdersToLedger(state);
+    }
     renderLedger();
 }
 
@@ -4640,6 +4643,10 @@ function renderLedger() {
     const tbody = document.getElementById("ledger-table-body");
     if (!tbody) return;
     tbody.innerHTML = "";
+
+    if (typeof reconcileDispatchedOrdersToLedger === 'function') {
+        reconcileDispatchedOrdersToLedger(state);
+    }
 
     const filterMerchant = document.getElementById("ledger-merchant-filter")?.value || "all";
         const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin') || window.IS_MASTER_ADMIN === true);
@@ -5645,6 +5652,34 @@ function getActiveFinYearDates() {
     const endDate = new Date(startYear + 1, 2, 31, 23, 59, 59); // 31st March
     return { startDate, endDate };
 }
+
+function refreshCurrentTab() {
+    const activeNav = document.querySelector(".nav-item.active");
+    if (!activeNav) return;
+    const tabId = activeNav.getAttribute("data-tab");
+    if (tabId === "dashboard-tab" && typeof renderDashboard === 'function') renderDashboard();
+    else if (tabId === "stock-tab" && typeof renderStockTable === 'function') renderStockTable();
+    else if (tabId === "merchants-tab") { 
+        if (typeof renderMerchantsGrid === 'function') renderMerchantsGrid(); 
+        if (typeof renderDealerRequests === 'function') renderDealerRequests(); 
+        if (typeof renderAdminBanners === 'function') renderAdminBanners(); 
+        if (typeof renderAdminCategoryCards === 'function') renderAdminCategoryCards(); 
+    }
+    else if (tabId === "pinhub-tab" && typeof renderPinHubTable === 'function') renderPinHubTable();
+    else if (tabId === "new-order-tab" && typeof initNewOrderTab === 'function') initNewOrderTab();
+    else if (tabId === "orders-tab" && typeof renderOrdersList === 'function') renderOrdersList();
+    else if (tabId === "ledger-tab" && typeof renderLedger === 'function') renderLedger();
+    else if (tabId === "party-performance-tab" && typeof renderPartyPerformanceTab === 'function') renderPartyPerformanceTab();
+    else if (tabId === "dealer-analytics-tab" && typeof renderDealerAnalyticsTab === 'function') renderDealerAnalyticsTab();
+    else if (tabId === "dealer-map-tab" && typeof initDealerTerritoryMap === 'function') initDealerTerritoryMap();
+    else if (tabId === "offers-tab" && typeof renderAdminOffersList === 'function') renderAdminOffersList();
+    else if (tabId === "banners-tab") { 
+        if (typeof renderAdminBanners === 'function') renderAdminBanners(); 
+        if (typeof renderAdminCategoryCards === 'function') renderAdminCategoryCards(); 
+    }
+    else if (tabId === "settings-tab" && typeof initSettingsTab === 'function') initSettingsTab();
+}
+window.refreshCurrentTab = refreshCurrentTab;
 
 function onYearChange() {
     refreshCurrentTab();

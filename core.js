@@ -364,6 +364,66 @@ function sanitizeStaffData(target) {
 }
 window.sanitizeStaffData = sanitizeStaffData;
 
+function reconcileDispatchedOrdersToLedger(targetState) {
+    if (!targetState) return false;
+    if (!Array.isArray(targetState.ledger)) targetState.ledger = [];
+    if (!Array.isArray(targetState.orders)) return false;
+
+    let modified = false;
+    targetState.orders.forEach(order => {
+        if (!order || order.status !== "Dispatched") return;
+
+        // Check if white entry exists for this order
+        const hasWhiteEntry = targetState.ledger.some(e => e && e.orderId === order.id && ((e.whiteAmount && e.whiteAmount > 0) || (e.id && e.id.endsWith('w'))));
+        // Check if black entry exists for this order
+        const hasBlackEntry = targetState.ledger.some(e => e && e.orderId === order.id && ((e.blackAmount && e.blackAmount > 0) || (e.id && e.id.endsWith('b'))));
+
+        const m = (targetState.merchants || []).find(x => x.id === order.merchantId);
+        const mName = m ? m.name : (order.merchantName || "Party");
+        const dDate = order.dispatchDate || order.date || (new Date().toLocaleDateString('en-GB')).replace(/\//g, '.');
+        const dTs = order.dispatchTimestamp || order.timestamp || Date.now();
+        const refNo = order.performerNo || "INV-" + (order.id ? order.id.slice(-4) : "001");
+
+        const billAmt = (typeof order.totalBill === 'number' && order.totalBill > 0) ? order.totalBill : 0;
+        const cashAmt = (typeof order.totalCash === 'number' && order.totalCash > 0) ? order.totalCash : 0;
+
+        if (!hasWhiteEntry && billAmt > 0) {
+            targetState.ledger.push({
+                id: "led-" + dTs + "w",
+                orderId: order.id,
+                merchantId: order.merchantId,
+                merchantName: mName,
+                date: dDate,
+                refNo: refNo,
+                description: "Sales Invoice (White Book)",
+                whiteAmount: billAmt,
+                blackAmount: 0,
+                status: "Cleared"
+            });
+            modified = true;
+        }
+
+        if (!hasBlackEntry && cashAmt > 0) {
+            targetState.ledger.push({
+                id: "led-" + dTs + "b",
+                orderId: order.id,
+                merchantId: order.merchantId,
+                merchantName: mName,
+                date: dDate,
+                refNo: refNo,
+                description: "Cash Sale (Black Book)",
+                whiteAmount: 0,
+                blackAmount: cashAmt,
+                status: "Cleared"
+            });
+            modified = true;
+        }
+    });
+
+    return modified;
+}
+window.reconcileDispatchedOrdersToLedger = reconcileDispatchedOrdersToLedger;
+
 function initFirebaseSync() {
     try {
         if (typeof firebase === 'undefined') {
@@ -507,9 +567,34 @@ function initFirebaseSync() {
                             hasLocalAdditions = true;
                         }
                     }
+
+                    // 6. Merge Ledger (protect local ledger transactions & ensure array)
+                    const remoteLedger = Array.isArray(remoteVal.ledger) ? remoteVal.ledger : [];
+                    const mergedLedger = [...remoteLedger];
+                    if (Array.isArray(state.ledger) && state.ledger.length > 0) {
+                        state.ledger.forEach(ll => {
+                            if (!ll || !ll.id) return;
+                            if (!mergedLedger.some(rl => rl.id === ll.id)) {
+                                mergedLedger.push(ll);
+                                hasLocalAdditions = true;
+                            }
+                        });
+                    }
+                    remoteVal.ledger = mergedLedger;
+                }
+
+                if (!Array.isArray(remoteVal.ledger)) {
+                    remoteVal.ledger = [];
                 }
 
                 state = remoteVal;
+
+                // Self-healing: Reconcile dispatched orders into state.ledger if missing
+                if (typeof reconcileDispatchedOrdersToLedger === 'function') {
+                    if (reconcileDispatchedOrdersToLedger(state)) {
+                        hasLocalAdditions = true;
+                    }
+                }
                 const isStaffSession = typeof window !== 'undefined' && (window.location.pathname.includes('staff.html') || document.title.includes('Staff'));
                 if (isStaffSession && typeof sanitizeStaffData === 'function') {
                     sanitizeStaffData(state);
@@ -693,6 +778,9 @@ function loadState() {
             }
             if (!state.orders) state.orders = [];
             if (!state.ledger) state.ledger = [];
+            if (typeof reconcileDispatchedOrdersToLedger === 'function') {
+                reconcileDispatchedOrdersToLedger(state);
+            }
             if (!state.settings) state.settings = { ...DEFAULT_SETTINGS };
             if (!state.settings.masterAdminPwd) {
                 state.settings.masterAdminPwd = state.settings.adminPwd || "2628";
