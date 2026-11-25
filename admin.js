@@ -4123,15 +4123,32 @@ function confirmOrder(orderId) {
 }
 
 function cancelOrder(orderId) {
-    if (confirm("Are you sure you want to Cancel this order? This will mark it as Cancelled.")) {
+    if (confirm("Are you sure you want to Cancel this order? This will mark it as Cancelled and reverse its ledger invoices.")) {
         const order = state.orders.find(o => o.id === orderId);
         if (order) {
+            const wasDispatched = (order.status === "Dispatched");
             if (order.status !== "Cancelled") {
                 if (!order.timeline) order.timeline = [{ status: "Pending", timestamp: parseInt(order.id.replace('ord-', '')) || Date.now() }];
                 order.timeline.push({ status: "Cancelled", timestamp: Date.now() });
                 order.status = "Cancelled";
             }
-            saveState(); renderOrdersList();
+            if (wasDispatched) {
+                // Restore stock
+                (order.items || []).forEach(item => {
+                    const p = state.products.find(x => x.id === item.productId);
+                    if (p) p.stock = parseInt(p.stock || 0) + parseInt(item.qty || 0);
+                });
+                // Remove sales invoice from ledger so payment due is cleared
+                state.ledger = (state.ledger || []).filter(e => e.orderId !== orderId);
+            }
+            saveState();
+            if (typeof syncToCloud === 'function') syncToCloud(true);
+            if (window.firebaseDB) {
+                window.firebaseDB.ref("bms_state/orders").set(state.orders);
+                window.firebaseDB.ref("bms_state/ledger").set(state.ledger);
+            }
+            renderOrdersList();
+            if (typeof refreshCurrentTab === 'function') refreshCurrentTab();
         }
     }
 }
@@ -4143,16 +4160,16 @@ function deleteOrder(orderId) {
     if (idx === -1) return;
     const order = state.orders[idx];
 
-    // Restore stock and remove ledger if it was Dispatched
+    // Restore stock if it was Dispatched
     if (order.status === "Dispatched") {
-        order.items.forEach(item => {
+        (order.items || []).forEach(item => {
             const p = state.products.find(x => x.id === item.productId);
             if (p) p.stock = parseInt(p.stock || 0) + parseInt(item.qty || 0);
         });
-        
-        // Remove ledger entries related to this order
-        state.ledger = state.ledger.filter(e => e.orderId !== order.id);
     }
+
+    // Always remove any ledger entries associated with this order
+    state.ledger = (state.ledger || []).filter(e => e.orderId !== orderId);
 
     // Remove order
     state.orders.splice(idx, 1);
@@ -4164,6 +4181,7 @@ function deleteOrder(orderId) {
     if (window.firebaseDB) {
         window.firebaseDB.ref("bms_state/orders").set(state.orders);
         window.firebaseDB.ref("bms_state/deletedOrderIds").set(state.deletedOrderIds);
+        window.firebaseDB.ref("bms_state/ledger").set(state.ledger);
     }
     renderOrdersList();
     refreshCurrentTab();
@@ -5148,17 +5166,25 @@ function renderLedger() {
 }
 
 function deleteLedgerEntry(entryId) {
-    const entry = state.ledger.find(e => e.id === entryId);
+    const entry = (state.ledger || []).find(e => e.id === entryId);
     if (!entry) return;
     if (entry.orderId) {
-        alert("Sales invoices cannot be deleted directly from the Ledger. To reverse this, please cancel the order from the 'Orders & Dispatch' tab.");
-        return;
+        const ord = (state.orders || []).find(o => o.id === entry.orderId);
+        if (ord && (ord.status === "Dispatched" || ord.status === "Delivered")) {
+            if (!confirm(`This entry belongs to Active Dispatched Order "${ord.performerNo}".\n\nDeleting this ledger entry will remove the sales invoice from the ledger statement. Are you sure you want to delete this invoice entry?`)) {
+                return;
+            }
+        }
     }
 
     if(!confirm("Are you sure you want to delete this ledger entry? This cannot be undone.")) return;
     
-    state.ledger = state.ledger.filter(e => e.id !== entryId);
+    state.ledger = (state.ledger || []).filter(e => e.id !== entryId);
     saveState();
+    if (window.firebaseDB) {
+        window.firebaseDB.ref("bms_state/ledger").set(state.ledger);
+    }
+    if (typeof syncToCloud === 'function') syncToCloud(true);
     renderLedger();
 }
 

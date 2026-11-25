@@ -370,8 +370,32 @@ function reconcileDispatchedOrdersToLedger(targetState) {
     if (!Array.isArray(targetState.orders)) return false;
 
     let modified = false;
-    targetState.orders.forEach(order => {
-        if (!order || order.status !== "Dispatched") return;
+    const deletedOrderIds = Array.isArray(targetState.deletedOrderIds) ? targetState.deletedOrderIds : [];
+    const validOrders = targetState.orders.filter(o => o && o.id);
+    const validOrderMap = new Map();
+    validOrders.forEach(o => validOrderMap.set(o.id, o));
+
+    // 1. Remove orphaned sales invoices whose orders are deleted or no longer Dispatched/Delivered
+    const initialLen = targetState.ledger.length;
+    targetState.ledger = targetState.ledger.filter(l => {
+        if (!l) return false;
+        if (!l.orderId) return true; // Keep manual payments / receipts / credits
+        // If order was explicitly deleted
+        if (deletedOrderIds.includes(l.orderId)) return false;
+        // If order does not exist in state.orders
+        const order = validOrderMap.get(l.orderId);
+        if (!order) return false;
+        // If order exists but is Cancelled or Pending (not Dispatched or Delivered)
+        if (order.status !== "Dispatched" && order.status !== "Delivered") return false;
+        return true;
+    });
+    if (targetState.ledger.length !== initialLen) {
+        modified = true;
+    }
+
+    // 2. Add active dispatched orders if missing from ledger
+    validOrders.forEach(order => {
+        if (!order || (order.status !== "Dispatched" && order.status !== "Delivered")) return;
 
         // Check if white entry exists for this order
         const hasWhiteEntry = targetState.ledger.some(e => e && e.orderId === order.id && ((e.whiteAmount && e.whiteAmount > 0) || (e.id && e.id.endsWith('w'))));
@@ -495,6 +519,9 @@ function initFirebaseSync() {
                 if (Array.isArray(remoteVal.orders)) {
                     remoteVal.orders = remoteVal.orders.filter(o => o && !allDeletedOrders.includes(o.id));
                 }
+                if (Array.isArray(remoteVal.ledger)) {
+                    remoteVal.ledger = remoteVal.ledger.filter(l => l && (!l.orderId || !allDeletedOrders.includes(l.orderId)));
+                }
 
                 // Smart Merge to ensure locally added data (e.g. from Mobile) is never lost
                 let hasLocalAdditions = false;
@@ -574,6 +601,7 @@ function initFirebaseSync() {
                     if (Array.isArray(state.ledger) && state.ledger.length > 0) {
                         state.ledger.forEach(ll => {
                             if (!ll || !ll.id) return;
+                            if (ll.orderId && allDeletedOrders.includes(ll.orderId)) return;
                             if (!mergedLedger.some(rl => rl.id === ll.id)) {
                                 mergedLedger.push(ll);
                                 hasLocalAdditions = true;
