@@ -756,7 +756,7 @@ function renderDashboard() {
     if (topProductsListEl) {
         const sortedProducts = Object.values(productSalesMap).sort((a, b) => b.pcs - a.pcs).slice(0, 5);
         if (sortedProducts.length === 0) {
-            topProductsListEl.innerHTML = `<p class="placeholder-text">No product sales recorded in this period.</p>`;
+            topProductsListEl.innerHTML = `<div style="text-align:center; padding:1.2rem 0.5rem; color:#64748b; font-size:0.85rem;"><i class="fa-solid fa-box-open" style="color:#94a3b8; font-size:1.5rem; margin-bottom:0.4rem; display:block;"></i>હાલમાં કોઈ વેચાણ થયેલ નથી<br><span style="font-size:0.75rem; color:#94a3b8;">(No sales recorded in this period)</span></div>`;
         } else {
             let html = `<div style="display:flex; flex-direction:column; gap:0.5rem;">`;
             sortedProducts.forEach((p, idx) => {
@@ -789,7 +789,7 @@ function renderDashboard() {
     if (topDealersListEl) {
         const sortedDealers = Object.values(merchantTurnoverMap).sort((a, b) => b.totalRev - a.totalRev).slice(0, 5);
         if (sortedDealers.length === 0) {
-            topDealersListEl.innerHTML = `<p class="placeholder-text">No merchant orders in this period.</p>`;
+            topDealersListEl.innerHTML = `<div style="text-align:center; padding:1.2rem 0.5rem; color:#64748b; font-size:0.85rem;"><i class="fa-solid fa-users" style="color:#94a3b8; font-size:1.5rem; margin-bottom:0.4rem; display:block;"></i>હાલમાં કોઈ ઓર્ડર મળેલ નથી<br><span style="font-size:0.75rem; color:#94a3b8;">(No merchant orders recorded in this period)</span></div>`;
         } else {
             let html = `<div style="display:flex; flex-direction:column; gap:0.5rem;">`;
             sortedDealers.forEach((d, idx) => {
@@ -4270,7 +4270,7 @@ function confirmDispatchOrder(e) {
     order.dispatchDate = dispatchDateStr;
     order.dispatchTimestamp = nowTs;
 
-    if (order.totalBill > 0) state.ledger.push({ id: "led-" + nowTs + "w", orderId: order.id, merchantId: order.merchantId, merchantName: mName, date: dispatchDateStr, refNo: order.performerNo, description: "Sales Invoice (White Book)", whiteAmount: order.totalBill, blackAmount: 0, status: "Cleared" });
+    if (order.totalBill > 0) state.ledger.push({ id: "led-" + nowTs + "w", orderId: order.id, merchantId: order.merchantId, merchantName: mName, date: dispatchDateStr, refNo: order.performerNo, description: "Sales Invoice (Official Book)", whiteAmount: order.totalBill, blackAmount: 0, status: "Cleared" });
     if (order.totalCash > 0) state.ledger.push({ id: "led-" + nowTs + "b", orderId: order.id, merchantId: order.merchantId, merchantName: mName, date: dispatchDateStr, refNo: order.performerNo, description: "Cash Sale (Black Book)", whiteAmount: 0, blackAmount: order.totalCash, status: "Cleared" });
 
     if (order.status !== "Dispatched") {
@@ -4758,8 +4758,8 @@ function renderPartySummaryTable(isMasterAdmin, bookFilter, fromDate, toDate) {
                     <th style="width:40px; text-align:center;">#</th>
                     <th>Party / Merchant Name (વેપારી પેઢી)</th>
                     <th style="width:110px;">City (શહેર)</th>
-                    <th class="num-col" style="color:#a7f3d0; width:130px; text-align:right;">Official White (GST ₹)</th>
-                    <th class="num-col" style="color:#fed7aa; width:130px; text-align:right;">Cash Black (રોકડ ₹)</th>
+                    <th class="num-col" style="color:#a7f3d0; width:130px; text-align:right;">Official Book (GST ₹)</th>
+                    <th class="num-col" style="color:#fed7aa; width:130px; text-align:right;">Cash Book (રોકડ ₹)</th>
                     <th class="num-col" style="color:#bfdbfe; width:145px; text-align:right;">Combined Total (કુલ બાકી ₹)</th>
                     <th style="width:105px; text-align:center;">Status</th>
                     <th style="width:130px; text-align:center;">Action</th>
@@ -5320,7 +5320,7 @@ function sendPaymentReceiptWhatsApp(m, amount, book, mode, ref, dateStr, txnType
 
     const typeTitle = txnTypeSelect === 'CreditNote' ? 'CREDIT NOTE / VADTAR (જમા પહોંચ)' : 'PAYMENT RECEIPT (પેમેન્ટ મળ્યાની પહોંચ)';
     const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
-    const bookTitle = book === 'white' ? (isMasterAdmin ? 'Official White Book' : 'Official Book') : 'Cash Book';
+    const bookTitle = book === 'white' ? 'Official Book' : 'Cash Book';
 
     let msg = `🧾 *${typeTitle}*\n` +
               `🏢 *${companyName}*\n` +
@@ -5558,7 +5558,7 @@ function sendLedgerWhatsAppStatement() {
     }
 
     const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
-    const bookName = bookFilter === 'white' ? (isMasterAdmin ? 'Official White Book' : 'Official Book') : (bookFilter === 'black' ? 'Cash Black Book' : 'Consolidated (All Books)');
+    const bookName = bookFilter === 'white' ? 'Official Book' : (bookFilter === 'black' ? 'Cash Black Book' : 'Consolidated (All Books)');
 
     const recentTxns = entries.slice(-6);
     let txnLines = "";
@@ -5578,7 +5578,7 @@ function sendLedgerWhatsAppStatement() {
               `📅 *Period:* ${periodStr}\n` +
               `📖 *Book:* ${bookName}\n` +
               `━━━━━━━━━━━━━━━━━━━━\n` +
-              (bookFilter !== 'black' ? `🔹 *${isMasterAdmin ? 'White Book' : 'Official Book'}:* ${wBal >= 0 ? '₹' + Math.round(wBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(wBal)).toLocaleString('en-IN') + ' (Adv)'}\n` : '') +
+              (bookFilter !== 'black' ? `🔹 *Official Book:* ${wBal >= 0 ? '₹' + Math.round(wBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(wBal)).toLocaleString('en-IN') + ' (Adv)'}\n` : '') +
               (bookFilter !== 'white' ? `🔹 *Cash Book:* ${bBal >= 0 ? '₹' + Math.round(bBal).toLocaleString('en-IN') : '+₹' + Math.round(Math.abs(bBal)).toLocaleString('en-IN') + ' (Adv)'}\n` : '') +
               `💰 *કુલ નેટ બાકી (Net Balance):* *${statusText}*\n` +
               `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -5799,7 +5799,7 @@ function printLedgerStatement() {
     }
 
     const isMasterAdmin = typeof window !== 'undefined' && (window.location.pathname.includes('master_admin.html') || document.title.includes('Master Admin'));
-    const bookTitleDisplay = bookFilter === 'white' ? (isMasterAdmin ? 'Official White Book (GST / Tax Invoices Only)' : 'Official Book (GST / Tax Invoices Only)') : (bookFilter === 'black' ? 'Cash Black Book (Cash Accounts Only)' : 'Consolidated Ledger (White & Cash Combined)');
+    const bookTitleDisplay = bookFilter === 'white' ? 'Official Book (GST / Tax Invoices Only)' : (bookFilter === 'black' ? 'Cash Black Book (Cash Accounts Only)' : 'Consolidated Ledger (Official & Cash Combined)');
 
     const printWin = window.open("", "_blank");
     printWin.document.write(`

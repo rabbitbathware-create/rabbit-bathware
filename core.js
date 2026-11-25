@@ -419,7 +419,7 @@ function reconcileDispatchedOrdersToLedger(targetState) {
                 merchantName: mName,
                 date: dDate,
                 refNo: refNo,
-                description: "Sales Invoice (White Book)",
+                description: "Sales Invoice (Official Book)",
                 whiteAmount: billAmt,
                 blackAmount: 0,
                 status: "Cleared"
