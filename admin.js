@@ -988,12 +988,10 @@ function renderStockTable() {
     const activeGradeBtn = document.querySelector("#stock-grade-filters .cat-btn.active");
     const activeGrade = activeGradeBtn ? activeGradeBtn.getAttribute("data-grade") : "all";
 
-    // Sort products by displayOrder (ascending)
-    const sortedProds = [...(state.products || [])].sort((a, b) => {
-        const ordA = a.displayOrder !== undefined ? a.displayOrder : 100;
-        const ordB = b.displayOrder !== undefined ? b.displayOrder : 100;
-        return ordA - ordB;
-    });
+    // Sort products by Sub-category and Order
+    const sortedProds = (typeof sortProductsBySubcategoryAndOrder === 'function')
+        ? sortProductsBySubcategoryAndOrder(state.products || [], activeCat)
+        : [...(state.products || [])].sort((a, b) => (a.displayOrder || 100) - (b.displayOrder || 100));
 
     const matchingProds = sortedProds.filter(p => {
         if (activeCat === "low-stock") {

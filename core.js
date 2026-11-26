@@ -149,6 +149,58 @@ function isProductInCategory(product, targetCat) {
 }
 window.isProductInCategory = isProductInCategory;
 
+function sortProductsBySubcategoryAndOrder(products, categoryName) {
+    if (!products || !Array.isArray(products)) return [];
+    const tree = (typeof state !== 'undefined' && state && state.categoryTree && Object.keys(state.categoryTree).length > 0)
+        ? state.categoryTree
+        : DEFAULT_CATEGORY_TREE;
+
+    const getSubCatIndex = (p) => {
+        const cat = p.category || categoryName || '';
+        const normCat = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(cat) : cat;
+        const subCats = tree[cat] || tree[normCat] || (DEFAULT_CATEGORY_TREE && (DEFAULT_CATEGORY_TREE[normCat] || DEFAULT_CATEGORY_TREE[cat])) || [];
+        const sc = p.subcategory || p.subCategory || '';
+        if (!sc) return 9999;
+        const idx = subCats.findIndex(s => s && s.trim().toLowerCase() === sc.trim().toLowerCase());
+        return idx === -1 ? 9999 : idx;
+    };
+
+    const getDisplayOrder = (p) => {
+        const num = parseInt(p.displayOrder, 10);
+        return isNaN(num) ? 9999 : num;
+    };
+
+    return [...products].sort((a, b) => {
+        // If sorting across multiple categories, sort by category order first
+        if (!categoryName || categoryName === 'all') {
+            const catA = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(a.category) : (a.category || '');
+            const catB = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(b.category) : (b.category || '');
+            if (catA !== catB) {
+                const available = (typeof state !== 'undefined' && state && state.categories) ? state.categories : DEFAULT_CATEGORIES;
+                const cIdxA = available.indexOf(catA);
+                const cIdxB = available.indexOf(catB);
+                const finalCIdxA = cIdxA === -1 ? 9999 : cIdxA;
+                const finalCIdxB = cIdxB === -1 ? 9999 : cIdxB;
+                if (finalCIdxA !== finalCIdxB) return finalCIdxA - finalCIdxB;
+            }
+        }
+
+        // 1. Sort by Subcategory order (as set in Category Manager)
+        const subIdxA = getSubCatIndex(a);
+        const subIdxB = getSubCatIndex(b);
+        if (subIdxA !== subIdxB) return subIdxA - subIdxB;
+
+        // 2. Sort by Product displayOrder within that subcategory
+        const ordA = getDisplayOrder(a);
+        const ordB = getDisplayOrder(b);
+        if (ordA !== ordB) return ordA - ordB;
+
+        // 3. Fallback: Model name
+        return (a.model || '').localeCompare(b.model || '');
+    });
+}
+window.sortProductsBySubcategoryAndOrder = sortProductsBySubcategoryAndOrder;
+
 const DEFAULT_PRODUCTS = [
     { id: "prod-1", category: "Ceramic Sanitary Ware", subcategory: "One Piece Closet", model: "ONE PIECE", grade: "ROK", material: "Vitreous China", colour: "White", price: 1950, billRate: 550, weight: 38, stock: 100, displayOrder: 10, isHot: true },
     { id: "prod-2", category: "Ceramic Sanitary Ware", subcategory: "Wall Hung Closet", model: "Wall Hung", grade: "ROK", material: "Vitreous China", colour: "White", price: 680, billRate: 100, weight: 15, stock: 120, displayOrder: 20, isHot: false },

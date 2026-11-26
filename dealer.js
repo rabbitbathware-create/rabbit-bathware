@@ -1540,7 +1540,11 @@
 
             // Apply sorting
             if (dealerSortOption === 'featured') {
-                prods.sort((a, b) => (a.displayOrder || 100) - (b.displayOrder || 100));
+                if (typeof sortProductsBySubcategoryAndOrder === 'function') {
+                    prods = sortProductsBySubcategoryAndOrder(prods, cat);
+                } else {
+                    prods.sort((a, b) => (a.displayOrder || 100) - (b.displayOrder || 100));
+                }
             } else if (dealerSortOption === 'name_asc') {
                 prods.sort((a, b) => (a.model || '').localeCompare(b.model || ''));
             } else if (dealerSortOption === 'price_asc') {
@@ -1551,19 +1555,7 @@
                 prods.sort((a, b) => (b.stock || 0) - (a.stock || 0));
             }
 
-            const sec = document.createElement('div');
-            sec.className = 'dealer-catalog-section';
-            sec.innerHTML = `
-                <div class="dealer-cat-section-header">
-                    <span class="dealer-cat-title"><i class="fa-solid fa-layer-group" style="color:#3b82f6;"></i> ${cat} ${activeSubCategoryFilter !== 'all' ? `— ${activeSubCategoryFilter}` : ''}</span>
-                    <span class="dealer-cat-count">${prods.length} Items</span>
-                </div>
-            `;
-
-            const grid = document.createElement('div');
-            grid.className = 'dealer-catalog-grid';
-
-            prods.forEach(p => {
+            function buildDealerProductCard(p) {
                 const isDual = (p.packagingType === 'dual' || (p.boxQty && p.boxQty > 1));
                 const activeUnit = isDual ? ((window.dealerCardUnits && window.dealerCardUnits[p.id]) || 'box') : 'pcs';
                 const pricing = dealerMerchant 
@@ -1693,10 +1685,81 @@
                     </div>
                     ${activeUnit === 'box' && activeQty > 0 ? `<div style="text-align:center; font-size:0.7rem; color:#2563eb; font-weight:700; margin-top:2px;">= ${activeQty * p.boxQty} total pcs</div>` : ''}
                 `;
-                grid.appendChild(card);
-            });
+                return card;
+            }
 
-            sec.appendChild(grid);
+            const sec = document.createElement('div');
+            sec.className = 'dealer-catalog-section';
+            sec.innerHTML = `
+                <div class="dealer-cat-section-header">
+                    <span class="dealer-cat-title"><i class="fa-solid fa-layer-group" style="color:#3b82f6;"></i> ${cat} ${activeSubCategoryFilter !== 'all' ? `— ${activeSubCategoryFilter}` : ''}</span>
+                    <span class="dealer-cat-count">${prods.length} Items</span>
+                </div>
+            `;
+
+            // Group products by subcategory with clean headings when viewing all subcategories
+            if (activeSubCategoryFilter === 'all' && dealerSortOption === 'featured') {
+                const tree = (state.categoryTree && Object.keys(state.categoryTree).length > 0) ? state.categoryTree : DEFAULT_CATEGORY_TREE;
+                const normCat = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(cat) : cat;
+                const subCats = tree[cat] || tree[normCat] || (DEFAULT_CATEGORY_TREE && (DEFAULT_CATEGORY_TREE[normCat] || DEFAULT_CATEGORY_TREE[cat])) || [];
+
+                const groups = {};
+                prods.forEach(p => {
+                    const sc = p.subcategory || p.subCategory || 'Other Products';
+                    if (!groups[sc]) groups[sc] = [];
+                    groups[sc].push(p);
+                });
+
+                const orderedSubCats = [];
+                subCats.forEach(sc => {
+                    const matchedKey = Object.keys(groups).find(k => k.trim().toLowerCase() === sc.trim().toLowerCase());
+                    if (matchedKey && groups[matchedKey] && groups[matchedKey].length > 0) {
+                        orderedSubCats.push({ name: sc, prods: groups[matchedKey] });
+                        delete groups[matchedKey];
+                    }
+                });
+                Object.keys(groups).forEach(k => {
+                    if (groups[k] && groups[k].length > 0) {
+                        orderedSubCats.push({ name: k, prods: groups[k] });
+                    }
+                });
+
+                if (orderedSubCats.length > 0) {
+                    orderedSubCats.forEach(subGroup => {
+                        const subHeader = document.createElement('div');
+                        subHeader.className = 'dealer-subcat-section-header';
+                        subHeader.innerHTML = `
+                            <div class="dealer-subcat-title">
+                                <i class="fa-solid fa-tag" style="color:#2563eb; font-size:0.85rem;"></i> ${subGroup.name}
+                            </div>
+                            <span class="dealer-subcat-count">${subGroup.prods.length} Items</span>
+                        `;
+                        sec.appendChild(subHeader);
+
+                        const subGrid = document.createElement('div');
+                        subGrid.className = 'dealer-catalog-grid';
+                        subGroup.prods.forEach(p => {
+                            subGrid.appendChild(buildDealerProductCard(p));
+                        });
+                        sec.appendChild(subGrid);
+                    });
+                } else {
+                    const grid = document.createElement('div');
+                    grid.className = 'dealer-catalog-grid';
+                    prods.forEach(p => {
+                        grid.appendChild(buildDealerProductCard(p));
+                    });
+                    sec.appendChild(grid);
+                }
+            } else {
+                const grid = document.createElement('div');
+                grid.className = 'dealer-catalog-grid';
+                prods.forEach(p => {
+                    grid.appendChild(buildDealerProductCard(p));
+                });
+                sec.appendChild(grid);
+            }
+
             container.appendChild(sec);
         });
 
