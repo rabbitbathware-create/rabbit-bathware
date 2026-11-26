@@ -1630,11 +1630,25 @@
             <div class="form-row-two" style="margin-bottom:0.75rem;">
                 <div class="form-group">
                     <label style="font-weight:700; font-size:0.8rem;">Sub-Category (સબ-કેટેગરી)</label>
-                    <select id="stock-subcategory"></select>
+                    <select id="stock-subcategory" onchange="onStockSubCategoryChange()"></select>
                 </div>
                 <div class="form-group">
                     <label style="font-weight:700; font-size:0.8rem;">Finish / Type (પ્રકાર / ડિઝાઇન)</label>
                     <input type="text" id="stock-finish-type" placeholder="e.g. Plain White, Matt Black, Marble, Nano Waterfall">
+                </div>
+            </div>
+
+            <div id="stock-subsubcategory-container" class="form-row-two" style="margin-bottom:0.75rem; display:none; background:#eff6ff; padding:0.65rem; border-radius:6px; border:1px solid #bfdbfe;">
+                <div class="form-group">
+                    <label id="stock-subsubcategory-label" style="font-weight:700; font-size:0.8rem; color:#1d4ed8;">
+                        <i class="fa-solid fa-layer-group"></i> Sub-Sub Category / Bowl Type (પેટા-પ્રકાર / બાઉલ ટાઈપ)
+                    </label>
+                    <select id="stock-subsubcategory" style="border:1.5px solid #3b82f6; font-weight:600;"></select>
+                </div>
+                <div class="form-group">
+                    <small style="font-size:0.75rem; color:#1e40af; margin-top:1.4rem; display:block; font-weight:600;">
+                        સિંક માટે બાઉલ પ્રકાર (Single Bowl, Double Bowl વગેરે) પસંદ કરો.
+                    </small>
                 </div>
             </div>
 

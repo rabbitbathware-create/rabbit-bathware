@@ -84,6 +84,10 @@ function onStockCategoryChange() {
         subCatSelect.value = currentSubVal;
     }
 
+    if (typeof onStockSubCategoryChange === 'function') {
+        onStockSubCategoryChange();
+    }
+
     // Auto-detect template and render specs fields if adding a new product
     const modelInp = document.getElementById("stock-model");
     const model = modelInp ? modelInp.value : "";
@@ -97,6 +101,56 @@ function onStockCategoryChange() {
         }
     }
 }
+
+function onStockSubCategoryChange() {
+    const catSelect = document.getElementById("stock-category");
+    const subCatSelect = document.getElementById("stock-subcategory");
+    const subSubCont = document.getElementById("stock-subsubcategory-container");
+    const subSubSelect = document.getElementById("stock-subsubcategory");
+    if (!catSelect || !subCatSelect || !subSubCont || !subSubSelect) return;
+
+    const cat = catSelect.value;
+    const subCat = subCatSelect.value;
+    const subSubCats = (typeof getSubSubCategories === 'function') ? getSubSubCategories(cat, subCat) : [];
+
+    if (subSubCats && subSubCats.length > 0) {
+        subSubCont.style.display = "flex";
+        const currentVal = subSubSelect.value;
+        subSubSelect.innerHTML = '<option value="">-- General / All Bowls / Types --</option>';
+        subSubCats.forEach(t => {
+            const opt = document.createElement("option");
+            opt.value = t;
+            opt.textContent = t;
+            subSubSelect.appendChild(opt);
+        });
+        if (currentVal && subSubCats.includes(currentVal)) {
+            subSubSelect.value = currentVal;
+        }
+    } else {
+        subSubCont.style.display = "none";
+        subSubSelect.innerHTML = '<option value="">-- None --</option>';
+        subSubSelect.value = "";
+    }
+}
+window.onStockSubCategoryChange = onStockSubCategoryChange;
+
+function manageSubSubCategories(mainCat, subCat) {
+    const tree = (typeof getSubSubCategoryTree === 'function') ? getSubSubCategoryTree() : {};
+    if (!state.subSubCategoryTree) state.subSubCategoryTree = JSON.parse(JSON.stringify(tree));
+    if (!state.subSubCategoryTree[mainCat]) state.subSubCategoryTree[mainCat] = {};
+    const currentList = state.subSubCategoryTree[mainCat][subCat] || [];
+    const currentStr = currentList.join(', ');
+    const newStr = prompt(`Configure Bowl Types / Sub-Sub Categories for "${subCat}" under "${mainCat}" (comma-separated):\n\nExample: Single Bowl, Single Bowl With Drainboard, Double Bowl, Double Bowl With Drainboard`, currentStr);
+    if (newStr === null) return;
+    const cleanList = newStr.split(',').map(s => s.trim()).filter(Boolean);
+    state.subSubCategoryTree[mainCat][subCat] = cleanList;
+    saveState();
+    if (typeof syncToCloud === 'function') syncToCloud();
+    renderCategoryManagerList();
+    populateStockModalCategories();
+    alert(`Sub-sub categories for "${subCat}" updated! (${cleanList.length} types saved)`);
+}
+window.manageSubSubCategories = manageSubSubCategories;
 
 function getCategoryTree() {
     if (state.categoryTree && Object.keys(state.categoryTree).length > 0) {
@@ -144,6 +198,7 @@ function renderCategoryManagerList() {
                     <span style="display:inline-flex; align-items:center; gap:0.35rem; background:#f1f5f9; color:#0e254f; padding:0.2rem 0.6rem; border-radius:14px; font-size:0.78rem; font-weight:600; border:1px solid #cbd5e1;">
                         <i class="fa-solid fa-caret-left" style="cursor:pointer; color:#64748b; font-size:0.85rem;" title="Move Left" onclick="moveSubCatLeft('${mainCat.replace(/'/g, "\\'")}', ${scIdx})"></i>
                         <span>${sc} <span style="font-size:0.7rem; color:#16a34a; font-weight:700;">(${subCount})</span></span>
+                                                <i class="fa-solid fa-sink" style="cursor:pointer; color:#2563eb; margin-left:0.2rem; font-size:0.75rem;" title="Configure Bowl Types / Sub-Sub Categories" onclick="manageSubSubCategories('${mainCat.replace(/'/g, "\\'")}', '${sc.replace(/'/g, "\\'")}')"></i>
                         <i class="fa-solid fa-pen-to-square" style="cursor:pointer; color:#2563eb; margin-left:0.15rem; font-size:0.75rem;" title="Rename Sub-Category" onclick="editSubCategory('${mainCat.replace(/'/g, "\\'")}', '${sc.replace(/'/g, "\\'")}')"></i>
                         <i class="fa-solid fa-caret-right" style="cursor:pointer; color:#64748b; font-size:0.85rem;" title="Move Right" onclick="moveSubCatRight('${mainCat.replace(/'/g, "\\'")}', ${scIdx})"></i>
                         <i class="fa-solid fa-xmark" style="cursor:pointer; color:#ef4444; margin-left:0.25rem; font-size:0.85rem;" title="Delete" onclick="deleteSubCategory('${mainCat.replace(/'/g, "\\'")}', '${sc.replace(/'/g, "\\'")}')"></i>
@@ -1327,6 +1382,14 @@ function openEditProductModal(id) {
     const subCatSelect = document.getElementById("stock-subcategory");
     if (subCatSelect) {
         subCatSelect.value = p.subcategory || p.subCategory || "";
+        if (typeof onStockSubCategoryChange === 'function') {
+            onStockSubCategoryChange();
+        }
+    }
+    const subSubSelect = document.getElementById("stock-subsubcategory");
+    if (subSubSelect) {
+        const curVal = (typeof getProductSubSubCategory === 'function') ? getProductSubSubCategory(p) : (p.subSubCategory || p.bowlType || "");
+        if (curVal) subSubSelect.value = curVal;
     }
     
     if (document.getElementById("stock-finish-type")) {
@@ -1423,7 +1486,8 @@ function openEditProductModal(id) {
 function handleNewProduct(e) {
     e.preventDefault();
     const fileInput = document.getElementById("stock-images-input") || document.getElementById("stock-image-input");
-    const subCatVal = document.getElementById("stock-subcategory") ? document.getElementById("stock-subcategory").value : "";
+        const subCatVal = document.getElementById("stock-subcategory") ? document.getElementById("stock-subcategory").value : "";
+    const subSubCatVal = document.getElementById("stock-subsubcategory") ? document.getElementById("stock-subsubcategory").value.trim() : "";
     const finishTypeVal = document.getElementById("stock-finish-type") ? document.getElementById("stock-finish-type").value.trim() : "";
     const displayOrderVal = parseInt(document.getElementById("stock-display-order").value) || 100;
     const isHotVal = document.getElementById("stock-is-hot") ? document.getElementById("stock-is-hot").checked : false;
@@ -1466,6 +1530,8 @@ function handleNewProduct(e) {
                 p.category = document.getElementById("stock-category").value;
                 p.subcategory = subCatVal;
                 p.subCategory = subCatVal;
+                p.subSubCategory = subSubCatVal;
+                p.bowlType = subSubCatVal;
                 p.finishType = finishTypeVal;
                 p.availabilityMode = availabilityModeVal;
                 p.asPerOrder = (availabilityModeVal === 'order');
@@ -1501,6 +1567,8 @@ function handleNewProduct(e) {
                 category: document.getElementById("stock-category").value,
                 subcategory: subCatVal,
                 subCategory: subCatVal,
+                subSubCategory: subSubCatVal,
+                bowlType: subSubCatVal,
                 finishType: finishTypeVal,
                 availabilityMode: availabilityModeVal,
                 asPerOrder: (availabilityModeVal === 'order'),

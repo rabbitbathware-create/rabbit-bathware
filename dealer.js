@@ -1330,6 +1330,7 @@
     }
 
     let activeSubCategoryFilter = 'all';
+    let activeSubSubCategoryFilter = 'all';
     let dealerSortOption = 'featured';
 
     function renderCategoryPills() {
@@ -1356,8 +1357,10 @@
     function filterDealerCategory(cat) {
         activeCategoryFilter = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(cat) : cat;
         activeSubCategoryFilter = 'all';
+        activeSubSubCategoryFilter = 'all';
         activeGradeFilter = 'all';
         renderCategoryPills();
+        renderDealerSubSubCategoryPills();
         renderDealerGradePills();
         renderDealerCatalog();
     }
@@ -1423,7 +1426,82 @@
         renderDealerCatalog();
     }
 
-    function renderDealerGradePills() {
+        function filterDealerSubSubCategory(type) {
+        activeSubSubCategoryFilter = type;
+        renderDealerSubSubCategoryPills();
+        renderDealerCatalog();
+    }
+    window.filterDealerSubSubCategory = filterDealerSubSubCategory;
+
+    function renderDealerSubSubCategoryPills() {
+        const bar = document.getElementById('dealer-subsubcat-filter-bar');
+        const container = document.getElementById('dealer-subsubcat-pills');
+        if (!bar || !container) return;
+
+        let cat = activeCategoryFilter;
+        let availableTypes = [];
+
+        if (cat !== 'all') {
+            if (activeSubCategoryFilter !== 'all') {
+                availableTypes = (typeof getSubSubCategories === 'function')
+                    ? getSubSubCategories(cat, activeSubCategoryFilter)
+                    : [];
+            } else {
+                const tree = (typeof getSubSubCategoryTree === 'function') ? getSubSubCategoryTree() : {};
+                const normCat = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(cat) : cat;
+                const catMap = tree[cat] || tree[normCat] || {};
+                Object.values(catMap).forEach(arr => {
+                    if (Array.isArray(arr)) {
+                        arr.forEach(t => { if (!availableTypes.includes(t)) availableTypes.push(t); });
+                    }
+                });
+            }
+        }
+
+        // Also check products in view
+        const prodsInView = (state.products || []).filter(p => {
+            const matchCat = (cat === 'all') || ((typeof isProductInCategory === 'function') ? isProductInCategory(p, cat) : p.category === cat);
+            const matchSub = (activeSubCategoryFilter === 'all') || (p.subcategory === activeSubCategoryFilter || p.subCategory === activeSubCategoryFilter);
+            return matchCat && matchSub;
+        });
+
+        prodsInView.forEach(p => {
+            const t = (typeof getProductSubSubCategory === 'function') ? getProductSubSubCategory(p) : (p.subSubCategory || p.bowlType);
+            if (t && !availableTypes.includes(t)) availableTypes.push(t);
+        });
+
+        if (availableTypes.length === 0) {
+            bar.style.display = 'none';
+            activeSubSubCategoryFilter = 'all';
+            return;
+        }
+
+        bar.style.display = 'flex';
+        const allCount = prodsInView.length;
+
+        let pillsHtml = `
+            <button class="dealer-cat-pill ${activeSubSubCategoryFilter === 'all' ? 'active' : ''}" style="font-size:0.75rem; padding:0.25rem 0.6rem;" onclick="filterDealerSubSubCategory('all')">
+                All Types <span style="font-size:0.68rem; opacity:0.8;">(${allCount})</span>
+            </button>
+        `;
+
+        availableTypes.forEach(t => {
+            const count = prodsInView.filter(p => {
+                const pt = (typeof getProductSubSubCategory === 'function') ? getProductSubSubCategory(p) : (p.subSubCategory || p.bowlType);
+                return pt && pt.toLowerCase() === t.toLowerCase();
+            }).length;
+            pillsHtml += `
+                <button class="dealer-cat-pill ${activeSubSubCategoryFilter.toLowerCase() === t.toLowerCase() ? 'active' : ''}" style="font-size:0.75rem; padding:0.25rem 0.6rem;" onclick="filterDealerSubSubCategory('${t.replace(/'/g, "\\'")}')">
+                    ${t} <span style="font-size:0.68rem; opacity:0.8;">(${count})</span>
+                </button>
+            `;
+        });
+
+        container.innerHTML = pillsHtml;
+    }
+    window.renderDealerSubSubCategoryPills = renderDealerSubSubCategoryPills;
+
+function renderDealerGradePills() {
         const container = document.getElementById('dealer-grade-pills');
         if (!container) return;
 
@@ -1536,6 +1614,13 @@
                 prods = prods.filter(p => (p.grade || 'Premium') === activeGradeFilter);
             }
 
+            if (activeSubSubCategoryFilter !== 'all') {
+                prods = prods.filter(p => {
+                    const pt = (typeof getProductSubSubCategory === 'function') ? getProductSubSubCategory(p) : (p.subSubCategory || p.bowlType);
+                    return pt && pt.toLowerCase() === activeSubSubCategoryFilter.toLowerCase();
+                });
+            }
+
             if (prods.length === 0) return;
 
             // Apply sorting
@@ -1636,13 +1721,19 @@
 
                 const materialSpecBadge = p.material ? `<span style="display:inline-block; font-size:0.68rem; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:1px 6px;" title="Material Specification"><i class="fa-solid fa-shapes" style="font-size:0.6rem; color:#94a3b8;"></i> ${p.material}</span>` : '';
 
-                const specBadgesRow = (hotBadgeInline || gradeBadgeHtml || materialSpecBadge) ? `
+                const sscType = (typeof getProductSubSubCategory === 'function') ? getProductSubSubCategory(p) : (p.subSubCategory || p.bowlType || '');
+                const sscBadgeHtml = sscType ? `<span style="display:inline-flex; align-items:center; gap:3px; font-size:0.68rem; font-weight:700; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:4px; padding:1px 6px;" title="Bowl Configuration">${sscType}</span>` : '';
+
+                const specBadgesRow = (hotBadgeInline || gradeBadgeHtml || materialSpecBadge || sscBadgeHtml) ? `
                     <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin:0.25rem 0 0.4rem 0;">
                         ${hotBadgeInline}
                         ${gradeBadgeHtml}
                         ${materialSpecBadge}
+                        ${sscBadgeHtml}
                     </div>
                 ` : '';
+
+                const specDetails = [p.colour, p.finishType].filter(Boolean).join(' • ') || (sscType ? `Bowl: ${sscType}` : '');
 
                 const card = document.createElement('div');
                 card.className = `dealer-prod-card ${isAnyInCart ? 'in-cart' : ''}`;
@@ -1653,7 +1744,7 @@
                     ${dotsHtml}
                     <div class="dealer-prod-name">${p.model}</div>
                     ${specBadgesRow}
-                    <div class="dealer-prod-spec">${subSpecText}${p.colour}${finishSpecText}</div>
+                    <div class="dealer-prod-spec">${subSpecText ? subSpecText.replace(/ • $/, '') : ''}${specDetails ? ' • ' + specDetails : ''}</div>
                     <button type="button" class="dealer-specs-btn" onclick="event.stopPropagation(); openProductSpecsModal('${p.id}')">
                         <i class="fa-solid fa-circle-info"></i> View Details
                     </button>
@@ -1736,12 +1827,57 @@
                         `;
                         sec.appendChild(subHeader);
 
-                        const subGrid = document.createElement('div');
-                        subGrid.className = 'dealer-catalog-grid';
-                        subGroup.prods.forEach(p => {
-                            subGrid.appendChild(buildDealerProductCard(p));
-                        });
-                        sec.appendChild(subGrid);
+                        const subSubList = (typeof getSubSubCategories === 'function') ? getSubSubCategories(cat, subGroup.name) : [];
+                        if (subSubList.length > 0 && activeSubSubCategoryFilter === 'all') {
+                            const sscGroups = {};
+                            subGroup.prods.forEach(p => {
+                                const ssc = (typeof getProductSubSubCategory === 'function') ? getProductSubSubCategory(p) : (p.subSubCategory || p.bowlType || 'Other Models');
+                                const key = ssc || 'Other Models';
+                                if (!sscGroups[key]) sscGroups[key] = [];
+                                sscGroups[key].push(p);
+                            });
+
+                            const orderedSsc = [];
+                            subSubList.forEach(t => {
+                                const mKey = Object.keys(sscGroups).find(k => k.trim().toLowerCase() === t.trim().toLowerCase());
+                                if (mKey && sscGroups[mKey] && sscGroups[mKey].length > 0) {
+                                    orderedSsc.push({ name: t, prods: sscGroups[mKey] });
+                                    delete sscGroups[mKey];
+                                }
+                            });
+                            Object.keys(sscGroups).forEach(k => {
+                                if (sscGroups[k] && sscGroups[k].length > 0) {
+                                    orderedSsc.push({ name: k, prods: sscGroups[k] });
+                                }
+                            });
+
+                            if (orderedSsc.length > 0) {
+                                orderedSsc.forEach(sg => {
+                                    const sscHeader = document.createElement('div');
+                                    sscHeader.className = 'dealer-subsubcat-section-header';
+                                    sscHeader.innerHTML = `
+                                        <div class="dealer-subsubcat-title"><i class="fa-solid fa-circle-dot" style="color:#2563eb; font-size:0.72rem;"></i> ${sg.name}</div>
+                                        <span class="dealer-subsubcat-count">${sg.prods.length} Items</span>
+                                    `;
+                                    sec.appendChild(sscHeader);
+
+                                    const sscGrid = document.createElement('div');
+                                    sscGrid.className = 'dealer-catalog-grid';
+                                    sg.prods.forEach(p => sscGrid.appendChild(buildDealerProductCard(p)));
+                                    sec.appendChild(sscGrid);
+                                });
+                            } else {
+                                const subGrid = document.createElement('div');
+                                subGrid.className = 'dealer-catalog-grid';
+                                subGroup.prods.forEach(p => subGrid.appendChild(buildDealerProductCard(p)));
+                                sec.appendChild(subGrid);
+                            }
+                        } else {
+                            const subGrid = document.createElement('div');
+                            subGrid.className = 'dealer-catalog-grid';
+                            subGroup.prods.forEach(p => subGrid.appendChild(buildDealerProductCard(p)));
+                            sec.appendChild(subGrid);
+                        }
                     });
                 } else {
                     const grid = document.createElement('div');
@@ -1752,12 +1888,58 @@
                     sec.appendChild(grid);
                 }
             } else {
-                const grid = document.createElement('div');
-                grid.className = 'dealer-catalog-grid';
-                prods.forEach(p => {
-                    grid.appendChild(buildDealerProductCard(p));
-                });
-                sec.appendChild(grid);
+                // When viewing a single subcategory, check if it has sub-subcategories
+                const subSubList = (typeof getSubSubCategories === 'function') ? getSubSubCategories(cat, activeSubCategoryFilter) : [];
+                if (subSubList.length > 0 && activeSubSubCategoryFilter === 'all') {
+                    const sscGroups = {};
+                    prods.forEach(p => {
+                        const ssc = (typeof getProductSubSubCategory === 'function') ? getProductSubSubCategory(p) : (p.subSubCategory || p.bowlType || 'Other Models');
+                        const key = ssc || 'Other Models';
+                        if (!sscGroups[key]) sscGroups[key] = [];
+                        sscGroups[key].push(p);
+                    });
+
+                    const orderedSsc = [];
+                    subSubList.forEach(t => {
+                        const mKey = Object.keys(sscGroups).find(k => k.trim().toLowerCase() === t.trim().toLowerCase());
+                        if (mKey && sscGroups[mKey] && sscGroups[mKey].length > 0) {
+                            orderedSsc.push({ name: t, prods: sscGroups[mKey] });
+                            delete sscGroups[mKey];
+                        }
+                    });
+                    Object.keys(sscGroups).forEach(k => {
+                        if (sscGroups[k] && sscGroups[k].length > 0) {
+                            orderedSsc.push({ name: k, prods: sscGroups[k] });
+                        }
+                    });
+
+                    if (orderedSsc.length > 0) {
+                        orderedSsc.forEach(sg => {
+                            const sscHeader = document.createElement('div');
+                            sscHeader.className = 'dealer-subsubcat-section-header';
+                            sscHeader.innerHTML = `
+                                <div class="dealer-subsubcat-title"><i class="fa-solid fa-circle-dot" style="color:#2563eb; font-size:0.72rem;"></i> ${sg.name}</div>
+                                <span class="dealer-subsubcat-count">${sg.prods.length} Items</span>
+                            `;
+                            sec.appendChild(sscHeader);
+
+                            const sscGrid = document.createElement('div');
+                            sscGrid.className = 'dealer-catalog-grid';
+                            sg.prods.forEach(p => sscGrid.appendChild(buildDealerProductCard(p)));
+                            sec.appendChild(sscGrid);
+                        });
+                    } else {
+                        const grid = document.createElement('div');
+                        grid.className = 'dealer-catalog-grid';
+                        prods.forEach(p => grid.appendChild(buildDealerProductCard(p)));
+                        sec.appendChild(grid);
+                    }
+                } else {
+                    const grid = document.createElement('div');
+                    grid.className = 'dealer-catalog-grid';
+                    prods.forEach(p => grid.appendChild(buildDealerProductCard(p)));
+                    sec.appendChild(grid);
+                }
             }
 
             container.appendChild(sec);

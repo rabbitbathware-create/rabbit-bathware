@@ -537,6 +537,37 @@
             border-radius: 12px;
             border: 1px solid #c7d2fe;
         }
+        .dealer-subsubcat-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #f0f7ff 0%, #f8fafc 100%);
+            border-left: 3px solid #3b82f6;
+            border-radius: 6px;
+            padding: 0.4rem 0.75rem;
+            margin-top: 1rem;
+            margin-bottom: 0.65rem;
+            border-top: 1px dashed #cbd5e1;
+            border-right: 1px dashed #cbd5e1;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+        .dealer-subsubcat-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .dealer-subsubcat-count {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #1d4ed8;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
 
         .dealer-catalog-grid, .dealer-product-grid {
             display: grid;
@@ -1325,7 +1356,16 @@
                 </div>
             </div>
 
-            <!-- Quality Grade Filter Bar (Permitted Grades for Dealer) -->
+                        <!-- Sub-Sub Category / Bowl Type Smart Filter Bar -->
+            <div id="dealer-subsubcat-filter-bar" style="display:none; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.25rem; background:linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); padding:0.5rem 0.85rem; border-radius:8px; border:1px solid #bfdbfe;">
+                <span style="font-size:0.8rem; font-weight:700; color:#1e40af; display:flex; align-items:center; gap:0.35rem; white-space:nowrap;">
+                    Bowl Type:
+                </span>
+                <div id="dealer-subsubcat-pills" style="display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center;">
+                    <!-- Injected dynamically via renderDealerSubSubCategoryPills() -->
+                </div>
+            </div>
+<!-- Quality Grade Filter Bar (Permitted Grades for Dealer) -->
             <div id="dealer-grade-filter-bar" style="display:none; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.25rem; background:#fff; padding:0.5rem 0.75rem; border-radius:8px; border:1px solid #e2e8f0;">
                 <span style="font-size:0.8rem; font-weight:700; color:#0e254f; display:flex; align-items:center; gap:0.35rem; white-space:nowrap;">
                     <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i> Quality Grade:

@@ -97,6 +97,53 @@ const DEFAULT_CATEGORY_TREE = {
     "Drain Covers & Accessories": ["Manhole Drain Covers", "CP Fittings & Couplings"]
 };
 
+const DEFAULT_SUB_SUB_CATEGORY_TREE = {
+    "Kitchen Sinks": {
+        "Stainless Steel Sink": ["Single Bowl", "Single Bowl With Drainboard", "Double Bowl", "Double Bowl With Drainboard"],
+        "Handmade 304 Sink": ["Single Bowl", "Double Bowl"],
+        "Quartz Granite Sink": ["Single Bowl", "Double Bowl"]
+    }
+};
+
+function getSubSubCategoryTree() {
+    if (typeof state !== 'undefined' && state && state.subSubCategoryTree && Object.keys(state.subSubCategoryTree).length > 0) {
+        return state.subSubCategoryTree;
+    }
+    return DEFAULT_SUB_SUB_CATEGORY_TREE;
+}
+window.getSubSubCategoryTree = getSubSubCategoryTree;
+
+function getSubSubCategories(catName, subCatName) {
+    if (!catName || !subCatName) return [];
+    const tree = getSubSubCategoryTree();
+    const normCat = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(catName) : catName;
+    const catMap = tree[catName] || tree[normCat] || (DEFAULT_SUB_SUB_CATEGORY_TREE && (DEFAULT_SUB_SUB_CATEGORY_TREE[normCat] || DEFAULT_SUB_SUB_CATEGORY_TREE[catName])) || {};
+    
+    const subKey = Object.keys(catMap).find(k => k && k.trim().toLowerCase() === String(subCatName).trim().toLowerCase());
+    return (subKey && Array.isArray(catMap[subKey])) ? catMap[subKey] : [];
+}
+window.getSubSubCategories = getSubSubCategories;
+
+function getProductSubSubCategory(p) {
+    if (!p) return '';
+    if (p.subSubCategory && String(p.subSubCategory).trim() !== '') return String(p.subSubCategory).trim();
+    if (p.bowlType && String(p.bowlType).trim() !== '') return String(p.bowlType).trim();
+    
+    // Auto-infer for sinks if model name contains bowl indicators
+    const cat = p.category || '';
+    const normCat = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(cat) : cat;
+    if (normCat.toLowerCase().includes('sink')) {
+        const text = ((p.model || '') + ' ' + (p.finishType || '')).toLowerCase();
+        if (text.includes('drainboard') || text.includes('drain board')) {
+            return text.includes('double') ? 'Double Bowl With Drainboard' : 'Single Bowl With Drainboard';
+        }
+        if (text.includes('double')) return 'Double Bowl';
+        if (text.includes('single')) return 'Single Bowl';
+    }
+    return '';
+}
+window.getProductSubSubCategory = getProductSubSubCategory;
+
 const DEFAULT_CATEGORIES = ["Sanitary Ware", "Kitchen Sinks", "Vanity Cabinets & Mirrors", "Drain Covers & Accessories"];
 
 function normalizeCategoryName(catName) {
@@ -165,6 +212,17 @@ function sortProductsBySubcategoryAndOrder(products, categoryName) {
         return idx === -1 ? 9999 : idx;
     };
 
+    const getSubSubCatIndex = (p) => {
+        const cat = p.category || categoryName || '';
+        const sc = p.subcategory || p.subCategory || '';
+        const subSubCats = (typeof getSubSubCategories === 'function') ? getSubSubCategories(cat, sc) : [];
+        if (!subSubCats || subSubCats.length === 0) return 0;
+        const ssc = (typeof getProductSubSubCategory === 'function') ? getProductSubSubCategory(p) : (p.subSubCategory || p.bowlType || '');
+        if (!ssc) return 9999;
+        const idx = subSubCats.findIndex(s => s && s.trim().toLowerCase() === ssc.trim().toLowerCase());
+        return idx === -1 ? 9999 : idx;
+    };
+
     const getDisplayOrder = (p) => {
         const num = parseInt(p.displayOrder, 10);
         return isNaN(num) ? 9999 : num;
@@ -190,12 +248,17 @@ function sortProductsBySubcategoryAndOrder(products, categoryName) {
         const subIdxB = getSubCatIndex(b);
         if (subIdxA !== subIdxB) return subIdxA - subIdxB;
 
-        // 2. Sort by Product displayOrder within that subcategory
+        // 2. Sort by Sub-Subcategory order (e.g. Single Bowl, then Double Bowl)
+        const subSubIdxA = getSubSubCatIndex(a);
+        const subSubIdxB = getSubSubCatIndex(b);
+        if (subSubIdxA !== subSubIdxB) return subSubIdxA - subSubIdxB;
+
+        // 3. Sort by Product displayOrder within that sub-subcategory
         const ordA = getDisplayOrder(a);
         const ordB = getDisplayOrder(b);
         if (ordA !== ordB) return ordA - ordB;
 
-        // 3. Fallback: Model name
+        // 4. Fallback: Model name
         return (a.model || '').localeCompare(b.model || '');
     });
 }
@@ -984,6 +1047,7 @@ function initStateDefaults() {
         defaultMeta[c] = { isPublic: true };
     });
     state = {
+        subSubCategoryTree: JSON.parse(JSON.stringify(DEFAULT_SUB_SUB_CATEGORY_TREE)),
         categoryTree: DEFAULT_CATEGORY_TREE,
         categories: Object.keys(DEFAULT_CATEGORY_TREE),
         categoryMeta: defaultMeta,
