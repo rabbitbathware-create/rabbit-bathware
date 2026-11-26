@@ -1335,7 +1335,14 @@
     function renderCategoryPills() {
         const container = document.getElementById('dealer-cat-pills');
         if (!container) return;
+        if (typeof normalizeCategoryName === 'function') {
+            activeCategoryFilter = normalizeCategoryName(activeCategoryFilter);
+        }
         const availableCats = (state.categories || []).filter(c => typeof isCategoryVisibleToMerchant !== 'function' || isCategoryVisibleToMerchant(c, dealerMerchant));
+        if (activeCategoryFilter !== 'all' && !availableCats.includes(activeCategoryFilter)) {
+            const mapped = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(activeCategoryFilter) : 'all';
+            activeCategoryFilter = availableCats.includes(mapped) ? mapped : 'all';
+        }
         const cats = ['all', ...availableCats];
         container.innerHTML = cats.map(c => `
             <button class="dealer-cat-pill ${c === activeCategoryFilter ? 'active' : ''}" onclick="filterDealerCategory('${c}')">
@@ -1347,7 +1354,7 @@
     }
 
     function filterDealerCategory(cat) {
-        activeCategoryFilter = cat;
+        activeCategoryFilter = (typeof normalizeCategoryName === 'function') ? normalizeCategoryName(cat) : cat;
         activeSubCategoryFilter = 'all';
         activeGradeFilter = 'all';
         renderCategoryPills();
@@ -1374,7 +1381,10 @@
 
         // Filter products in active category allowed for this party, matching the active grade filter
         const prodsInCat = (state.products || []).filter(p => {
-            if (p.category !== activeCategoryFilter) return false;
+            const matchesCat = (typeof isProductInCategory === 'function')
+                ? isProductInCategory(p, activeCategoryFilter)
+                : (p.category === activeCategoryFilter);
+            if (!matchesCat) return false;
             if (typeof isProductGradeAllowed === 'function') {
                 if (!isProductGradeAllowed(dealerMerchant, p)) return false;
             } else {
@@ -1505,7 +1515,11 @@
         }
 
         catsToRender.forEach(cat => {
-            let prods = state.products.filter(p => p.category === cat);
+            let prods = (state.products || []).filter(p => {
+                return (typeof isProductInCategory === 'function')
+                    ? isProductInCategory(p, cat)
+                    : (p.category === cat);
+            });
             
             // Grade Access Control (Guest = only Premium, Dealers = permitted grades)
             if (typeof isProductGradeAllowed === 'function') {
@@ -2883,6 +2897,11 @@ window.exploreProductsFromCart = exploreProductsFromCart;
 window.addEventListener('bms_remote_sync', function() {
     console.log("Dealer Portal: Firebase bms_remote_sync received, refreshing views...");
     try {
+        if (typeof normalizeCategoryName === 'function') {
+            activeCategoryFilter = normalizeCategoryName(activeCategoryFilter);
+        }
+        if (typeof renderCategoryPills === 'function') renderCategoryPills();
+        if (typeof renderSubCategoryPills === 'function') renderSubCategoryPills();
         if (typeof renderHeroSlider === 'function') renderHeroSlider();
         if (typeof renderHomeCategoryCards === 'function') renderHomeCategoryCards();
         if (typeof renderDealerGradePills === 'function') renderDealerGradePills();

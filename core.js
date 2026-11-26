@@ -57,9 +57,9 @@ const DEFAULT_HOME_BANNERS = [
 const DEFAULT_HOME_CATEGORY_CARDS = [
     {
         id: "catcard-1",
-        title: "Ceramic Sanitary Ware",
+        title: "Sanitary Ware",
         subtitle: "One-Piece, Wall-Hung & Closets",
-        category: "Ceramic Sanitary Ware",
+        category: "Sanitary Ware",
         icon: "fa-toilet",
         active: true
     },
@@ -90,13 +90,64 @@ const DEFAULT_HOME_CATEGORY_CARDS = [
 ];
 
 const DEFAULT_CATEGORY_TREE = {
+    "Sanitary Ware": ["One Piece Closet", "Table Top Basin", "Wall Hung Closet", "Counter Wash Basin", "Water Closet & Pan"],
     "Ceramic Sanitary Ware": ["One Piece Closet", "Table Top Basin", "Wall Hung Closet", "Counter Wash Basin", "Water Closet & Pan"],
     "Kitchen Sinks": ["Stainless Steel Sink", "Handmade 304 Sink", "Quartz Granite Sink"],
     "Vanity Cabinets & Mirrors": ["PVC Vanity Cabinets", "LED Smart Mirrors"],
     "Drain Covers & Accessories": ["Manhole Drain Covers", "CP Fittings & Couplings"]
 };
 
-const DEFAULT_CATEGORIES = Object.keys(DEFAULT_CATEGORY_TREE);
+const DEFAULT_CATEGORIES = ["Sanitary Ware", "Kitchen Sinks", "Vanity Cabinets & Mirrors", "Drain Covers & Accessories"];
+
+function normalizeCategoryName(catName) {
+    if (!catName || catName === 'all') return 'all';
+    const trimmed = String(catName).trim();
+    const available = (typeof state !== 'undefined' && state && Array.isArray(state.categories) && state.categories.length > 0)
+        ? state.categories
+        : DEFAULT_CATEGORIES;
+    
+    // 1. Exact match in available categories
+    const exact = available.find(c => c && c.trim().toLowerCase() === trimmed.toLowerCase());
+    if (exact) return exact;
+
+    // 2. Known alias mappings
+    const lower = trimmed.toLowerCase();
+    if (lower.includes('ceramic') || lower.includes('sanitary')) {
+        const sw = available.find(c => c && c.toLowerCase().includes('sanitary'));
+        if (sw) return sw;
+    }
+    if (lower.includes('sink')) {
+        const ks = available.find(c => c && c.toLowerCase().includes('sink'));
+        if (ks) return ks;
+    }
+    if (lower.includes('vanity') || lower.includes('mirror')) {
+        const vm = available.find(c => c && c.toLowerCase().includes('vanity'));
+        if (vm) return vm;
+    }
+    if (lower.includes('drain') || lower.includes('cover')) {
+        const dc = available.find(c => c && c.toLowerCase().includes('drain'));
+        if (dc) return dc;
+    }
+
+    return trimmed;
+}
+window.normalizeCategoryName = normalizeCategoryName;
+
+function isProductInCategory(product, targetCat) {
+    if (!product || !targetCat || targetCat === 'all') return true;
+    const pCat = String(product.category || '').trim();
+    const tCat = String(targetCat).trim();
+    if (pCat === tCat) return true;
+    if (normalizeCategoryName(pCat) === normalizeCategoryName(tCat)) return true;
+    const pLow = pCat.toLowerCase();
+    const tLow = tCat.toLowerCase();
+    if ((pLow.includes('sanitary') || pLow.includes('ceramic')) && (tLow.includes('sanitary') || tLow.includes('ceramic'))) return true;
+    if (pLow.includes('sink') && tLow.includes('sink')) return true;
+    if (pLow.includes('vanity') && tLow.includes('vanity')) return true;
+    if (pLow.includes('drain') && tLow.includes('drain')) return true;
+    return false;
+}
+window.isProductInCategory = isProductInCategory;
 
 const DEFAULT_PRODUCTS = [
     { id: "prod-1", category: "Ceramic Sanitary Ware", subcategory: "One Piece Closet", model: "ONE PIECE", grade: "ROK", material: "Vitreous China", colour: "White", price: 1950, billRate: 550, weight: 38, stock: 100, displayOrder: 10, isHot: true },
